@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import WorldsPage from "../worlds/page";
-
-export default function WorldRoot() {
-  return <WorldsPage />;
+export default function WorldIndex() {
+  redirect("/app/worlds");
 }
