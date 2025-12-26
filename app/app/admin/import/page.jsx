@@ -36,7 +36,7 @@ export default function ImportPage() {
 
   return (
     
-    <PageScaffoldScaffold title="Import">
+    <PageScaffold title="Import">
 <main className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

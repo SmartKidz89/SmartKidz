@@ -5,7 +5,7 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffoldServer";
 export default function Page() {
   return (
     
-    <PageScaffoldScaffold title="Reading">
+    <PageScaffold title="Reading">
 <Suspense fallback={<div className="p-6">Loading…</div>}>
       <ReadingClient />
     </Suspense>

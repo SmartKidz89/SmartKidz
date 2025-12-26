@@ -5,7 +5,7 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function PracticePage() {
   return (
     
-    <PageScaffoldScaffold title="Practice">
+    <PageScaffold title="Practice">
 <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">🎯 Practice</h1>
       <div className="rounded-3xl bg-white border border-slate-200 shadow-soft p-4">

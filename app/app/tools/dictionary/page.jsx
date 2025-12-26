@@ -24,7 +24,7 @@ export default function DictionaryPage() {
   }, [q]);
 
   return (
-    <PageScaffoldMotion className="max-w-4xl mx-auto space-y-6">
+    <PageMotion className="max-w-4xl mx-auto space-y-6">
       <div className="skz-glass p-6 md:p-8">
         <div className="flex items-end justify-between gap-3">
           <div>

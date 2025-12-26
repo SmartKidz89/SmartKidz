@@ -60,7 +60,7 @@ export default function WritingReview() {
 
   return (
     
-    <PageScaffoldScaffold title="Review">
+    <PageScaffold title="Review">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

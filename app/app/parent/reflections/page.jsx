@@ -39,7 +39,7 @@ export default function ParentReflectionsPage() {
   }, [childId]);
 
   return (
-    <PageScaffoldMotion className="max-w-6xl mx-auto space-y-6">
+    <PageMotion className="max-w-6xl mx-auto space-y-6">
       <div className="skz-glass p-6 md:p-8 skz-border-animate skz-shine">
         <div className="flex items-end justify-between gap-3">
           <div>

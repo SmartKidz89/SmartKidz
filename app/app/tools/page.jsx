@@ -3,7 +3,7 @@ import { PageMotion } from "@/components/ui/PremiumMotion";
 
 export default function ToolsIndex() {
   return (
-    <PageScaffoldMotion className="max-w-5xl mx-auto space-y-6">
+    <PageMotion className="max-w-5xl mx-auto space-y-6">
       <div className="skz-glass p-6 md:p-8">
         <div className="text-sm text-slate-500">Tools</div>
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Learning tools</h1>

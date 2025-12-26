@@ -81,7 +81,7 @@ export default function SubjectPage() {
 
   return (
     
-    <PageScaffoldScaffold title="Subject">
+    <PageScaffold title="Subject">
 <div className="container-pad py-14 space-y-10">
       <header className="grid lg:grid-cols-2 gap-8 items-center">
         <div>

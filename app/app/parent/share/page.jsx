@@ -65,7 +65,7 @@ export default function ParentSharePage() {
 
   return (
     
-    <PageScaffoldScaffold title="Share">
+    <PageScaffold title="Share">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

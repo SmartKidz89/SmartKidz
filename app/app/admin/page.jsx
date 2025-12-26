@@ -84,7 +84,7 @@ export default function Admin() {
 
   return (
     
-    <PageScaffoldScaffold title="Admin">
+    <PageScaffold title="Admin">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

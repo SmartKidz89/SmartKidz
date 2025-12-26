@@ -44,7 +44,7 @@ const plans = [
 export default function PricingPage() {
   return (
     
-    <PageScaffoldScaffold title="Pricing">
+    <PageScaffold title="Pricing">
 <div data-scene className="py-10">
       <Container data-scene className="pt-8 pb-10">
         <div className="grid lg:grid-cols-2 gap-10 items-center">

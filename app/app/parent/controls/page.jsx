@@ -5,7 +5,7 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function Page() {
   return (
     
-    <PageScaffoldScaffold title="Controls">
+    <PageScaffold title="Controls">
 <div className="space-y-4">
       <h1 className="text-2xl font-black text-slate-900">Parent Controls</h1>
       <div className="rounded-3xl bg-white/85 backdrop-blur border border-slate-200 shadow-soft p-5">

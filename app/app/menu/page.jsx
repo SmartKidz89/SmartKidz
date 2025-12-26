@@ -19,7 +19,7 @@ const ITEMS = [
 export default function MenuPage() {
   const router = useRouter();
   return (
-    <PageScaffoldMotion className="max-w-4xl mx-auto">
+    <PageMotion className="max-w-4xl mx-auto">
       <div className="skz-glass skz-border-animate skz-shine p-6 md:p-8">
         <div className="flex items-center justify-between gap-3">
           <div>

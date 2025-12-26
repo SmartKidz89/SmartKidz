@@ -101,7 +101,7 @@ export default function Onboarding() {
 
   return (
     
-    <PageScaffoldScaffold title="Onboarding">
+    <PageScaffold title="Onboarding">
 <main className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-[70vh]">
       <div className="container-pad py-10">
         <Card className="p-6 max-w-3xl mx-auto">

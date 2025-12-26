@@ -48,7 +48,7 @@ export default function RedeemAccessCodePage() {
   if (!session) {
     return (
       
-      <PageScaffoldScaffold title="Redeem">
+      <PageScaffold title="Redeem">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
         <div className="container-pad py-10">
           <Card className="p-6 max-w-xl">
