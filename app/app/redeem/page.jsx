@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useSession } from '@/components/auth/useSession';
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function RedeemAccessCodePage() {
   const { session, loading, supabase } = useSession();
   const [code, setCode] = useState("");
@@ -48,7 +48,7 @@ export default function RedeemAccessCodePage() {
   if (!session) {
     return (
       
-      <Page title="Redeem">
+      <PageScaffold title="Redeem">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
         <div className="container-pad py-10">
           <Card className="p-6 max-w-xl">

@@ -5,11 +5,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import AuthCard from "@/components/auth/AuthCard";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function Login() {
   return (
     
-    <Page title="Login">
+    <PageScaffold title="Login">
 <main className="min-h-screen">
       <div className="relative overflow-hidden">
         {/* soft animated background */}

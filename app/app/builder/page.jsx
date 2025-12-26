@@ -8,7 +8,7 @@ import { useProfile } from '@/components/auth/useProfile';
 import { getSupabaseClient } from "../../../lib/supabaseClient";
 import LessonPreview from '@/components/builder/LessonPreview';
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 const subjects = [
   { id: "MATH", name: "Maths" },
   { id: "ENG", name: "English" },
@@ -108,7 +108,7 @@ export default function LessonBuilder() {
 
   return (
     
-    <Page title="Builder">
+    <PageScaffold title="Builder">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

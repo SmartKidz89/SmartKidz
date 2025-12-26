@@ -1,8 +1,8 @@
-import { Page } from "@/components/ui/PageScaffoldServer";
+import { Page as PageScaffold } from "@/components/ui/PageScaffoldServer";
 export default function CurriculumPage() {
   return (
     
-    <Page title="Curriculum">
+    <PageScaffold title="Curriculum">
 <main className="max-w-5xl mx-auto px-6 py-16">
       <div className="skz-glass skz-border-animate skz-shine p-8">
         <div className="text-sm text-slate-500">Curriculum</div>

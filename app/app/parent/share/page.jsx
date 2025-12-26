@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import PaywallGate from "@/components/app/PaywallGate";
 import { readProgressLog } from "@/lib/progress/log";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 async function exportAsPng(el, filename = "smartkidz-milestone.png") {
   const html2canvas = (await import("html2canvas")).default;
   const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#FAFAFA" });
@@ -65,7 +65,7 @@ export default function ParentSharePage() {
 
   return (
     
-    <Page title="Share">
+    <PageScaffold title="Share">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

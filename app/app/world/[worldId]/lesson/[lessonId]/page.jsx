@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { HomeCloud } from "@/components/app/world/HomeCloud";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function LessonPage({ params }) {
   const { worldId, lessonId } = params;
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function LessonPage({ params }) {
   // Generic fallback lesson shell
   return (
     
-    <Page title="Lessonid">
+    <PageScaffold title="Lessonid">
 <div className="relative min-h-screen bg-[radial-gradient(900px_500px_at_20%_10%,rgba(56,189,248,0.25),transparent_60%),linear-gradient(to_bottom,#f0f9ff,#ffffff)]">
       <HomeCloud to={`/app/world/${worldId}`} label="Back to world" />
       <div className="mx-auto max-w-3xl px-5 py-10">

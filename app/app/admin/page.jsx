@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { getSupabaseClient } from "../../../lib/supabaseClient";
 import PaywallGate from '@/components/app/PaywallGate';
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 function download(filename, contentType, text) {
   const blob = new Blob([text], { type: contentType });
   const url = URL.createObjectURL(blob);
@@ -84,7 +84,7 @@ export default function Admin() {
 
   return (
     
-    <Page title="Admin">
+    <PageScaffold title="Admin">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

@@ -7,7 +7,7 @@ import PaywallGate from '@/components/app/PaywallGate';
 import { getSupabaseClient } from "../../../../../lib/supabaseClient";
 import AttemptReplay from '@/components/writing/AttemptReplay';
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function WritingReview() {
   const supabase = useMemo(() => getSupabaseClient(), []);
   const [rows, setRows] = useState([]);
@@ -60,7 +60,7 @@ export default function WritingReview() {
 
   return (
     
-    <Page title="Review">
+    <PageScaffold title="Review">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import SectionReveal from "@/components/marketing/SectionReveal";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 function Container({ children, className = "" }) {
   return <div className={"container-pad " + className}>{children}</div>;
 }
@@ -44,7 +44,7 @@ const plans = [
 export default function PricingPage() {
   return (
     
-    <Page title="Pricing">
+    <PageScaffold title="Pricing">
 <div data-scene className="py-10">
       <Container data-scene className="pt-8 pb-10">
         <div className="grid lg:grid-cols-2 gap-10 items-center">

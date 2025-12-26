@@ -10,7 +10,7 @@ import { readProgressLog } from "@/lib/progress/log";
 import { loadMastery } from "@/lib/mastery/store";
 import { deriveLearningSignals } from "@/lib/lesson/insights";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 function startOfWeek(ts) {
   const d = new Date(ts);
   const day = (d.getDay() + 6) % 7; // Monday=0
@@ -36,7 +36,7 @@ function LatestActivityCard({ latest }) {
 
   return (
     
-    <Page title="Insights">
+    <PageScaffold title="Insights">
 <div className="skz-glass p-4 rounded-2xl" data-testid="latest-activity">
       <div className="text-xs font-semibold text-slate-500">Latest activity</div>
       <div className="mt-1 font-extrabold text-slate-900" data-testid="latest-activity-title">

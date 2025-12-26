@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useMemo, useState } from "react";
 import { getSupabaseClient } from "../../../lib/supabaseClient";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function Settings() {
   const supabase = useMemo(() => getSupabaseClient(), []);
   const [saving, setSaving] = useState(false);
@@ -18,7 +18,7 @@ export default function Settings() {
 
   return (
     
-    <Page title="Settings">
+    <PageScaffold title="Settings">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <div className="grid gap-6 max-w-3xl">

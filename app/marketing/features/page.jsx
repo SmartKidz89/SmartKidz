@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import SectionReveal from "@/components/marketing/SectionReveal";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 function Container({ children, className = "" }) {
   return <div className={"container-pad " + className}>{children}</div>;
 }
@@ -13,7 +13,7 @@ function Container({ children, className = "" }) {
 function Chip({ children }) {
   return (
     
-    <Page title="Features">
+    <PageScaffold title="Features">
 <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm backdrop-blur">
       {children}
     </span>

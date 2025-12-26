@@ -7,7 +7,7 @@ import TestimonialsCarousel from "@/components/marketing/TestimonialsCarousel";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import CinematicScroll from "@/components/marketing/CinematicScroll";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 const testimonials = [
   { id: "t1", quote: "My kids ask to do SmartKidz before screen time. That never happened with worksheets.", name: "Sarah M.", initials: "SM", meta: "Parent of 2 • Melbourne" },
   { id: "t2", quote: "The parent dashboard is the best part. I can see exactly what’s clicked for each child.", name: "Daniel K.", initials: "DK", meta: "Parent of 3 • Brisbane" },
@@ -24,7 +24,7 @@ const faqs = [
 export default function MarketingHome() {
   return (
     
-    <Page title="Marketing">
+    <PageScaffold title="Marketing">
 <CinematicScroll>
       <section data-scene>
         <Hero />

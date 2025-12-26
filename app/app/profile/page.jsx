@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function ProfilePage() {
   return (
     
-    <Page title="Profile">
+    <PageScaffold title="Profile">
 <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">🙂 Profile</h1>
       <div className="rounded-3xl bg-white border border-slate-200 shadow-soft p-4">

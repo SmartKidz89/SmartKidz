@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 const SUBJECTS = {
   maths: {
     title: "Maths",
@@ -81,7 +81,7 @@ export default function SubjectPage() {
 
   return (
     
-    <Page title="Subject">
+    <PageScaffold title="Subject">
 <div className="container-pad py-14 space-y-10">
       <header className="grid lg:grid-cols-2 gap-8 items-center">
         <div>

@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function Page() {
   return (
     
-    <Page title="Analytics">
+    <PageScaffold title="Analytics">
 <div className="space-y-4">
       <h1 className="text-2xl font-black text-slate-900">Parent Analytics</h1>
       <div className="rounded-3xl bg-white/85 backdrop-blur border border-slate-200 shadow-soft p-5">

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import PaywallGate from "@/components/app/PaywallGate";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 function safeJsonParse(raw, fallback) {
   try {
     return JSON.parse(raw);
@@ -102,7 +102,7 @@ export default function AdminContent() {
 
   return (
     
-    <Page title="Content">
+    <PageScaffold title="Content">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

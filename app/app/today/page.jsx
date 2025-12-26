@@ -10,7 +10,7 @@ import TodayProgress from '@/components/today/TodayProgress';
 import DailyQuests from '@/components/today/DailyQuests';
 import { getSupabaseClient } from "../../../lib/supabaseClient";
 import { getTodaySession, markMissionStarted, progressCount, isComplete } from "../../../lib/today/session";
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 
 const missionMeta = {
   reading: {

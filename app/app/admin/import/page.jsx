@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import PaywallGate from '@/components/app/PaywallGate';
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function ImportPage() {
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,7 +36,7 @@ export default function ImportPage() {
 
   return (
     
-    <Page title="Import">
+    <PageScaffold title="Import">
 <main className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

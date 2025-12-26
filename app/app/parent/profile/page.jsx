@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useActiveChild } from "@/hooks/useActiveChild";
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function ParentProfilePage() {
   const supabase = getSupabaseClient();
   const { kids, activeChildId, setActiveChild, refreshKids } = useActiveChild();
@@ -21,7 +21,7 @@ export default function ParentProfilePage() {
 
   return (
     
-    <Page title="Profile">
+    <PageScaffold title="Profile">
 <main className="container-pad py-8">
       <div className="flex items-start justify-between gap-4">
         <div>

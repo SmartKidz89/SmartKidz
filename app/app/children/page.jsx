@@ -10,7 +10,7 @@ import { getSupabaseClient } from "../../../lib/supabaseClient";
 import { Plus, UserRound, Trash2, Save, Palette } from "lucide-react";
 import AvatarBadge, { AvatarPicker } from '@/components/app/AvatarBadge';
 import { THEME_PRESETS } from "../../../lib/themePresets";
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 
 export default function ChildrenManager() {
   const supabase = useMemo(() => getSupabaseClient(), []);

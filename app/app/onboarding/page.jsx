@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from '@/components/auth/useSession';
 import ChildrenRepeater from '@/components/onboarding/ChildrenRepeater';
 
-import { Page } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 // Schema alignment:
 // - public.profiles.full_name (single field)
 // - public.children.display_name (single field)
@@ -101,7 +101,7 @@ export default function Onboarding() {
 
   return (
     
-    <Page title="Onboarding">
+    <PageScaffold title="Onboarding">
 <main className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-[70vh]">
       <div className="container-pad py-10">
         <Card className="p-6 max-w-3xl mx-auto">
