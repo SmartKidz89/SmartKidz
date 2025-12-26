@@ -46,3 +46,5 @@ export function PaywallGate({ children, featureName = "this feature" }) {
 
   return children;
 }
+
+export default PaywallGate;
