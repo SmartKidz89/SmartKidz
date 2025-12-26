@@ -8,7 +8,7 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function WritingAssign() {
   return (
     
-    <PageScaffold title="Assign">
+    <PageScaffoldScaffold title="Assign">
 <main className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

@@ -23,7 +23,7 @@ export default function ParentHome() {
   }
 
   return (
-    <Page
+    <PageScaffold
       badge="Parent"
       title="Parent Dashboard"
       subtitle="Track progress, celebrate wins, and keep learning safe and structured."

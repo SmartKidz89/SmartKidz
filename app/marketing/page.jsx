@@ -24,7 +24,7 @@ const faqs = [
 export default function MarketingHome() {
   return (
     
-    <PageScaffold title="Marketing">
+    <PageScaffoldScaffold title="Marketing">
 <CinematicScroll>
       <section data-scene>
         <Hero />

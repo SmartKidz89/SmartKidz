@@ -26,7 +26,7 @@ export default function WorldsPage() {
   }, [activeChild?.display_name]);
 
   return (
-    <Page
+    <PageScaffold
       badge="Worlds"
       title={title}
       subtitle={`Pick a subject world. We’ll tailor lessons for Year ${year ?? "—"}.`}

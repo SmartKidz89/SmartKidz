@@ -108,7 +108,7 @@ export default function LessonBuilder() {
 
   return (
     
-    <PageScaffold title="Builder">
+    <PageScaffoldScaffold title="Builder">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

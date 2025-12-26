@@ -6,7 +6,7 @@ import Body from "@/components/app/RecommendationsPanel";
 export default function Page() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Recommended Next" subtitle="Personalised learning based on your progress." />
+      <PageScaffoldHeader title="Recommended Next" subtitle="Personalised learning based on your progress." />
       <Card className="p-4">
         <Body />
       </Card>

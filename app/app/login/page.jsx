@@ -9,7 +9,7 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function Login() {
   return (
     
-    <PageScaffold title="Login">
+    <PageScaffoldScaffold title="Login">
 <main className="min-h-screen">
       <div className="relative overflow-hidden">
         {/* soft animated background */}

@@ -61,7 +61,7 @@ export default function AvatarPage() {
   }
 
   return (
-    <PageMotion className="max-w-3xl mx-auto">
+    <PageScaffoldMotion className="max-w-3xl mx-auto">
       <div className="skz-glass skz-border-animate skz-shine p-6 md:p-8">
         <div className="flex items-center justify-between gap-4">
           <div>

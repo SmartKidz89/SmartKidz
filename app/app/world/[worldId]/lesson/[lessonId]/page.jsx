@@ -18,7 +18,7 @@ export default function LessonPage({ params }) {
   // Generic fallback lesson shell
   return (
     
-    <PageScaffold title="Lessonid">
+    <PageScaffoldScaffold title="Lessonid">
 <div className="relative min-h-screen bg-[radial-gradient(900px_500px_at_20%_10%,rgba(56,189,248,0.25),transparent_60%),linear-gradient(to_bottom,#f0f9ff,#ffffff)]">
       <HomeCloud to={`/app/world/${worldId}`} label="Back to world" />
       <div className="mx-auto max-w-3xl px-5 py-10">

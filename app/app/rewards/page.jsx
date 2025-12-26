@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function RewardsPage() {
   return (
-    <Page
+    <PageScaffold
       badge="Rewards"
       title="Rewards & Streaks"
       subtitle="Finish lessons to build your streak, unlock badges, and collect shiny rewards. Small steps every day."

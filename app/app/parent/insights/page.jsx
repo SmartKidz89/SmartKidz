@@ -36,7 +36,7 @@ function LatestActivityCard({ latest }) {
 
   return (
     
-    <PageScaffold title="Insights">
+    <PageScaffoldScaffold title="Insights">
 <div className="skz-glass p-4 rounded-2xl" data-testid="latest-activity">
       <div className="text-xs font-semibold text-slate-500">Latest activity</div>
       <div className="mt-1 font-extrabold text-slate-900" data-testid="latest-activity-title">

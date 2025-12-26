@@ -21,7 +21,7 @@ export default function ParentProfilePage() {
 
   return (
     
-    <PageScaffold title="Profile">
+    <PageScaffoldScaffold title="Profile">
 <main className="container-pad py-8">
       <div className="flex items-start justify-between gap-4">
         <div>

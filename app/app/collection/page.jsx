@@ -5,7 +5,7 @@ import { Page, BentoGrid, BentoCard } from "@/components/ui/PageScaffold";
 
 export default function CollectionPage() {
   return (
-    <Page
+    <PageScaffold
       badge="Collection"
       title="Collection Book"
       subtitle="Collect stickers and achievements as you learn. Every lesson adds something shiny."

@@ -8,7 +8,7 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function EnglishHub() {
   return (
     
-    <PageScaffold title="English">
+    <PageScaffoldScaffold title="English">
 <main className="bg-gradient-to-br from-fuchsia-50 via-white to-indigo-50 min-h-[70vh]">
       <div className="container-pad py-10">
         <PaywallGate>

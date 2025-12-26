@@ -85,7 +85,7 @@ export default function ChildrenManager() {
   }
 
   return (
-    <Page badge="Profiles" title="Manage Children" subtitle="Create profiles, pick avatars, and tune learning settings.">
+    <PageScaffold badge="Profiles" title="Manage Children" subtitle="Create profiles, pick avatars, and tune learning settings.">
     <main className="min-h-screen">
       <div className="container-pad py-12">
         <div className="mb-8 flex items-end justify-between gap-4 flex-wrap">

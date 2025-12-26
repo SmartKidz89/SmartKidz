@@ -18,7 +18,7 @@ export default function Settings() {
 
   return (
     
-    <PageScaffold title="Settings">
+    <PageScaffoldScaffold title="Settings">
 <main className="bg-gradient-to-br from-slate-50 to-white min-h-[70vh]">
       <div className="container-pad py-10">
         <div className="grid gap-6 max-w-3xl">

@@ -6,7 +6,7 @@ export default function Signup({ searchParams }) {
   const plan = searchParams?.plan ?? null;
   return (
     
-    <PageScaffold title="Signup">
+    <PageScaffoldScaffold title="Signup">
 <main>
       <Section className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
         <AuthCard mode="signup" initialPlan={plan} />

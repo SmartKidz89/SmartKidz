@@ -49,7 +49,7 @@ export default function LessonBuilderPage() {
   }
 
   return (
-    <PageMotion className="max-w-5xl mx-auto space-y-6">
+    <PageScaffoldMotion className="max-w-5xl mx-auto space-y-6">
       <div className="skz-glass p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>

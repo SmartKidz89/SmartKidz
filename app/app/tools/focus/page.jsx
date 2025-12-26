@@ -8,7 +8,7 @@ export default function FocusToolPage() {
   const { focus, toggle } = useFocusMode();
 
   return (
-    <PageMotion className="max-w-4xl mx-auto space-y-6">
+    <PageScaffoldMotion className="max-w-4xl mx-auto space-y-6">
       <div className="skz-glass p-6 md:p-8 skz-border-animate skz-shine">
         <div className="flex items-end justify-between gap-3">
           <div>

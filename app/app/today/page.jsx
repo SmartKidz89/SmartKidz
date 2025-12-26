@@ -56,7 +56,7 @@ export default function TodayPlanPage() {
   }
 
   return (
-    <Page badge="Today" title="Today’s Missions" subtitle="Three short missions. One calm routine. Big progress over time.">
+    <PageScaffold badge="Today" title="Today’s Missions" subtitle="Three short missions. One calm routine. Big progress over time.">
     <main className="min-h-[calc(100vh-220px)]">
       <div className="container-pad py-10">
         <PaywallGate>
