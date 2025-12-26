@@ -133,7 +133,7 @@ export default function PricingPage() {
 </Container>
     </div>
   
-    </Page>
+    </PageScaffold>
   );
 }
       <SectionReveal className="py-14">

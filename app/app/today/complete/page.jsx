@@ -10,6 +10,6 @@ export default function Page() {
       <TodayCompleteClient />
     </Suspense>
   
-    </Page>
+    </PageScaffold>
   );
 }

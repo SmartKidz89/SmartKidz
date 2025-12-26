@@ -59,6 +59,6 @@ export default function WorldsPage() {
           </div>
         </BentoCard>
       </BentoGrid>
-    </Page>
+    </PageScaffold>
   );
 }

@@ -10,6 +10,6 @@ export default function Page() {
       <WritingClient />
     </Suspense>
   
-    </Page>
+    </PageScaffold>
   );
 }

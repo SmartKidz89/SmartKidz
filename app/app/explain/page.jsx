@@ -10,6 +10,6 @@ export default function Page() {
       <ExplainClient />
     </Suspense>
   
-    </Page>
+    </PageScaffold>
   );
 }

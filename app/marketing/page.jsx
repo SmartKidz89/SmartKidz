@@ -89,6 +89,6 @@ export default function MarketingHome() {
       </section>
     </CinematicScroll>
   
-    </Page>
+    </PageScaffold>
   );
 }

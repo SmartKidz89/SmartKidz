@@ -73,6 +73,6 @@ export default function RewardsPage() {
           </div>
         </BentoCard>
       </BentoGrid>
-    </Page>
+    </PageScaffold>
   );
 }

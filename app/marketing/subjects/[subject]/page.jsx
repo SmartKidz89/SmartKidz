@@ -146,7 +146,7 @@ export default function SubjectPage() {
       </section>
     </div>
   
-    </Page>
+    </PageScaffold>
   );
 }
 

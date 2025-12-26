@@ -52,6 +52,6 @@ export default function CurriculumPage() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

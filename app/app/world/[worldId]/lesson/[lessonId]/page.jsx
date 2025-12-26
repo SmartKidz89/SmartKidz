@@ -41,6 +41,6 @@ export default function LessonPage({ params }) {
       </div>
     </div>
   
-    </Page>
+    </PageScaffold>
   );
 }

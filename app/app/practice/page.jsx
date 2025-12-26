@@ -18,6 +18,6 @@ export default function PracticePage() {
       </div>
     </div>
   
-    </Page>
+    </PageScaffold>
   );
 }

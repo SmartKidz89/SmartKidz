@@ -15,6 +15,6 @@ export default function CollectionPage() {
           <Body />
         </BentoCard>
       </BentoGrid>
-    </Page>
+    </PageScaffold>
   );
 }

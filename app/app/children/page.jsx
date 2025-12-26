@@ -175,6 +175,6 @@ export default function ChildrenManager() {
         )}
       </div>
     </main>
-    </Page>
+    </PageScaffold>
   );
 }

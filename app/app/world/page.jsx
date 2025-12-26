@@ -10,6 +10,6 @@ export default function Page() {
       <WorldClient />
     </Suspense>
   
-    </Page>
+    </PageScaffold>
   );
 }

@@ -203,6 +203,6 @@ export default function AdminContent() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

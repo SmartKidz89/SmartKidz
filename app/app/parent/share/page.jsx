@@ -150,6 +150,6 @@ export default function ParentSharePage() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

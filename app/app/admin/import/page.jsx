@@ -76,6 +76,6 @@ export default function ImportPage() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

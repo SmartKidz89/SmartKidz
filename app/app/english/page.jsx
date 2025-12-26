@@ -67,6 +67,6 @@ export default function EnglishHub() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

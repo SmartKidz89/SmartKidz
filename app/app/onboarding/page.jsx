@@ -163,6 +163,6 @@ export default function Onboarding() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

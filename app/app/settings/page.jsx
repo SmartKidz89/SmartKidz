@@ -36,6 +36,6 @@ export default function Settings() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

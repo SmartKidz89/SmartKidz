@@ -62,7 +62,7 @@ function LatestActivityCard({ latest }) {
       </div>
     </div>
   
-    </Page>
+    </PageScaffold>
   );
 }
 

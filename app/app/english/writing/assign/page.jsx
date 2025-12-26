@@ -56,6 +56,6 @@ export default function WritingAssign() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

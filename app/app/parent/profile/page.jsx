@@ -87,6 +87,6 @@ export default function ParentProfilePage() {
       </section>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

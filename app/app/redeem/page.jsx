@@ -61,7 +61,7 @@ export default function RedeemAccessCodePage() {
         </div>
       </main>
     
-      </Page>
+      </PageScaffold>
     );
   }
 

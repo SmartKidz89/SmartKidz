@@ -12,6 +12,6 @@ export default function PrivacyPage() {
       </p>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

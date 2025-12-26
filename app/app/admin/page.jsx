@@ -133,6 +133,6 @@ export default function Admin() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

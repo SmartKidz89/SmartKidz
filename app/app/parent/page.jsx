@@ -123,6 +123,6 @@ export default function ParentHome() {
           <ParentInsightsDashboard />
         </BentoCard>
       </BentoGrid>
-    </Page>
+    </PageScaffold>
   );
 }

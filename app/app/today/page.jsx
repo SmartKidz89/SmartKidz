@@ -110,7 +110,7 @@ export default function TodayPlanPage() {
         </PaywallGate>
       </div>
     </main>
-    </Page>
+    </PageScaffold>
   );
 }
 

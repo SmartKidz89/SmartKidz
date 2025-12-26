@@ -107,6 +107,6 @@ export default function Login() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

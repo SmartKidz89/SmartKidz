@@ -245,6 +245,6 @@ export default function LessonBuilder() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }

@@ -18,7 +18,7 @@ function Chip({ children }) {
       {children}
     </span>
   
-    </Page>
+    </PageScaffold>
   );
 }
 

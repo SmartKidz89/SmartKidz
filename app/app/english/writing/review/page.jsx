@@ -120,6 +120,6 @@ export default function WritingReview() {
       </div>
     </main>
   
-    </Page>
+    </PageScaffold>
   );
 }
