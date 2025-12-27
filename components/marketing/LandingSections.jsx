@@ -12,69 +12,63 @@ function Container({ children, className = "" }) {
 // --- HERO SECTION ---
 export function Hero() {
   return (
-    <section className="relative overflow-visible pt-20 pb-16 sm:pt-28 sm:pb-32">
-      {/* Background Ambience */}
+    <section className="relative overflow-visible pt-20 pb-16 sm:pt-24 sm:pb-32">
+      {/* Background Blobs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <motion.div 
-          animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.6, 0.4] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-sky-200/40 via-indigo-100/20 to-transparent rounded-full blur-[100px]" 
-        />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-sky-100/50 to-transparent rounded-full blur-3xl opacity-60" />
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-indigo-200/30 blur-3xl" />
+        <div className="absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-emerald-200/30 blur-3xl" />
       </div>
 
       <Container className="relative">
         <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 rounded-full bg-white/90 border border-slate-200/60 px-4 py-1.5 text-xs font-extrabold text-slate-600 shadow-[0_2px_10px_rgba(0,0,0,0.06)] backdrop-blur-md mb-8"
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-slate-200 px-4 py-1.5 text-xs font-extrabold text-slate-600 shadow-sm backdrop-blur-md mb-6"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
+            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             Australian Curriculum Aligned • Prep to Year 6
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 leading-[1.05]"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 leading-[1.1]"
           >
             The screen time you’ll <br className="hidden sm:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-br from-brand-primary to-indigo-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">
               actually feel good about.
             </span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-            className="mt-8 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
           >
-            SmartKidz transforms Maths, English, and Science into a calm, confidence-building adventure. 
-            Aligned to the Australian Curriculum, without the pressure.
+            SmartKidz transforms the Australian Curriculum into a calm, confidence-building adventure. 
+            Full Maths, English, and Science coverage—mastered without the pressure.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Link
               href="https://app.smartkidz.app/app/signup"
-              className="group relative h-14 px-8 rounded-full bg-slate-900 text-white text-lg font-bold shadow-[0_4px_14px_0_rgba(0,0,0,0.39)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.23)] hover:-translate-y-1 transition-all flex items-center gap-2 overflow-hidden"
+              className="h-14 px-8 rounded-full bg-slate-900 text-white text-lg font-bold shadow-xl hover:bg-slate-800 hover:scale-105 transition-all flex items-center gap-2"
             >
-              <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-500 -skew-x-12 -translate-x-full" />
-              Start Free Trial <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+              Start Free Trial <Sparkles className="w-5 h-5 text-amber-300" />
             </Link>
             <Link
               href="#how-it-works"
-              className="h-14 px-8 rounded-full bg-white border border-slate-200 text-slate-700 text-lg font-bold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center"
+              className="h-14 px-8 rounded-full bg-white border border-slate-200 text-slate-700 text-lg font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center"
             >
               See how it works
             </Link>
@@ -83,88 +77,96 @@ export function Hero() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.6 }}
-            className="mt-6 text-sm font-semibold text-slate-400"
+            transition={{ duration: 1, delay: 0.5 }}
+            className="mt-6 text-sm font-semibold text-slate-500"
           >
             7-day free trial • Cancel anytime • Unlimited kids
           </motion.div>
         </div>
 
-        {/* --- 3D HERO VISUAL --- */}
-        <div className="relative mx-auto max-w-5xl perspective-1200 mt-10">
+        {/* Hero Visual - Premium 3D Style */}
+        <div className="relative mx-auto max-w-5xl perspective-1000">
           
-          {/* Main "Tablet" Container */}
+          {/* Glow Effect */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-gradient-to-r from-sky-300/30 via-purple-300/30 to-emerald-300/30 blur-[80px] -z-10 rounded-full" />
+
+          {/* Main Interface Card */}
           <motion.div
-            initial={{ opacity: 0, rotateX: 10, y: 80, scale: 0.95 }}
-            animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }}
-            transition={{ duration: 1.2, type: "spring", bounce: 0.1, delay: 0.2 }}
-            className="relative z-10 rounded-[2.5rem] bg-slate-900 p-2 sm:p-3 shadow-2xl ring-1 ring-white/10"
+            initial={{ opacity: 0, rotateX: 15, y: 60 }}
+            animate={{ opacity: 1, rotateX: 0, y: 0 }}
+            transition={{ duration: 1, type: "spring", bounce: 0.2, delay: 0.2 }}
+            className="relative rounded-[2.5rem] border-[6px] border-white/40 bg-slate-900 shadow-2xl overflow-hidden ring-1 ring-black/5"
           >
-            {/* Screen Inner */}
-            <div className="relative rounded-[2rem] overflow-hidden bg-slate-950 aspect-[16/10] shadow-inner">
+            <div className="relative rounded-[2.2rem] overflow-hidden aspect-[16/10] bg-slate-50 border-[6px] border-slate-900">
                <Image
-                src="/illustrations/app/kids-dashboard-header.webp"
-                alt="SmartKidz Dashboard"
+                src="/illustrations/scenes/hero-explore-worlds.png"
+                alt="SmartKidz Dashboard - Explore Worlds"
                 fill
-                className="object-cover"
+                className="object-cover object-top scale-[1.01]"
                 priority
               />
-              
-              {/* Screen Reflection / Glare */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-white/0 to-transparent pointer-events-none mix-blend-overlay" />
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] mix-blend-screen pointer-events-none" />
+              {/* Glossy Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-50 pointer-events-none mix-blend-overlay" />
             </div>
-
-            {/* Hardware Shine */}
-            <div className="absolute inset-0 rounded-[2.5rem] ring-1 ring-inset ring-white/10 pointer-events-none" />
           </motion.div>
 
-          {/* --- Floating Elements --- */}
-
-          {/* Left: Parent Stats Card */}
+          {/* Floating Element 1: Coins (Top Right) */}
           <motion.div
-            initial={{ opacity: 0, x: -40, y: 20 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: 0.8, type: "spring", stiffness: 100 }}
-            className="absolute -bottom-12 -left-4 sm:-left-12 z-20 w-64 hidden md:block"
+            initial={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
+            className="absolute -top-8 -right-4 sm:-right-12 z-20"
           >
-             <motion.div
-               animate={{ y: [0, 10, 0] }}
-               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-               className="bg-white/90 backdrop-blur-xl p-4 rounded-3xl shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] border border-white/60 flex flex-col gap-3"
+             <motion.div 
+               animate={{ y: [0, -8, 0] }}
+               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+               className="relative"
              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-lg shadow-sm">📈</div>
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Growth</div>
-                    <div className="text-sm font-black text-slate-900">+12% Mastery</div>
-                  </div>
-                </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[75%] bg-emerald-500 rounded-full" />
+                <div className="absolute inset-0 bg-amber-400 blur-xl opacity-30" />
+                <div className="bg-white p-3 sm:p-4 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center gap-0.5 rotate-6 hover:rotate-0 transition-transform cursor-default">
+                   <span className="text-3xl sm:text-4xl filter drop-shadow-md">🪙</span>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Earned</span>
+                   <span className="text-lg sm:text-xl font-black text-slate-900">+500</span>
                 </div>
              </motion.div>
           </motion.div>
 
-          {/* Right: Quest Badge */}
+          {/* Floating Element 2: Level Up (Bottom Left) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 1.0, type: "spring", stiffness: 150 }}
-            className="absolute -top-12 -right-6 sm:-right-16 z-20 w-auto"
+            initial={{ scale: 0, opacity: 0, x: -20 }}
+            animate={{ scale: 1, opacity: 1, x: 0 }}
+            transition={{ delay: 1.0, type: "spring", stiffness: 200 }}
+            className="absolute -bottom-6 -left-4 sm:-left-10 z-20"
           >
-             <motion.div 
-               animate={{ y: [0, -12, 0], rotate: [0, 2, 0] }}
-               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-               className="relative"
+             <motion.div
+               animate={{ y: [0, 8, 0] }}
+               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+               className="bg-white p-3 sm:p-4 pr-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 flex items-center gap-3 -rotate-3 hover:rotate-0 transition-transform cursor-default"
              >
-                <div className="absolute inset-0 bg-amber-400/30 blur-2xl rounded-full" />
-                <div className="bg-white p-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/80 flex items-center gap-3">
-                   <span className="text-4xl filter drop-shadow-sm">🏆</span>
-                   <div className="pr-2">
-                     <div className="text-[10px] font-bold text-amber-600 uppercase bg-amber-50 px-2 py-0.5 rounded-full inline-block mb-1">Quest Complete!</div>
-                     <div className="text-lg font-black text-slate-900 leading-none">+250 XP</div>
-                   </div>
+                <div className="h-12 w-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-2xl shadow-inner">🦊</div>
+                <div>
+                   <div className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full inline-block mb-1 border border-emerald-100">Level Up!</div>
+                   <div className="text-base sm:text-lg font-black text-slate-900 leading-none">Explorer</div>
+                </div>
+             </motion.div>
+          </motion.div>
+
+           {/* Floating Element 3: Streak (Bottom Right) */}
+           <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
+            className="absolute bottom-16 -right-2 sm:-right-6 z-10 hidden sm:block"
+          >
+             <motion.div
+               animate={{ y: [0, -6, 0] }}
+               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+               className="bg-white/90 backdrop-blur p-2.5 pr-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 rotate-3 hover:rotate-0 transition-transform"
+             >
+                <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-xl shadow-sm">🔥</div>
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Streak</div>
+                  <div className="text-sm font-black text-slate-900">7 Days</div>
                 </div>
              </motion.div>
           </motion.div>
