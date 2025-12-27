@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Star, Play, Globe, Languages as LanguagesIcon, ChevronRight, Zap, Trophy, Crown } from "lucide-react";
+import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // --- Configuration ---
@@ -32,17 +32,12 @@ const SLUG_MAP = {
   arts: "ART", art: "ART", thearts: "ART",
   tech: "TECH", technologies: "TECH", technology: "TECH",
   lang: "LANG", languages: "LANG", lote: "LANG",
-  // Direct language mapping
-  auslan: "AUS", aus: "AUS", french: "FRA", spanish: "SPA",
-  japanese: "JPN", chinese: "ZHO", mandarin: "ZHO", indonesian: "IND", aboriginal: "ABL"
 };
 
 const SUBJECT_LABELS = {
   MATH: "Mathematics", ENG: "English", SCI: "Science",
   HASS: "HASS", HPE: "Health & PE", ART: "The Arts",
   TECH: "Technologies", LANG: "Languages",
-  AUS: "Auslan", FRA: "French", SPA: "Spanish",
-  JPN: "Japanese", ZHO: "Chinese", IND: "Indonesian", ABL: "First Nations"
 };
 
 const SUBJECT_IMAGES = {
@@ -83,8 +78,14 @@ function getDifficulty(title) {
 export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
-  const canonicalId = SLUG_MAP[rawId] || rawId.toUpperCase();
-  const targetIds = SUBJECT_ALIASES[canonicalId] || [canonicalId];
+  
+  // Direct language code check (e.g. /world/AUS)
+  const isLangCode = LANGUAGE_TILES.some(l => l.id === rawId.toUpperCase());
+  const canonicalId = isLangCode ? "LANG_SPECIFIC" : (SLUG_MAP[rawId] || rawId.toUpperCase());
+  
+  const targetIds = canonicalId === "LANG_SPECIFIC" 
+    ? [rawId.toUpperCase()] 
+    : (SUBJECT_ALIASES[canonicalId] || [canonicalId]);
 
   const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
   const [lessons, setLessons] = useState([]);
@@ -97,10 +98,11 @@ export default function SubjectLessonsPage() {
       setLoading(true);
       setError("");
       try {
-        if (canonicalId === "LANG") { setLoading(false); return; }
-
-        const { data: subData } = await supabase.from("subjects").select("name").in("id", targetIds).limit(1).maybeSingle();
-        if (mounted && subData?.name) setSubjectName(subData.name);
+        if (canonicalId === "LANG") { 
+          // Handled by render logic below
+          setLoading(false); 
+          return; 
+        }
 
         const { data: lessonData, error: lessonError } = await supabase
           .from("lessons")
@@ -112,8 +114,14 @@ export default function SubjectLessonsPage() {
         if (mounted) {
           if (lessonError) throw lessonError;
           setLessons(Array.isArray(lessonData) ? lessonData : []);
+          
+          // Try to get pretty name if we found lessons
+          if (lessonData?.length > 0 && !SUBJECT_LABELS[canonicalId]) {
+             // Maybe update name from first lesson's subject_id if needed
+          }
         }
       } catch (err) {
+        console.error(err);
         if (mounted) setError("Could not load lessons.");
       } finally {
         if (mounted) setLoading(false);
@@ -121,7 +129,7 @@ export default function SubjectLessonsPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [canonicalId]);
+  }, [canonicalId, targetIds]); // Depend on processed IDs
 
   const groups = useMemo(() => {
     if (!lessons.length) return [];
@@ -202,10 +210,11 @@ export default function SubjectLessonsPage() {
     <PageScaffold title={null}>
       <div className="mb-6">
         <Link 
-          href={SUBJECT_ALIASES.LANG.includes(canonicalId) ? "/app/world/LANG" : "/app/worlds"}
+          href={canonicalId === "LANG_SPECIFIC" ? "/app/world/LANG" : "/app/worlds"}
           className="inline-flex items-center gap-2 rounded-full bg-white/60 backdrop-blur px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-all shadow-sm ring-1 ring-slate-900/5"
         >
-          <ArrowLeft className="w-4 h-4" /> {SUBJECT_ALIASES.LANG.includes(canonicalId) ? "Back to Languages" : "Back to Worlds"}
+          <ArrowLeft className="w-4 h-4" /> 
+          {canonicalId === "LANG_SPECIFIC" ? "Back to Languages" : "Back to Worlds"}
         </Link>
       </div>
 
@@ -219,7 +228,7 @@ export default function SubjectLessonsPage() {
              World
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 drop-shadow-lg">
-            {subjectName}
+            {canonicalId === "LANG_SPECIFIC" ? rawId.toUpperCase() : subjectName}
           </h1>
           <p className="text-lg md:text-xl text-slate-200 font-medium max-w-2xl leading-relaxed">
             Choose your level. Master the skill. Earn the reward.
@@ -300,7 +309,7 @@ function LessonCard({ lesson, index }) {
         </div>
 
         <div className="p-4 pt-2">
-           <div className="w-full h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between px-4 group-hover:bg-slate-900 group-hover:text-white transition-colors duration-300">
+           <div className="w-full h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center px-4 group-hover:bg-slate-900 group-hover:text-white transition-colors duration-300">
               <span className="text-xs font-bold uppercase tracking-wider group-hover:text-white/90">Start</span>
               <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
                  <Play className="w-3 h-3 fill-current" />

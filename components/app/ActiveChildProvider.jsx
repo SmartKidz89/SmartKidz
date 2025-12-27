@@ -6,25 +6,28 @@ import { ACTIVE_CHILD_COOKIE, getCookie, setCookie, clearCookie } from "@/lib/ch
 
 export const ActiveChildContext = createContext(null);
 
-/**
- * Option B: Active child is stored in cookie + React context only.
- * - Per-device selection (cookie)
- * - No child id in URL
- * - Provider must not block login routes (it short-circuits when not authed)
- */
 export function ActiveChildProvider({ children }) {
-  const supabase = getSupabaseClient();
-
+  const supabase = useMemo(() => getSupabaseClient(), []);
+  
   const [kids, setKids] = useState([]);
   const [activeChildId, setActiveChildId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Helper to pick the best default child if none selected
   const resolveActiveChild = useCallback(
     (kidList) => {
       const cookieId = getCookie(ACTIVE_CHILD_COOKIE);
-      const found = cookieId && kidList.find((k) => k.id === cookieId);
-      const nextId = found?.id || kidList[0]?.id || null;
+      
+      // 1. Try cookie
+      let found = cookieId && kidList.find((k) => k.id === cookieId);
+      
+      // 2. Fallback to first child
+      if (!found && kidList.length > 0) {
+        found = kidList[0];
+      }
+
+      const nextId = found?.id || null;
 
       if (nextId) {
         setCookie(ACTIVE_CHILD_COOKIE, nextId);
@@ -39,58 +42,57 @@ export function ActiveChildProvider({ children }) {
   );
 
   const refreshKids = useCallback(async () => {
-    if (!supabase) {
-      // During prerender/build or if env vars missing server-side
-      setKids([]);
-      setActiveChildId(null);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const session = sessionData?.session;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
 
-    if (!session?.user?.id) {
-      // Not logged in: do not attempt to fetch children; do not block login screens
+      if (!session?.user?.id) {
+        // Not logged in -> clear everything but stop loading
+        setKids([]);
+        setActiveChildId(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: kidsErr } = await supabase
+        .from("children")
+        .select("id,display_name,year_level,avatar_key,avatar_config")
+        .eq("parent_id", session.user.id)
+        .order("created_at", { ascending: true });
+
+      if (kidsErr) throw kidsErr;
+
+      const list = data || [];
+      setKids(list);
+      resolveActiveChild(list);
+    } catch (e) {
+      console.error("Failed to load children:", e);
+      setError(e.message);
       setKids([]);
-      setActiveChildId(null);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data, error: kidsErr } = await supabase
-      .from("children")
-      .select("id,display_name,year_level,avatar_key,avatar_config")
-      .order("created_at", { ascending: true });
-
-    if (kidsErr) {
-      setKids([]);
-      setActiveChildId(null);
-      setError(kidsErr.message || "Could not load children.");
-      setLoading(false);
-      return;
-    }
-
-    const list = data || [];
-    setKids(list);
-    resolveActiveChild(list);
-    setLoading(false);
   }, [supabase, resolveActiveChild]);
 
+  // Initial load
   useEffect(() => {
     refreshKids();
 
-    if (!supabase) return;
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, _session) => {
-      // Re-sync after login/logout
-      refreshKids();
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        refreshKids();
+      } else if (event === "SIGNED_OUT") {
+        setKids([]);
+        setActiveChildId(null);
+        setLoading(false);
+      }
     });
 
-    return () => sub?.subscription?.unsubscribe?.();
-  }, [supabase, refreshKids]);
+    return () => sub?.subscription?.unsubscribe();
+  }, [refreshKids, supabase]);
 
   const setActiveChild = useCallback(
     (childId) => {
@@ -99,6 +101,26 @@ export function ActiveChildProvider({ children }) {
     },
     []
   );
+
+  // Update a child's local state immediately (optimistic UI)
+  const updateActiveChild = useCallback(async (patch) => {
+      if (!activeChildId) return { ok: false };
+      
+      // Optimistic update
+      setKids(prev => prev.map(k => k.id === activeChildId ? { ...k, ...patch } : k));
+
+      try {
+          const { error } = await supabase.from("children").update(patch).eq("id", activeChildId);
+          if (error) throw error;
+          return { ok: true };
+      } catch (e) {
+          console.error("Update failed", e);
+          // Revert on failure (could implement full rollback here, but refresh is simpler)
+          refreshKids();
+          return { ok: false, error: e.message };
+      }
+  }, [activeChildId, supabase, refreshKids]);
+
 
   const activeChild = useMemo(() => kids.find((k) => k.id === activeChildId) || null, [kids, activeChildId]);
 
@@ -111,8 +133,9 @@ export function ActiveChildProvider({ children }) {
       error,
       refreshKids,
       setActiveChild,
+      updateActiveChild
     }),
-    [kids, activeChildId, activeChild, loading, error, refreshKids, setActiveChild]
+    [kids, activeChildId, activeChild, loading, error, refreshKids, setActiveChild, updateActiveChild]
   );
 
   return <ActiveChildContext.Provider value={value}>{children}</ActiveChildContext.Provider>;
