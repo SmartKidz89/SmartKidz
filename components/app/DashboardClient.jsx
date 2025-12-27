@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import TodayModule from "@/components/today/TodayModule";
@@ -10,7 +11,7 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
   Wrench, Star, Zap, Map, Sparkles, Heart,
-  Book, Globe2, PenTool, Compass, ALargeSmall
+  Book, Globe2, PenTool, Compass, ALargeSmall, Plus, Palette as PaletteIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -161,10 +162,35 @@ function DashboardSkeleton() {
   );
 }
 
+function EmptyState() {
+  return (
+    <PageScaffold title={null}>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-8">
+        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl mb-6 text-4xl">
+           👋
+        </div>
+        <h1 className="text-3xl font-black text-slate-900 mb-2">Welcome to SmartKidz!</h1>
+        <p className="text-slate-600 font-medium max-w-md mb-8">
+           It looks like you haven't added a child profile yet. Let's get set up so you can start exploring.
+        </p>
+        <Link href="/app/onboarding">
+           <div className="h-14 px-8 rounded-full bg-slate-900 text-white text-lg font-bold shadow-lg flex items-center gap-2 hover:scale-105 transition-transform">
+              <Plus className="w-5 h-5" /> Create Profile
+           </div>
+        </Link>
+      </div>
+    </PageScaffold>
+  );
+}
+
 export default function DashboardClient() {
-  const { activeChild, loading } = useActiveChild();
+  const router = useRouter();
+  const { activeChild, loading, kids } = useActiveChild();
   
   if (loading) return <DashboardSkeleton />;
+  
+  // If not loading and no kids found, show empty state
+  if (!activeChild && (!kids || kids.length === 0)) return <EmptyState />;
 
   const name = activeChild?.display_name?.split(" ")[0] || "Explorer";
 
@@ -175,9 +201,20 @@ export default function DashboardClient() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <Greeting name={name} />
         
-        <div className="hidden md:flex items-center gap-3">
-          <StatCard label="Daily Streak" value="3 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
-          <StatCard label="Weekly XP" value="450 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
+        <div className="flex items-center gap-3">
+          {/* Theme Picker Button */}
+          <button 
+            onClick={() => router.push("/app/themes")}
+            className="h-12 w-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all"
+            title="Change Theme"
+          >
+             <PaletteIcon className="w-6 h-6" />
+          </button>
+          
+          <div className="hidden md:flex items-center gap-3">
+            <StatCard label="Daily Streak" value="3 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
+            <StatCard label="Weekly XP" value="450 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
+          </div>
         </div>
       </div>
 
@@ -197,7 +234,7 @@ export default function DashboardClient() {
         {/* Side: Quick Actions / Recommendations */}
         <div className="lg:col-span-4 flex flex-col gap-4">
           
-          {/* Pet Module (Enhanced) */}
+          {/* Pet Module */}
           <Link href="/app/pet" className="block h-full">
             <motion.div 
               initial={{ opacity: 0, x: 20 }}

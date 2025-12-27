@@ -78,16 +78,30 @@ function getDifficulty(title) {
 export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
+  const rawIdUpper = rawId.toUpperCase();
   
-  // Direct language code check (e.g. /world/AUS)
-  const isLangCode = LANGUAGE_TILES.some(l => l.id === rawId.toUpperCase());
-  const canonicalId = isLangCode ? "LANG_SPECIFIC" : (SLUG_MAP[rawId] || rawId.toUpperCase());
+  // 1. Check if it's a known Lang code from our tile list
+  const isLangCode = LANGUAGE_TILES.some(l => l.id === rawIdUpper);
   
-  const targetIds = canonicalId === "LANG_SPECIFIC" 
-    ? [rawId.toUpperCase()] 
-    : (SUBJECT_ALIASES[canonicalId] || [canonicalId]);
+  // 2. Resolve Canonical ID
+  // If it's a known slug (math -> MATH), use that.
+  // If it's a Lang Code (AUS), treat as LANG_SPECIFIC.
+  // Otherwise, treat as an arbitrary subject ID (e.g. ABL).
+  let canonicalId = SLUG_MAP[rawId];
+  if (!canonicalId) {
+      if (isLangCode) canonicalId = "LANG_SPECIFIC";
+      else canonicalId = rawIdUpper; // Fallback to passing ID directly
+  }
 
-  const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
+  // 3. Build Target IDs for Query
+  // If we found a canonical alias list (e.g. MATH -> [MATH, MAT]), use it.
+  // If it's LANG_SPECIFIC, just query that ID.
+  // If it's arbitrary (ABL), just query that ID.
+  const targetIds = (canonicalId === "LANG_SPECIFIC" || !SUBJECT_ALIASES[canonicalId])
+    ? [rawIdUpper] 
+    : SUBJECT_ALIASES[canonicalId];
+
+  const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || rawIdUpper);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,7 +113,7 @@ export default function SubjectLessonsPage() {
       setError("");
       try {
         if (canonicalId === "LANG") { 
-          // Handled by render logic below
+          // Handled by render logic below (Language Hub)
           setLoading(false); 
           return; 
         }
@@ -114,11 +128,6 @@ export default function SubjectLessonsPage() {
         if (mounted) {
           if (lessonError) throw lessonError;
           setLessons(Array.isArray(lessonData) ? lessonData : []);
-          
-          // Try to get pretty name if we found lessons
-          if (lessonData?.length > 0 && !SUBJECT_LABELS[canonicalId]) {
-             // Maybe update name from first lesson's subject_id if needed
-          }
         }
       } catch (err) {
         console.error(err);
@@ -129,7 +138,7 @@ export default function SubjectLessonsPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [canonicalId, targetIds]); // Depend on processed IDs
+  }, [canonicalId, targetIds]);
 
   const groups = useMemo(() => {
     if (!lessons.length) return [];

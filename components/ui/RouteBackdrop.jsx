@@ -3,9 +3,11 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import AmbientCanvas from "@/components/ui/AmbientCanvas";
+import { useTheme } from "@/components/ui/ThemeProvider";
 
 export default function RouteBackdrop() {
   const pathname = usePathname();
+  const { theme } = useTheme();
 
   // Determine if we are in the "Parent" or "Auth" zones
   const isParent = pathname?.startsWith("/app/parent");
@@ -25,7 +27,11 @@ export default function RouteBackdrop() {
 
   return (
     <div className="pointer-events-none">
-      <div className="skz-backdrop" data-variant={variant} />
+      <div 
+        className="skz-backdrop" 
+        data-variant={variant} 
+        style={variant === "home" && theme?.bgGradient ? { background: theme.bgGradient } : undefined}
+      />
       <AmbientCanvas variant={variant} />
       <div className="skz-noise" aria-hidden="true" />
     </div>
