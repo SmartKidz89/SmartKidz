@@ -50,8 +50,8 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
           >
-            SmartKidz turns Maths, English, and Science into a calm, confidence-building adventure. 
-            No ads. No pressure. Just real learning progress.
+            SmartKidz transforms the Australian Curriculum into a calm, confidence-building adventure. 
+            Full Maths, English, and Science coverage—mastered without the pressure.
           </motion.p>
 
           <motion.div
