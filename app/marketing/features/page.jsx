@@ -8,7 +8,7 @@ import {
   Map, Trophy, Shield, Sparkles, Zap, Brain, 
   BarChart3, Globe, Lock, BookOpen,
   Palette, Calculator, FlaskConical, Smile,
-  CheckCircle2, ArrowRight, Layout, Star
+  CheckCircle2, ArrowRight, Layout, Star, PenTool, Globe2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
@@ -79,7 +79,7 @@ export default function FeaturesPage() {
       <section className="relative pt-24 pb-20 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-indigo-100/40 via-purple-100/20 to-transparent rounded-full blur-[80px] -z-10" />
         
-        <Container className="text-center max-w-4xl">
+        <Container className="text-center max-w-4xl relative z-10">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -163,8 +163,81 @@ export default function FeaturesPage() {
         </Container>
       </section>
 
+      {/* 3. CREATIVE STUDIO SHOWCASE (New) */}
+      <section className="py-24 bg-white border-y border-slate-100 overflow-hidden">
+        <Container>
+          <div className="text-center mb-16">
+             <SectionLabel>Creative Studio</SectionLabel>
+             <h2 className="text-4xl font-black text-slate-900 mb-4">Tools for the Imagination</h2>
+             <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
+               We believe creativity is a core skill. That's why we included a suite of premium tools to help kids express themselves.
+             </p>
+          </div>
 
-      {/* 3. THE LEARNING ENGINE (Dark/Contrast Section) */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+             {/* Storybook */}
+             <motion.div 
+               whileHover={{ y: -5 }}
+               className="rounded-[2.5rem] bg-gradient-to-br from-violet-50 to-white border border-violet-100 p-8 shadow-lg"
+             >
+                <div className="w-14 h-14 rounded-2xl bg-violet-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-violet-200 mb-6">
+                   <PenTool className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">Magic Storybook</h3>
+                <p className="text-slate-600 font-medium mb-6">
+                  Kids write a prompt, and our safe AI helps them generate a full illustrated storybook they can read and share.
+                </p>
+                <div className="relative h-40 rounded-2xl bg-white border border-violet-100 overflow-hidden shadow-sm">
+                   {/* Abstract book lines */}
+                   <div className="absolute top-4 left-4 right-4 h-2 bg-violet-100 rounded-full" />
+                   <div className="absolute top-8 left-4 right-12 h-2 bg-violet-50 rounded-full" />
+                   <div className="absolute bottom-4 right-4 w-12 h-12 bg-violet-500 rounded-full opacity-10" />
+                </div>
+             </motion.div>
+
+             {/* World Explorer */}
+             <motion.div 
+               whileHover={{ y: -5 }}
+               className="rounded-[2.5rem] bg-gradient-to-br from-sky-50 to-white border border-sky-100 p-8 shadow-lg"
+             >
+                <div className="w-14 h-14 rounded-2xl bg-sky-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-sky-200 mb-6">
+                   <Globe2 className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">World Explorer</h3>
+                <p className="text-slate-600 font-medium mb-6">
+                  Tap any flag to teleport instantly. Discover local foods, greetings, landmarks, and animals from 195+ countries.
+                </p>
+                <div className="flex gap-2 justify-center py-4 opacity-80">
+                   <span className="text-4xl">🇦🇺</span>
+                   <span className="text-4xl">🇯🇵</span>
+                   <span className="text-4xl">🇫🇷</span>
+                   <span className="text-4xl">🇧🇷</span>
+                </div>
+             </motion.div>
+
+             {/* Curiosity Engine */}
+             <motion.div 
+               whileHover={{ y: -5 }}
+               className="md:col-span-2 lg:col-span-1 rounded-[2.5rem] bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 p-8 shadow-lg"
+             >
+                <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-200 mb-6">
+                   <Sparkles className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">Curiosity Engine</h3>
+                <p className="text-slate-600 font-medium mb-6">
+                  "Why is the sky blue?" Our kid-safe AI answers any question with simple language, a quiz, and a real-world experiment.
+                </p>
+                <div className="bg-white p-4 rounded-2xl border border-indigo-50 shadow-sm text-xs font-mono text-indigo-400">
+                   &gt; Asking... <br/>
+                   &gt; Found answer! <br/>
+                   &gt; Generating quiz...
+                </div>
+             </motion.div>
+          </div>
+        </Container>
+      </section>
+
+      {/* 4. THE LEARNING ENGINE (Dark/Contrast Section) */}
       <section className="py-24 bg-slate-900 text-white relative overflow-hidden my-10 rounded-[3rem] mx-4 sm:mx-8 shadow-2xl">
         <div className="absolute inset-0 bg-[url('/textures/noise.png')] opacity-20 mix-blend-overlay" />
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/30 rounded-full blur-[100px]" />
@@ -251,7 +324,7 @@ export default function FeaturesPage() {
       </section>
 
 
-      {/* 4. PARENT SUPERPOWERS */}
+      {/* 5. PARENT SUPERPOWERS */}
       <section className="py-20">
         <Container>
            <div className="grid lg:grid-cols-12 gap-12 items-center">
@@ -291,68 +364,6 @@ export default function FeaturesPage() {
            </div>
         </Container>
       </section>
-
-
-      {/* 5. TOOLKIT GRID */}
-      <section className="py-20 border-t border-slate-200 bg-white">
-        <Container>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-black text-slate-900">The Complete Toolkit</h2>
-            <p className="text-slate-600 mt-2">More than just lessons. A suite of tools to help them thrive.</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             <ToolTile icon="🔎" title="Curiosity Explorer" desc="Safe answers to big questions" color="bg-indigo-50 text-indigo-700" />
-             <ToolTile icon="🧾" title="Worksheet Generator" desc="Printable practice sheets" color="bg-amber-50 text-amber-700" />
-             <ToolTile icon="📖" title="Visual Dictionary" desc="Kid-friendly definitions" color="bg-emerald-50 text-emerald-700" />
-             <ToolTile icon="🌍" title="World Explorer" desc="3D globe & culture facts" color="bg-sky-50 text-sky-700" />
-             <ToolTile icon="🧘" title="Focus Mode" desc="Distraction-free interface" color="bg-rose-50 text-rose-700" />
-             <ToolTile icon="📘" title="Storybook" desc="Turn progress into a book" color="bg-violet-50 text-violet-700" />
-             <ToolTile icon="⏳" title="Timeline" desc="Visual history of wins" color="bg-slate-50 text-slate-700" />
-             <ToolTile icon="🧠" title="Lesson Builder" desc="Create custom lessons" color="bg-fuchsia-50 text-fuchsia-700" />
-          </div>
-        </Container>
-      </section>
-
-      {/* 6. CTA */}
-      <section className="py-24">
-        <Container>
-          <div className="relative rounded-[3rem] bg-slate-900 overflow-hidden px-8 py-20 text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-slate-900 z-0" />
-            <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
-            
-            <div className="relative z-10 max-w-2xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
-                Start their adventure today.
-              </h2>
-              <p className="text-lg text-slate-300 font-medium mb-10">
-                Join thousands of families building confidence with SmartKidz.
-                Try it free for 7 days.
-              </p>
-              <Link 
-                href="https://app.smartkidz.app/app/signup"
-                className="inline-flex h-14 items-center justify-center rounded-full bg-white px-8 text-lg font-bold text-slate-900 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105 hover:bg-indigo-50 transition-all"
-              >
-                Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
-              <p className="mt-6 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                No credit card required for preview
-              </p>
-            </div>
-          </div>
-        </Container>
-      </section>
-    </div>
-  );
-}
-
-function ToolTile({ icon, title, desc, color }) {
-  return (
-    <div className={cn("p-6 rounded-3xl transition-all hover:-translate-y-1 hover:shadow-lg border border-transparent hover:border-slate-100", color)}>
-      <div className="text-3xl mb-3">{icon}</div>
-      <div className="font-black text-lg leading-tight">{title}</div>
-      <div className="text-xs font-bold opacity-70 mt-1 uppercase tracking-wide">{desc}</div>
     </div>
   );
 }

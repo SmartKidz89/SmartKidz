@@ -55,7 +55,7 @@ export function Hero() {
             className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
           >
             SmartKidz isn't just quizzes. It's a <strong>Curiosity Engine</strong>. 
-            We combine the {geo.curriculum} with creative tools—like 3D Globes, Story Writers, and Safe AI—to spark a love for learning.
+            We combine the {geo.curriculum} with creative tools—like the Magic Storybook and World Explorer—to spark a love for learning.
           </motion.p>
 
           <motion.div
@@ -71,7 +71,7 @@ export function Hero() {
               Start Free Trial <Sparkles className="w-5 h-5 text-amber-300" />
             </Link>
             <Link
-              href="#how-it-works"
+              href="/marketing/features"
               className="h-14 px-8 rounded-full bg-white border border-slate-200 text-slate-700 text-lg font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center"
             >
               Explore Features
@@ -187,10 +187,10 @@ export function LogoStrip() {
   return (
     <Container className="py-10 border-y border-slate-100 bg-slate-50/50">
       <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-wide mb-6">
-        The complete learning system
+        Trusted by families across {geo.name}
       </p>
       <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100">
-        {[geo.mathTerm, "English", "Science", "World Explorer", "Creativity", "Safety"].map((label) => (
+        {[geo.mathTerm + " Mastery", "English Confidence", "Science Discovery", "World Explorer", "Creativity", "Safety"].map((label) => (
           <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
             <CheckCircle2 className="w-5 h-5 text-brand-mint" />
             <span className="font-extrabold text-slate-900">{label}</span>
@@ -248,7 +248,7 @@ export function FeatureGrid() {
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2">World Explorer</h3>
             <p className="text-slate-700 font-medium">
-              Spin the 3D globe. Discover countries, flags, foods, and greetings. It's geography class, but way cooler.
+              Tap any flag to teleport. Discover local foods, landmarks, greetings, and wildlife from 195+ countries.
             </p>
           </div>
         </div>
@@ -349,7 +349,7 @@ export function CTA() {
           </h2>
           <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10 leading-relaxed">
             Join thousands of families building confidence with SmartKidz.
-            Full access to every tool and subject.
+            Full curriculum access included in every plan.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

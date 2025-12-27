@@ -65,12 +65,19 @@ function ValueProp({ icon: Icon, title, desc, color }) {
   );
 }
 
-const WIDER_WORLD = [
-  { id: "HASS", title: "HASS", icon: Globe, color: "bg-amber-100 text-amber-700" },
-  { id: "ART", title: "The Arts", icon: Palette, color: "bg-pink-100 text-pink-700" },
-  { id: "TECH", title: "Technologies", icon: Cpu, color: "bg-slate-100 text-slate-700" },
-  { id: "HPE", title: "Health & PE", icon: Activity, color: "bg-lime-100 text-lime-700" },
-  { id: "LANG", title: "Languages", icon: Languages, color: "bg-indigo-100 text-indigo-700" },
+const SUPPORTED_COUNTRIES = [
+  { code: "AU", name: "Australia", curriculum: "Australian Curriculum (AC9)" },
+  { code: "US", name: "United States", curriculum: "Common Core" },
+  { code: "GB", name: "United Kingdom", curriculum: "National Curriculum" },
+  { code: "NZ", name: "New Zealand", curriculum: "NZ Curriculum" },
+  { code: "CA", name: "Canada", curriculum: "Provincial Standards" },
+  { code: "IN", name: "India", curriculum: "CBSE / ICSE Aligned" },
+  { code: "SG", name: "Singapore", curriculum: "MOE Syllabus" },
+  { code: "ZA", name: "South Africa", curriculum: "CAPS Aligned" },
+  { code: "IE", name: "Ireland", curriculum: "Primary Curriculum" },
+  { code: "AE", name: "UAE", curriculum: "Ministry of Education" },
+  { code: "PH", name: "Philippines", curriculum: "K-12 Curriculum" },
+  { code: "INT", name: "Global", curriculum: "International Standards" },
 ];
 
 export default function CurriculumPage() {
@@ -130,31 +137,6 @@ export default function CurriculumPage() {
               We cover every key learning area from {geo.gradeTerm} 1 to 6. 
               Structured for mastery, designed for fun.
             </motion.p>
-          </Container>
-
-          {/* Hero Visual */}
-          <Container>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 40 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8, type: "spring" }}
-              className="relative rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white aspect-[21/9]"
-            >
-              <Image 
-                src="/illustrations/scenes/curriculum-hero.webp" 
-                alt="Curriculum Overview" 
-                fill 
-                className="object-cover"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-              <div className="absolute bottom-8 left-8 sm:bottom-12 sm:left-12 text-white">
-                <div className="inline-block px-3 py-1 rounded-lg bg-white/20 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider mb-2">
-                  Preview
-                </div>
-                <div className="text-2xl sm:text-3xl font-black">Explore the Learning Map</div>
-              </div>
-            </motion.div>
           </Container>
         </section>
 
@@ -248,35 +230,32 @@ export default function CurriculumPage() {
           </Container>
         </section>
 
-        {/* 4. THE WIDER WORLD */}
+        {/* 4. GLOBAL SUPPORT (New) */}
         <section className="py-20">
           <Container>
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-black text-slate-900 mb-4">Plus the wider world</h2>
-              <p className="text-lg text-slate-600">A complete education includes more than just the basics.</p>
+              <h2 className="text-3xl font-black text-slate-900 mb-4">Supported Worldwide</h2>
+              <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
+                We automatically adapt spelling, units (metric/imperial), and curriculum standards to where you live.
+              </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4">
-              {WIDER_WORLD.map((w) => (
-                <div 
-                  key={w.id} 
-                  className={cn("flex items-center gap-3 pl-2 pr-5 py-2 rounded-full border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all cursor-default select-none")}
-                >
-                  <div className={cn("h-10 w-10 rounded-full flex items-center justify-center", w.color)}>
-                    <w.icon className="w-5 h-5" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {SUPPORTED_COUNTRIES.map((c) => (
+                <div key={c.code} className="flex flex-col items-center justify-center p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm text-center hover:shadow-md transition-shadow">
+                  <div className="text-3xl mb-2">
+                    {/* Using emoji flags, but could use CDN images if preferred */}
+                    <img 
+                      src={`https://flagcdn.com/w40/${c.code.toLowerCase() === 'int' ? 'un' : c.code.toLowerCase()}.png`} 
+                      alt={c.name}
+                      className="h-6 w-auto rounded shadow-sm"
+                      onError={(e) => { e.target.style.display = 'none'; }} 
+                    />
                   </div>
-                  <span className="font-bold text-slate-800">{w.title}</span>
+                  <div className="font-bold text-slate-900">{c.name}</div>
+                  <div className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-wide">{c.curriculum}</div>
                 </div>
               ))}
-            </div>
-
-            <div className="mt-12 text-center">
-              <div className="inline-block p-6 rounded-3xl bg-indigo-50 border border-indigo-100 max-w-2xl">
-                <h3 className="font-bold text-indigo-900 mb-2">Did you know?</h3>
-                <p className="text-indigo-800 text-sm leading-relaxed">
-                  We are also adding <strong>Digital Technologies</strong> (Coding basics) and <strong>Indigenous Histories</strong> modules this year. SmartKidz grows with the curriculum.
-                </p>
-              </div>
             </div>
           </Container>
         </section>
@@ -301,21 +280,14 @@ export default function CurriculumPage() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Link 
                     href="https://app.smartkidz.app/app/signup"
-                    className="inline-flex h-14 items-center justify-center rounded-full bg-white px-8 text-lg font-bold text-slate-900 shadow-xl hover:scale-105 hover:bg-indigo-50 transition-all"
+                    className="inline-flex h-14 items-center justify-center rounded-full bg-white px-8 text-lg font-bold text-slate-900 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105 hover:bg-indigo-50 transition-all"
                   >
-                    Start Free Trial
+                    Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
-                  <Link 
-                    href="/marketing/pricing"
-                    className="inline-flex h-14 items-center justify-center rounded-full px-8 text-lg font-bold text-white border-2 border-slate-700 hover:bg-slate-800 transition-all"
-                  >
-                    View Pricing
-                  </Link>
+                  <p className="mt-6 text-xs font-bold text-slate-500 uppercase tracking-widest sm:hidden">
+                    No credit card required for preview
+                  </p>
                 </div>
-                
-                <p className="mt-6 text-sm text-slate-500 font-semibold">
-                  No credit card required for preview • Cancel anytime
-                </p>
               </div>
             </div>
           </Container>
