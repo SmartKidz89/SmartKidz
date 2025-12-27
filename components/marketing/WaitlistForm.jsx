@@ -13,10 +13,10 @@ export default function WaitlistForm() {
 
   return (
     <form
+      onSubmit={handleSubmit}
       className="flex flex-col gap-3 sm:flex-row"
       action="https://formsubmit.co/"
       method="post"
-      onSubmit={handleSubmit}
     >
       <input
         name="email"
@@ -34,4 +34,3 @@ export default function WaitlistForm() {
     </form>
   );
 }
-

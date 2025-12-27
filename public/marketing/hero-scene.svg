@@ -1,0 +1,26 @@
+<svg viewBox="0 0 1200 650" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#E0F2FE"/><stop offset="1" stop-color="#EEF2FF"/>
+  </linearGradient>
+  <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.75"/>
+  </linearGradient>
+</defs>
+<rect width="1200" height="650" rx="48" fill="url(#bg)"/>
+<circle cx="980" cy="170" r="140" fill="#FBBF24" opacity="0.18"/>
+<circle cx="220" cy="520" r="160" fill="#2DD4BF" opacity="0.14"/>
+<rect x="160" y="150" width="520" height="340" rx="36" fill="url(#card)" stroke="#E2E8F0"/>
+<rect x="210" y="205" width="260" height="18" rx="9" fill="#CBD5E1"/>
+<rect x="210" y="240" width="320" height="18" rx="9" fill="#E2E8F0"/>
+<rect x="210" y="310" width="420" height="44" rx="22" fill="#4F46E5" opacity="0.9"/>
+<rect x="210" y="372" width="360" height="18" rx="9" fill="#E2E8F0"/>
+<rect x="210" y="404" width="300" height="18" rx="9" fill="#E2E8F0"/>
+<rect x="720" y="210" width="320" height="280" rx="40" fill="url(#card)" stroke="#E2E8F0"/>
+<circle cx="780" cy="280" r="40" fill="#4F46E5" opacity="0.85"/>
+<rect x="840" y="260" width="160" height="18" rx="9" fill="#CBD5E1"/>
+<rect x="840" y="292" width="190" height="18" rx="9" fill="#E2E8F0"/>
+<rect x="760" y="350" width="240" height="16" rx="8" fill="#2DD4BF" opacity="0.75"/>
+<rect x="760" y="382" width="200" height="16" rx="8" fill="#FBBF24" opacity="0.6"/>
+<text x="210" y="292" font-size="28" font-family="ui-sans-serif,system-ui" font-weight="900" fill="#0F172A">Confidence, built daily</text>
+</svg>

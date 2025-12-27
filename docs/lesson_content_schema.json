@@ -1,0 +1,105 @@
+{
+  "title": "SmartKidz Lesson Content JSON",
+  "type": "object",
+  "required": [
+    "duration_minutes",
+    "objective",
+    "explanation",
+    "real_world_application",
+    "memory_strategies",
+    "worked_example",
+    "scenarios",
+    "quiz"
+  ],
+  "properties": {
+    "duration_minutes": {
+      "type": "integer",
+      "minimum": 15
+    },
+    "objective": {
+      "type": "string"
+    },
+    "explanation": {
+      "type": "string"
+    },
+    "real_world_application": {
+      "type": "string"
+    },
+    "memory_strategies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "worked_example": {
+      "type": "string"
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "context",
+          "questions"
+        ],
+        "properties": {
+          "context": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "prompt",
+                "answer"
+              ],
+              "properties": {
+                "prompt": {
+                  "type": "string"
+                },
+                "answer": {
+                  "type": "string"
+                }
+              }
+            },
+            "minItems": 2
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "quiz": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "question",
+          "options",
+          "answer",
+          "explanation"
+        ],
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2
+          },
+          "answer": {
+            "type": "string"
+          },
+          "explanation": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 3
+    }
+  }
+}
