@@ -27,14 +27,14 @@ const NAV_ITEMS = [
   { label: "Me", href: "/app/pet", icon: UserCircle },
 ];
 
-// Tools for the "Explore" Menu
+// Tools for the "Explore" Menu - With improved gradients
 const EXPLORE_TOOLS = [
-  { href: "/app/tools/pixel-art", title: "Pixel Studio", icon: Palette, color: "bg-pink-100 text-pink-600" },
-  { href: "/app/tools/world-explorer", title: "World Map", icon: Globe2, color: "bg-sky-100 text-sky-600" },
-  { href: "/app/tools/dictionary", title: "Dictionary", icon: BookOpen, color: "bg-emerald-100 text-emerald-600" },
-  { href: "/app/tools/storybook", title: "Storybook", icon: PenTool, color: "bg-violet-100 text-violet-600" },
-  { href: "/app/tools/curiosity", title: "Curiosity", icon: Compass, color: "bg-rose-100 text-rose-600" },
-  { href: "/app/tools/timeline", title: "Timeline", icon: Clock, color: "bg-amber-100 text-amber-600" },
+  { href: "/app/tools/pixel-art", title: "Pixel Studio", icon: Palette, bg: "bg-gradient-to-br from-pink-400 to-rose-500 text-white", shadow: "shadow-rose-200" },
+  { href: "/app/tools/world-explorer", title: "World Map", icon: Globe2, bg: "bg-gradient-to-br from-sky-400 to-blue-500 text-white", shadow: "shadow-sky-200" },
+  { href: "/app/tools/dictionary", title: "Dictionary", icon: BookOpen, bg: "bg-gradient-to-br from-emerald-400 to-teal-500 text-white", shadow: "shadow-emerald-200" },
+  { href: "/app/tools/storybook", title: "Storybook", icon: PenTool, bg: "bg-gradient-to-br from-violet-400 to-purple-500 text-white", shadow: "shadow-violet-200" },
+  { href: "/app/tools/curiosity", title: "Curiosity", icon: Compass, bg: "bg-gradient-to-br from-amber-400 to-orange-500 text-white", shadow: "shadow-amber-200" },
+  { href: "/app/tools/timeline", title: "Timeline", icon: Clock, bg: "bg-gradient-to-br from-indigo-400 to-blue-500 text-white", shadow: "shadow-indigo-200" },
 ];
 
 function ExploreMenu({ open, onClose }) {
@@ -48,7 +48,7 @@ function ExploreMenu({ open, onClose }) {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50"
             onClick={onClose}
           />
           <motion.div
@@ -56,43 +56,56 @@ function ExploreMenu({ open, onClose }) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
           >
-             <div className="p-6 pb-8 overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                   <h2 className="text-2xl font-black text-slate-900">Explore Tools</h2>
-                   <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
+             {/* Header */}
+             <div className="p-6 pb-2 shrink-0">
+                <div className="flex items-center justify-between">
+                   <div>
+                     <h2 className="text-2xl font-black text-slate-900">Explore Tools</h2>
+                     <p className="text-slate-500 font-medium text-sm">Discover new ways to learn.</p>
+                   </div>
+                   <button onClick={onClose} className="p-3 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
                       <X className="w-6 h-6" />
                    </button>
                 </div>
+             </div>
+             
+             {/* Scrollable Content */}
+             <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-8">
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                {/* Tools Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                    {EXPLORE_TOOLS.map((t) => (
                      <Link key={t.href} href={t.href} onClick={() => { play("click"); onClose(); }}>
-                        <div className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-slate-50 border-2 border-transparent hover:border-slate-200 hover:bg-white hover:shadow-lg transition-all active:scale-95">
-                           <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm", t.color)}>
-                              <t.icon className="w-7 h-7" />
+                        <div className="group flex flex-col items-center gap-3 p-5 rounded-[2rem] bg-slate-50 border-2 border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl transition-all active:scale-95">
+                           <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg transition-transform group-hover:scale-110", t.bg, t.shadow)}>
+                              <t.icon className="w-8 h-8" />
                            </div>
-                           <span className="font-bold text-slate-700 text-sm">{t.title}</span>
+                           <span className="font-extrabold text-slate-700 text-sm group-hover:text-indigo-600">{t.title}</span>
                         </div>
                      </Link>
                    ))}
                 </div>
 
-                <div className="bg-indigo-50 rounded-3xl p-5 flex items-center justify-between">
+                {/* Parent Section */}
+                <div className="bg-slate-900 rounded-[2rem] p-6 flex items-center justify-between shadow-xl text-white">
                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
                          <Settings className="w-6 h-6" />
                       </div>
                       <div>
-                         <div className="font-bold text-slate-900">Parent Dashboard</div>
-                         <div className="text-xs text-slate-500 font-semibold">Settings & Reports</div>
+                         <div className="font-bold text-lg">Parents</div>
+                         <div className="text-xs text-slate-400 font-medium">Settings, Safety & Reports</div>
                       </div>
                    </div>
-                   <Link href="/app/parent" onClick={onClose} className="px-5 py-2 bg-white rounded-xl text-sm font-bold text-indigo-600 shadow-sm">
+                   <Link href="/app/parent" onClick={onClose} className="px-6 py-3 bg-white rounded-full text-sm font-black text-slate-900 hover:bg-indigo-50 transition-colors">
                       Open
                    </Link>
                 </div>
+                
+                {/* Spacer for bottom safe area */}
+                <div className="h-6" />
              </div>
           </motion.div>
         </>
@@ -110,7 +123,7 @@ function BottomNav({ onOpenMenu }) {
 
   return (
     <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-      <nav className="pointer-events-auto flex items-center gap-1 p-2 bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-slate-900/20 rounded-[2.5rem] ring-1 ring-white/10 max-w-md w-full justify-between">
+      <nav className="pointer-events-auto flex items-center gap-1 p-2 bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-slate-900/30 rounded-[2.5rem] ring-1 ring-white/10 max-w-md w-full justify-between">
           {NAV_ITEMS.map((t) => {
             const isActive = t.exact ? pathname === t.href : (pathname?.startsWith(t.href));
             const Icon = t.icon;
@@ -120,7 +133,7 @@ function BottomNav({ onOpenMenu }) {
                 <button
                   key="trigger"
                   onClick={() => { play("click"); onOpenMenu(); }}
-                  className="relative group -mt-8"
+                  className="relative group -mt-8 mx-2"
                 >
                   <div className="w-16 h-16 rounded-full bg-gradient-to-b from-brand-primary to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 border-[4px] border-white transform transition-transform group-hover:scale-110 group-active:scale-95">
                      <Grid2X2 className="w-7 h-7 text-white" />
@@ -159,7 +172,9 @@ function BottomNav({ onOpenMenu }) {
 export default function AppShell({ children }) {
   const { focus } = useFocusMode();
   const pathname = usePathname();
-  
+  const reduce = useReducedMotion();
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const isLoginLike =
     pathname === "/app/login" ||
     pathname === "/app/signup" ||
@@ -169,8 +184,6 @@ export default function AppShell({ children }) {
 
   const inParent = pathname === "/app/parent" || pathname?.startsWith("/app/parent/");
   const inKid = !isLoginLike && !inParent;
-  
-  const [menuOpen, setMenuOpen] = useState(false);
 
   if (isLoginLike) {
     return <div className="app-ui min-h-screen">{children}</div>;

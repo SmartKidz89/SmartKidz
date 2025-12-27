@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { playUISound, haptic } from "@/components/ui/sound";
 import { Sparkles, ChevronLeft, Search, Lightbulb, Compass, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { validatePrompt } from "@/lib/safety/guardrails";
 
 const SUGGESTIONS = [
   "Why is the sky blue?",
@@ -17,56 +16,36 @@ const SUGGESTIONS = [
   "How do magnets work?",
 ];
 
-function buildAnswer(question, year) {
-  return {
-    title: "Curiosity Science",
-    topic: "science",
-    explanation: "Let’s wonder together! The sky looks blue because sunlight gets scattered in the air. Blue light spreads out more than other colours, so our eyes see blue everywhere when we look up.",
-    realWorld: "Next time you are outside, look at the sky at sunset. Is it still blue? Often it turns pink or orange because the light travels through more air!",
-    activity: "Shine a torch through a clear glass of water with a tiny drop of milk in it. See how the light spreads out?",
-    remember: "Sunlight is many colours. Air scatters blue the most.",
-    quiz: [
-      { question: "What scatters the sunlight?", answer: "The air (atmosphere)." },
-      { question: "Is sunlight just one colour?", answer: "No, it's made of all colours of the rainbow." }
-    ],
-    audioPrompts: ["Let's look up together.", "What colours do you see?"]
-  };
-}
-
 export default function CuriosityExplorerPage() {
   const { activeChild } = useActiveChild();
-  const year = activeChild?.year_level || 2;
   const [q, setQ] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  function handleSearch(query) {
+  async function handleSearch(query) {
     const term = query || q;
-    if (!term) return;
+    if (!term.trim()) return;
 
     setError(null);
     setResult(null);
+    setLoading(true);
     try { playUISound("tap"); } catch {}
 
-    // Safety check
     try {
-      validatePrompt(term);
+      const res = await fetch(`/api/curiosity?q=${encodeURIComponent(term)}`);
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Could not find an answer.");
+      
+      setResult(data);
+      try { playUISound("success"); haptic("medium"); } catch {}
     } catch (err) {
       setError(err.message);
       try { playUISound("error"); } catch {}
-      return;
-    }
-
-    setLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      const answer = buildAnswer(term, year);
-      setResult({ ...answer, query: term });
+    } finally {
       setLoading(false);
-      try { playUISound("success"); haptic("medium"); } catch {}
-    }, 1500);
+    }
   }
 
   return (
@@ -101,9 +80,10 @@ export default function CuriosityExplorerPage() {
             />
             <button 
               onClick={() => handleSearch(q)}
-              className="h-12 px-6 rounded-full bg-slate-900 text-white font-bold hover:bg-slate-800 transition-transform active:scale-95"
+              disabled={loading}
+              className="h-12 px-6 rounded-full bg-slate-900 text-white font-bold hover:bg-slate-800 transition-transform active:scale-95 disabled:opacity-50"
             >
-              Ask
+              {loading ? "..." : "Ask"}
             </button>
           </div>
 
@@ -189,7 +169,7 @@ export default function CuriosityExplorerPage() {
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mb-4">Quick Quiz</h3>
                     <div className="space-y-4">
-                      {result.quiz.map((item, i) => (
+                      {result.quiz?.map((item, i) => (
                         <div key={i} className="group cursor-pointer">
                           <div className="font-bold text-slate-900 mb-1">{item.question}</div>
                           <div className="text-sm font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
