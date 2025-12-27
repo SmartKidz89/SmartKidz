@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play } from "lucide-react";
+import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveChild } from "@/hooks/useActiveChild";
 
@@ -78,10 +78,11 @@ function getDifficulty(title) {
 
 export default function SubjectLessonsPage() {
   const params = useParams();
-  const { activeChild } = useActiveChild();
+  const { activeChild, loading: childLoading } = useActiveChild();
   
   // Use child's country preference, default to AU
   const country = activeChild?.country || "AU";
+  const childYear = activeChild?.year_level || 3;
 
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
   
@@ -103,49 +104,61 @@ export default function SubjectLessonsPage() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterLevel, setFilterLevel] = useState("All");
+  
+  // Filtering State
+  const [selectedYear, setSelectedYear] = useState(null); // Defaults to child year on load
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // Sync selectedYear with child's year once loaded
+  useEffect(() => {
+    if (!childLoading && activeChild && selectedYear === null) {
+      setSelectedYear(activeChild.year_level);
+    } else if (!childLoading && selectedYear === null) {
+      setSelectedYear(3); // Fallback
+    }
+  }, [activeChild, childLoading, selectedYear]);
+
+  // Debounce Search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Fetch Lessons
   useEffect(() => {
     let mounted = true;
     async function load() {
+      if (canonicalId === "LANG") { setLoading(false); return; }
+      if (selectedYear === null) return; // Wait for year init
+
       setLoading(true);
       setError("");
+      
       try {
-        if (canonicalId === "LANG") { 
-          setLoading(false); 
-          return; 
-        }
-
         let query = supabase
           .from("lessons")
           .select("id,title,year_level,topic,subject_id,country")
           .in("subject_id", targetIds)
-          .order("year_level", { ascending: true })
-          .order("title", { ascending: true });
+          .eq("year_level", selectedYear) // Filter by year at DB level for speed
+          .order("title", { ascending: true })
+          .limit(400); // Safety limit per year/subject
 
-        // Filter by country if column exists (it should after migration)
-        // We gracefully fallback if column missing or old data is null (assuming 'AU')
-        // But for explicit new rows, we check country.
-        // Or to handle mixed data:
-        // We'll try to filter by country.
-        
-        // Fetch all first, filter locally to be safe against schema lag or nulls?
-        // Let's do DB filter for efficiency if possible.
-        // We'll construct a query that allows null (legacy) to match AU, or exact match.
-        
-        // Actually, simplest is just fetch match.
+        // Apply country filter if possible (legacy data support)
+        // We'll filter strictly on country if column is populated
+        if (country) {
+           query = query.eq("country", country);
+        }
+
+        if (debouncedSearch) {
+           query = query.ilike("title", `%${debouncedSearch}%`);
+        }
+
         const { data: lessonData, error: lessonError } = await query;
 
         if (mounted) {
           if (lessonError) throw lessonError;
-          
-          // Client-side filter to handle legacy nulls = AU
-          const filtered = (lessonData || []).filter(l => {
-             const c = l.country || "AU";
-             return c === country;
-          });
-          
-          setLessons(filtered);
+          setLessons(lessonData || []);
         }
       } catch (err) {
         console.error(err);
@@ -156,34 +169,28 @@ export default function SubjectLessonsPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [canonicalId, targetIds.join(","), country]);
-
-  const filteredLessons = useMemo(() => {
-    if (filterLevel === "All") return lessons;
-    return lessons.filter(l => {
-      const diff = getDifficulty(l.title);
-      return diff.label === filterLevel;
-    });
-  }, [lessons, filterLevel]);
+  }, [canonicalId, targetIds.join(","), country, selectedYear, debouncedSearch]);
 
   const groups = useMemo(() => {
-    if (!filteredLessons.length) return [];
-    const byYear = {};
-    for (const l of filteredLessons) {
-      const y = l.year_level || "General";
-      if (!byYear[y]) byYear[y] = [];
-      byYear[y].push(l);
+    if (!lessons.length) return [];
+    // Group by Topic for cleaner display
+    const byTopic = {};
+    for (const l of lessons) {
+      const t = l.topic || "General Practice";
+      if (!byTopic[t]) byTopic[t] = [];
+      byTopic[t].push(l);
     }
-    return Object.keys(byYear).sort().map(y => ({
-      id: y,
-      title: y === "General" ? "General" : `Year ${y}`,
-      lessons: byYear[y]
+    return Object.keys(byTopic).sort().map(t => ({
+      id: t,
+      title: t,
+      lessons: byTopic[t]
     }));
-  }, [filteredLessons]);
+  }, [lessons]);
 
   const heroImage = SUBJECT_IMAGES[canonicalId] || SUBJECT_IMAGES.MATH;
 
   if (canonicalId === "LANG") {
+    // Language Portal (Unchanged)
     return (
       <PageScaffold title={null}>
         <div className="mb-6">
@@ -222,15 +229,18 @@ export default function SubjectLessonsPage() {
 
   return (
     <PageScaffold title={null}>
+      
+      {/* 1. Navbar */}
       <div className="mb-6 flex justify-between items-center">
         <Link href={canonicalId === "LANG_SPECIFIC" ? "/app/world/LANG" : "/app/worlds"} className="inline-flex items-center gap-2 rounded-full bg-white/60 backdrop-blur px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white transition-all shadow-sm">
           <ArrowLeft className="w-4 h-4" /> {canonicalId === "LANG_SPECIFIC" ? "Back to Languages" : "Back to Worlds"}
         </Link>
-        <span className="text-xs font-bold bg-white px-3 py-1 rounded-full border border-slate-200 text-slate-500">
-           {country === "NZ" ? "🇳🇿 NZ Curriculum" : "🇦🇺 AU Curriculum"}
+        <span className="text-xs font-bold bg-white px-3 py-1 rounded-full border border-slate-200 text-slate-500 flex items-center gap-2">
+           <Globe className="w-3 h-3" /> {country === "NZ" ? "NZ Curriculum" : "Australian Curriculum"}
         </span>
       </div>
 
+      {/* 2. Hero */}
       <div className="relative mb-8 overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-2xl">
         <div className="absolute inset-0">
            <Image src={heroImage} alt={subjectName} fill className="object-cover opacity-60" priority />
@@ -239,41 +249,75 @@ export default function SubjectLessonsPage() {
         <div className="relative z-10 p-8 md:p-12 text-white">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-4 border border-white/20">World</div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 drop-shadow-lg">{canonicalId === "LANG_SPECIFIC" ? rawId.toUpperCase() : subjectName}</h1>
-          <p className="text-lg md:text-xl text-slate-200 font-medium max-w-2xl leading-relaxed">Choose your level. Master the skill. Earn the reward.</p>
+          <p className="text-lg md:text-xl text-slate-200 font-medium max-w-2xl leading-relaxed">
+             Select your year level to find your path.
+          </p>
         </div>
       </div>
 
-      <div className="mb-10 flex flex-wrap gap-2 justify-center sm:justify-start">
-        {["All", "Beginner", "Intermediate", "Advanced"].map((lvl) => {
-           const active = filterLevel === lvl;
-           const colors = {
-             "All": "bg-slate-100 text-slate-600 hover:bg-slate-200",
-             "Beginner": active ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
-             "Intermediate": active ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30" : "bg-sky-50 text-sky-700 hover:bg-sky-100",
-             "Advanced": active ? "bg-purple-500 text-white shadow-lg shadow-purple-500/30" : "bg-purple-50 text-purple-700 hover:bg-purple-100"
-           };
-           return <button key={lvl} onClick={() => setFilterLevel(lvl)} className={cn("px-5 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95", active && lvl === "All" ? "bg-slate-900 text-white shadow-lg" : colors[lvl])}>{lvl}</button>;
-        })}
+      {/* 3. Filters Toolbar */}
+      <div className="sticky top-20 z-30 mb-8 p-2 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg flex flex-col md:flex-row items-center gap-4">
+        
+        {/* Year Tabs */}
+        <div className="flex p-1 bg-slate-100/80 rounded-full overflow-x-auto max-w-full">
+           {[1, 2, 3, 4, 5, 6].map(y => (
+             <button
+               key={y}
+               onClick={() => setSelectedYear(y)}
+               className={cn(
+                 "px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
+                 selectedYear === y 
+                   ? "bg-slate-900 text-white shadow-md" 
+                   : "text-slate-500 hover:text-slate-900 hover:bg-white/50"
+               )}
+             >
+               Year {y}
+             </button>
+           ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full md:w-auto md:flex-1">
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+           <input 
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             placeholder={`Search ${subjectName}...`}
+             className="w-full h-11 pl-10 pr-4 rounded-full bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary/50 transition-all placeholder:font-medium"
+           />
+        </div>
       </div>
 
+      {/* 4. Content Area */}
       {loading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{[1,2,3,4,5,6].map(i => <div key={i} className="h-48 rounded-[2rem] bg-slate-100 animate-pulse" />)}</div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1,2,3,4,5,6].map(i => <div key={i} className="h-48 rounded-[2rem] bg-slate-100 animate-pulse" />)}
+        </div>
       ) : error ? (
         <div className="p-8 rounded-3xl bg-rose-50 border border-rose-100 text-rose-800 font-bold text-center">{error}</div>
       ) : groups.length === 0 ? (
         <div className="p-16 rounded-[2.5rem] bg-white border-4 border-dashed border-slate-100 text-center">
           <div className="text-6xl mb-4 grayscale opacity-40">🗺️</div>
           <div className="text-xl font-black text-slate-900">No lessons found</div>
-          <p className="text-slate-500 mt-2">No lessons available for {country === "NZ" ? "New Zealand" : "Australia"} in this subject yet.</p>
+          <p className="text-slate-500 mt-2">
+            We couldn't find lessons for Year {selectedYear} in this subject yet.
+          </p>
+          <button onClick={() => setSelectedYear(Math.max(1, selectedYear - 1))} className="mt-4 text-brand-primary font-bold hover:underline">
+             Try Year {Math.max(1, selectedYear - 1)}
+          </button>
         </div>
       ) : (
-        <div className="space-y-16">
+        <div className="space-y-12">
           {groups.map((group) => (
             <section key={group.id} className="relative">
               <div className="flex items-end gap-4 mb-6">
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">{group.title}</h2>
-                <div className="h-px flex-1 bg-slate-200 mb-2.5" />
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <span className="w-2 h-8 rounded-full bg-brand-primary" />
+                  {group.title}
+                </h2>
+                <div className="h-px flex-1 bg-slate-200 mb-2.5 opacity-50" />
               </div>
+              
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {group.lessons.map((l, i) => <LessonCard key={l.id} lesson={l} index={i} />)}
               </div>
@@ -282,6 +326,15 @@ export default function SubjectLessonsPage() {
         </div>
       )}
     </PageScaffold>
+  );
+}
+
+function Globe({ className }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
   );
 }
 
