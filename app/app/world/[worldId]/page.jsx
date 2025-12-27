@@ -22,15 +22,17 @@ export default function SubjectLessonsPage() {
       setLoading(true);
       setError("");
 
+      // Query lessons table with correct schema columns: year_level, topic, etc.
+      // Removed 'status' and 'order_index' filters/sorts as they don't exist in the current schema.
       const [{ data: subjectData, error: subjectError }, { data: lessonData, error: lessonError }] =
         await Promise.all([
           supabase.from("subjects").select("id,name").eq("id", worldId).maybeSingle(),
           supabase
             .from("lessons")
-            .select("id,title,grade,order_index,status,subject_id")
+            .select("id,title,year_level,topic,subject_id")
             .eq("subject_id", worldId)
-            .eq("status", "active")
-            .order("order_index", { ascending: true }),
+            .order("year_level", { ascending: true })
+            .order("title", { ascending: true }),
         ]);
 
       if (!mounted) return;
@@ -98,7 +100,8 @@ export default function SubjectLessonsPage() {
                 </div>
 
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {l.grade ? `Year ${l.grade}` : "Lesson"}
+                  {l.year_level ? `Year ${l.year_level}` : "Lesson"}
+                  {l.topic ? ` • ${l.topic}` : ""}
                 </div>
 
                 <div className="flex-1" />
