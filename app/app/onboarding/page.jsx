@@ -71,8 +71,18 @@ function SelectField({ label, value, onChange, options }) {
 // --- Data ---
 
 const COUNTRIES = [
-  { value: "AU", label: "Australia (AU Curriculum)" },
-  { value: "NZ", label: "New Zealand (NZ Curriculum)" },
+  { value: "AU", label: "🇦🇺 Australia (Australian Curriculum)" },
+  { value: "NZ", label: "🇳🇿 New Zealand (NZ Curriculum)" },
+  { value: "US", label: "🇺🇸 United States (Common Core)" },
+  { value: "GB", label: "🇬🇧 United Kingdom (National Curriculum)" },
+  { value: "CA", label: "🇨🇦 Canada (Provincial Standards)" },
+  { value: "IN", label: "🇮🇳 India (CBSE/ICSE Aligned)" },
+  { value: "SG", label: "🇸🇬 Singapore (MOE Syllabus)" },
+  { value: "ZA", label: "🇿🇦 South Africa (CAPS)" },
+  { value: "IE", label: "🇮🇪 Ireland (Primary Curriculum)" },
+  { value: "AE", label: "🇦🇪 UAE (Ministry of Education)" },
+  { value: "PH", label: "🇵🇭 Philippines (K-12)" },
+  { value: "INT", label: "🌍 International (IB / General)" },
 ];
 
 const REFERRAL_SOURCES = [
@@ -84,14 +94,9 @@ const REFERRAL_SOURCES = [
   { value: "other", label: "Other" },
 ];
 
-const YEAR_LEVELS = [
-  { value: 1, label: "Year 1" },
-  { value: 2, label: "Year 2" },
-  { value: 3, label: "Year 3" },
-  { value: 4, label: "Year 4" },
-  { value: 5, label: "Year 5" },
-  { value: 6, label: "Year 6" },
-];
+// We'll dynamically change "Year" to "Grade" based on country selection below, 
+// but for the static list we keep generic values.
+const LEVELS = [1, 2, 3, 4, 5, 6];
 
 export default function OnboardingPage() {
   const { session, supabase } = useSession();
@@ -104,7 +109,7 @@ export default function OnboardingPage() {
   // Form State
   const [formData, setFormData] = useState({
     full_name: "",
-    country: "AU", // Default to AU
+    country: "AU", 
     address_line1: "",
     city: "",
     state: "",
@@ -112,6 +117,15 @@ export default function OnboardingPage() {
     referral_source: "",
     children: [{ display_name: "", year_level: 3 }] 
   });
+
+  // Helper to determine term (Year/Grade/Class)
+  const getGradeTerm = (c) => {
+    if (["US", "CA", "ZA", "PH"].includes(c)) return "Grade";
+    if (["IN", "SG"].includes(c)) return "Class/Primary";
+    return "Year";
+  };
+
+  const gradeTerm = getGradeTerm(formData.country);
 
   useEffect(() => {
     if (session?.user?.user_metadata?.full_name) {
@@ -164,7 +178,7 @@ export default function OnboardingPage() {
         .upsert({
           id: uid,
           full_name: formData.full_name,
-          country: formData.country, // Save selected country
+          country: formData.country, 
           address_line1: formData.address_line1,
           city: formData.city,
           state: formData.state,
@@ -279,7 +293,7 @@ export default function OnboardingPage() {
                     <Home className="w-8 h-8" />
                   </div>
                   <h2 className="text-3xl font-black text-slate-900">Where are you based?</h2>
-                  <p className="text-slate-600 mt-2">This sets your curriculum (e.g. AU or NZ).</p>
+                  <p className="text-slate-600 mt-2">This customizes the curriculum for your region.</p>
                 </div>
 
                 <SelectField 
@@ -292,14 +306,14 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <InputField 
                     label="City" 
-                    placeholder="e.g. Auckland" 
+                    placeholder="e.g. London" 
                     value={formData.city} 
                     onChange={(v) => updateForm("city", v)}
                     required
                   />
                   <InputField 
                     label="Postcode" 
-                    placeholder="e.g. 1010" 
+                    placeholder="e.g. SW1A" 
                     value={formData.postcode} 
                     onChange={(v) => updateForm("postcode", v)}
                     required
@@ -376,10 +390,10 @@ export default function OnboardingPage() {
                            onChange={(v) => updateChild(index, "display_name", v)}
                          />
                          <SelectField 
-                           label="Year Level"
+                           label={`${gradeTerm} Level`}
                            value={kid.year_level}
                            onChange={(v) => updateChild(index, "year_level", v)}
-                           options={YEAR_LEVELS}
+                           options={LEVELS.map(l => ({ value: l, label: `${gradeTerm} ${l}` }))}
                          />
                       </div>
                     </div>
