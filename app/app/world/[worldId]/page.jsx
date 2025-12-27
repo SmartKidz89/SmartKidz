@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter, Signal, SignalHigh, SignalMedium, SignalLow, Globe } from "lucide-react";
+import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter, Signal, SignalHigh, SignalMedium, SignalLow, Globe, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { getGeoConfig } from "@/lib/marketing/geoConfig";
@@ -118,6 +118,7 @@ export default function SubjectLessonsPage() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState(null);
   
   // Filtering State
   const [selectedYear, setSelectedYear] = useState(null); 
@@ -148,9 +149,10 @@ export default function SubjectLessonsPage() {
 
       setLoading(true);
       setError("");
+      setDebugInfo(null);
       
       try {
-        let query = supabase
+        const baseQuery = supabase
           .from("lessons")
           .select("id,title,year_level,topic,subject_id,country")
           .in("subject_id", targetIds)
@@ -158,20 +160,52 @@ export default function SubjectLessonsPage() {
           .order("title", { ascending: true })
           .limit(400);
 
-        // Apply country filter
+        if (debouncedSearch) {
+           baseQuery.ilike("title", `%${debouncedSearch}%`);
+        }
+
+        // 1. Try Strict Country Match
+        let query = baseQuery;
         if (countryCode) {
            query = query.eq("country", countryCode);
         }
 
-        if (debouncedSearch) {
-           query = query.ilike("title", `%${debouncedSearch}%`);
+        const { data: lessonData, error: lessonError } = await query;
+        if (lessonError) throw lessonError;
+
+        let finalLessons = lessonData || [];
+
+        // 2. Fallback: If no lessons found, try without country filter (Global/Untagged lessons)
+        if (finalLessons.length === 0 && countryCode) {
+           console.log("No country-specific lessons found. Trying global fallback...");
+           
+           // Re-build query without .eq('country')
+           // Note: We recreate the query object because Supabase query builders are mutable in some contexts or hard to 'undo'
+           const fallbackQuery = supabase
+             .from("lessons")
+             .select("id,title,year_level,topic,subject_id,country")
+             .in("subject_id", targetIds)
+             .eq("year_level", selectedYear)
+             .order("title", { ascending: true })
+             .limit(400);
+
+            if (debouncedSearch) fallbackQuery.ilike("title", `%${debouncedSearch}%`);
+           
+           // Look for rows where country is NULL or 'INT'
+           const { data: fallbackData } = await fallbackQuery;
+           
+           // Prefer INT or NULL if available
+           if (fallbackData && fallbackData.length > 0) {
+             finalLessons = fallbackData;
+             // Optional: warn the user they are seeing fallback content?
+           }
         }
 
-        const { data: lessonData, error: lessonError } = await query;
-
         if (mounted) {
-          if (lessonError) throw lessonError;
-          setLessons(lessonData || []);
+          setLessons(finalLessons);
+          if (finalLessons.length === 0) {
+             setDebugInfo({ targetIds, selectedYear, countryCode });
+          }
         }
       } catch (err) {
         console.error(err);
@@ -353,6 +387,16 @@ export default function SubjectLessonsPage() {
           <p className="text-slate-500 mt-2">
              We couldn't find {selectedLevel === "All" ? "" : selectedLevel} lessons for {geo.gradeTerm} {selectedYear}.
           </p>
+          
+          {debugInfo && (
+             <div className="mt-6 p-4 bg-slate-50 rounded-xl text-xs font-mono text-left max-w-md mx-auto text-slate-500 border border-slate-200">
+                <div className="font-bold mb-1 uppercase tracking-wide">Debug Info</div>
+                <div>Subjects: {debugInfo.targetIds.join(", ")}</div>
+                <div>Year: {debugInfo.selectedYear}</div>
+                <div>Country: {debugInfo.countryCode || "None (Filter Ignored)"}</div>
+             </div>
+          )}
+
           <div className="flex justify-center gap-4 mt-6">
              <button onClick={() => setSelectedLevel("All")} className="text-brand-primary font-bold hover:underline">
                 View All Levels
@@ -397,6 +441,13 @@ function LessonCard({ lesson, index }) {
            </div>
            <h3 className="text-lg font-black text-slate-900 leading-snug mb-2 group-hover:text-brand-primary transition-colors line-clamp-2">{lesson.title}</h3>
            {lesson.topic && <p className="text-sm font-semibold text-slate-500 line-clamp-2">{lesson.topic}</p>}
+           
+           {/* Debug Country Badge (visible on hover) */}
+           {lesson.country && (
+              <div className="mt-2 opacity-0 group-hover:opacity-50 transition-opacity text-[10px] font-mono text-slate-400">
+                 {lesson.country}
+              </div>
+           )}
         </div>
         <div className="p-4 pt-2">
            <div className="w-full h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center px-4 group-hover:bg-slate-900 group-hover:text-white transition-colors duration-300">
