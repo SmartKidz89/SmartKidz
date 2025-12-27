@@ -1,4 +1,3 @@
-
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,45 +5,73 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const OUTPUT_FILE = path.join(__dirname, '../csv_imports/bulk_lessons_aus.csv');
+const OUTPUT_FILE = path.join(__dirname, '../csv_imports/bulk_lessons_aus_expanded.csv');
 
-// Australian Curriculum approximate mappings
+// Australian Curriculum approximate mappings & Topics
 const CURRICULUM = {
     MATH: {
         name: 'Maths',
-        strands: ['Number and Algebra', 'Measurement and Geometry', 'Statistics and Probability'],
+        strands: ['Number & Algebra', 'Measurement & Geometry', 'Statistics & Probability'],
+        topics: [
+            'Counting & Place Value', 'Addition & Subtraction', 'Multiplication & Division', 
+            'Fractions & Decimals', 'Money & Finance', 'Patterns & Algebra',
+            'Shape & Geometric Reasoning', 'Location & Transformation', 'Using Units of Measurement',
+            'Chance', 'Data Representation'
+        ],
         tags: (year) => [`AC9M${year}N01`, `AC9M${year}G02`, `AC9M${year}SP03`]
     },
     ENG: {
         name: 'English',
         strands: ['Language', 'Literature', 'Literacy'],
+        topics: [
+            'Phonics & Word Knowledge', 'Spelling Rules', 'Grammar & Punctuation',
+            'Reading Comprehension', 'Types of Texts', 'Creating Literature',
+            'Listening & Speaking', 'Visual Literacy', 'Handwriting'
+        ],
         tags: (year) => [`AC9E${year}LA01`, `AC9E${year}LY02`, `AC9E${year}LE03`]
     },
     SCI: {
         name: 'Science',
-        strands: ['Biological Sciences', 'Chemical Sciences', 'Earth and Space Sciences', 'Physical Sciences'],
+        strands: ['Biological Sciences', 'Chemical Sciences', 'Earth & Space', 'Physical Sciences'],
+        topics: [
+            'Living Things', 'Life Cycles', 'Materials & Properties', 'States of Matter',
+            'Earth, Sun & Moon', 'Weather & Seasons', 'Forces & Motion', 'Energy & Electricity',
+            'Scientific Inquiry'
+        ],
         tags: (year) => [`AC9S${year}U01`, `AC9S${year}H02`]
     },
     HASS: {
         name: 'HASS',
-        strands: ['History', 'Geography', 'Civics and Citizenship', 'Economics and Business'],
+        strands: ['History', 'Geography', 'Civics', 'Economics'],
+        topics: [
+            'My Community', 'First Nations History', 'World Exploration', 'Celebrations',
+            'Maps & Places', 'Sustainability', 'Rules & Laws', 'Needs vs Wants'
+        ],
         tags: (year) => [`AC9H${year}K01`, `AC9H${year}S02`]
     },
     ART: {
         name: 'The Arts',
         strands: ['Dance', 'Drama', 'Media Arts', 'Music', 'Visual Arts'],
+        topics: [
+            'Colour Theory', 'Line & Shape', 'Rhythm & Beat', 'Roleplay & Character',
+            'Dance Movements', 'Media Stories', 'Cultural Art'
+        ],
         tags: (year) => [`AC9A${year}MA01`]
     },
     TECH: {
         name: 'Technologies',
         strands: ['Design and Technologies', 'Digital Technologies'],
+        topics: [
+            'Digital Systems', 'Data & Representation', 'Algorithms', 'Design Thinking',
+            'Materials & Tools', 'Food & Fibre'
+        ],
         tags: (year) => [`AC9T${year}DI01`]
     }
 };
 
-const SUBJECT_IDS = Object.keys(CURRICULUM);
+const LEVELS = ['Beginning', 'Intermediate', 'Advanced'];
+const LESSONS_PER_LEVEL = 75; 
 const YEARS = [1, 2, 3, 4, 5, 6];
-const LESSONS_PER_YEAR = 50;
 
 function escapeCsv(field) {
     if (field == null) return '';
@@ -55,74 +82,101 @@ function escapeCsv(field) {
     return stringField;
 }
 
-// PostgreSQL array format for CSV: "{tag1,tag2}"
 function formatPostgresArray(arr) {
     if (!arr || arr.length === 0) return '{}';
     return `"{${arr.join(',')}}"`;
 }
 
+function generateContent(subject, topic, year, level, index) {
+    const isAdv = level === 'Advanced';
+    const isBeg = level === 'Beginning';
+
+    const objective = isBeg 
+        ? `Identify and describe key features of ${topic}.`
+        : isAdv 
+        ? `Analyse and apply complex rules of ${topic} to new situations.`
+        : `Understand and practice the core rules of ${topic}.`;
+
+    const explanation = `
+        In this ${level} lesson for Year ${year}, we explore ${topic}.
+        
+        1. **The Core Idea**: ${topic} helps us understand how the world works. At the ${level} stage, we focus on ${isBeg ? 'building strong foundations' : 'connecting ideas together'}.
+        
+        2. **Why it matters**: Understanding this allows you to solve real problems, like figuring out patterns or explaining observations in nature.
+        
+        3. **Deep Dive**: Remember that ${topic} involves checking your work. ${isAdv ? 'Look out for common exceptions.' : 'Take your time to spot the pattern.'}
+    `.trim().replace(/\s+/g, ' ');
+
+    const memory_strategies = [
+        `Anchor Word: Connect "${topic}" to something you see every day.`,
+        `Visualise: Close your eyes and picture the steps: First, Next, Then.`,
+        `Teach it: Try explaining this rule to a friend or toy.`
+    ];
+
+    const real_world_application = `
+        You use ${topic} when you are ${isBeg ? 'playing games or organizing toys' : 'planning a project or managing time'}. 
+        Next time you are out, look for examples of ${topic} around you!
+    `.trim();
+
+    // Generate 5 questions per lesson
+    const quiz = Array.from({ length: 5 }).map((_, qIdx) => ({
+        q: `[${level}] Question ${qIdx + 1} about ${topic}: What is the key rule?`,
+        options: [
+            `The correct rule for ${topic} (${level})`,
+            `A common mistake for ${topic}`,
+            `An unrelated fact`
+        ],
+        answer: 0, // First option is correct for this generator
+        hint: `Think about what we learned in the ${level} explanation.`
+    }));
+
+    return {
+        duration_minutes: 15,
+        objective,
+        explanation,
+        memory_strategies,
+        real_world_application,
+        quiz
+    };
+}
+
 const ROWS = [];
-// Header matches the schema provided
 ROWS.push(['id', 'year_level', 'subject_id', 'title', 'topic', 'curriculum_tags', 'content_json'].join(','));
 
-console.log(`Generating Australian Curriculum data...`);
+console.log(`Generating lessons: ${Object.keys(CURRICULUM).length} subjects x ${YEARS.length} years x ${LEVELS.length} levels x ${LESSONS_PER_LEVEL} lessons...`);
 
 let totalCount = 0;
 
-for (const subjId of SUBJECT_IDS) {
+for (const subjId of Object.keys(CURRICULUM)) {
     const subjectData = CURRICULUM[subjId];
 
     for (const year of YEARS) {
-        for (let i = 1; i <= LESSONS_PER_YEAR; i++) {
-            const paddedI = i.toString().padStart(3, '0');
-            const id = `${subjId}_Y${year}_${paddedI}`;
+        for (const level of LEVELS) {
+            for (let i = 1; i <= LESSONS_PER_LEVEL; i++) {
+                // Unique ID: MATH_Y3_ADV_001
+                const levelCode = level.substring(0, 3).toUpperCase();
+                const paddedI = i.toString().padStart(3, '0');
+                const id = `${subjId}_Y${year}_${levelCode}_${paddedI}`;
+                
+                // Cycle topics
+                const topic = subjectData.topics[(i - 1) % subjectData.topics.length];
+                const title = `${topic}: ${level} Practice ${i}`;
+                const tags = subjectData.tags(year);
 
-            // Pick a random strand/topic
-            const strand = subjectData.strands[(i - 1) % subjectData.strands.length];
-            const tags = subjectData.tags(year);
+                const content = generateContent(subjectData.name, topic, year, level, i);
 
-            // Generate a title
-            const title = `${subjectData.name} Yr ${year}: ${strand} - Lesson ${Math.ceil(i / 5)}`;
+                ROWS.push([
+                    id,
+                    year,
+                    subjId,
+                    escapeCsv(title),
+                    escapeCsv(topic),
+                    formatPostgresArray(tags),
+                    escapeCsv(JSON.stringify(content))
+                ].join(','));
 
-            const content = {
-                hook: `Today in ${subjectData.name}, we are looking at ${strand}.`,
-                overview: `This lesson aligns with the Australian Curriculum for Year ${year}, focusing on ${strand}.`,
-                explanation: {
-                    concepts: [
-                        `Key concept 1 for ${strand}`,
-                        `Key concept 2 for ${strand}`
-                    ],
-                    worked_example: `Here is a ${subjectData.name} example focusing on ${strand}...`
-                },
-                activities: [
-                    {
-                        type: "activity",
-                        title: `${strand} Practice`,
-                        instructions: `Complete the following task related to ${strand}.`,
-                        duration_min: 15
-                    }
-                ],
-                quiz: {
-                    questions: [
-                        {
-                            q: `What is the main idea of ${strand}?`,
-                            options: ["Option A", "Option B", "Option C"]
-                        }
-                    ]
-                }
-            };
-
-            ROWS.push([
-                id,
-                year,
-                subjId,
-                escapeCsv(title),
-                escapeCsv(strand), // topic
-                formatPostgresArray(tags), // curriculum_tags
-                escapeCsv(JSON.stringify(content)) // content_json
-            ].join(','));
-
-            totalCount++;
+                totalCount++;
+            }
         }
     }
 }
