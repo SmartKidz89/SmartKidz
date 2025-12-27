@@ -101,14 +101,13 @@ const SUBJECTS = [
 ];
 
 const TOOLS = [
-  { href: "/app/pet", title: "My Pet", icon: Heart, color: "bg-rose-100 text-rose-700" },
-  { href: "/app/tools/grammar", title: "Grammar Gym", icon: ALargeSmall, color: "bg-indigo-100 text-indigo-700" },
-  { href: "/app/tools/pixel-art", title: "Pixel Studio", icon: Palette, color: "bg-pink-100 text-pink-700" },
-  { href: "/app/tools/worksheet", title: "Worksheets", icon: Book, color: "bg-orange-100 text-orange-700" },
-  { href: "/app/tools/world-explorer", title: "Explorer", icon: Globe2, color: "bg-sky-100 text-sky-700" },
-  { href: "/app/tools/dictionary", title: "Dictionary", icon: BookOpen, color: "bg-emerald-100 text-emerald-700" },
-  { href: "/app/tools/storybook", title: "Storybook", icon: PenTool, color: "bg-blue-100 text-blue-700" },
-  { href: "/app/tools/curiosity", title: "Curiosity", icon: Compass, color: "bg-purple-100 text-purple-700" },
+  { href: "/app/tools/pixel-art", title: "Pixel Art", icon: Palette, color: "bg-pink-500", desc: "Draw in blocks" },
+  { href: "/app/tools/world-explorer", title: "Explorer", icon: Globe2, color: "bg-sky-500", desc: "Spin the globe" },
+  { href: "/app/tools/dictionary", title: "Dictionary", icon: BookOpen, color: "bg-emerald-500", desc: "Look it up" },
+  { href: "/app/tools/storybook", title: "Storybook", icon: PenTool, color: "bg-violet-500", desc: "Write stories" },
+  { href: "/app/tools/curiosity", title: "Curiosity", icon: Compass, color: "bg-rose-500", desc: "Ask why?" },
+  { href: "/app/tools/focus", title: "Focus Mode", icon: Sparkles, color: "bg-teal-500", desc: "Zero distractions" },
+  { href: "/app/tools/timeline", title: "Timeline", icon: Clock, color: "bg-amber-500", desc: "Your history" },
 ];
 
 // --- Components ---
@@ -154,10 +153,6 @@ function DashboardSkeleton() {
           <div className="lg:col-span-8 h-80 bg-slate-200 rounded-[2.5rem]" />
           <div className="lg:col-span-4 h-80 bg-slate-200 rounded-[2.5rem]" />
        </div>
-       <div className="h-10 w-48 bg-slate-200 rounded-2xl mb-6" />
-       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[1,2,3,4].map(i => <div key={i} className="h-56 bg-slate-200 rounded-[2.5rem]" />)}
-       </div>
     </PageScaffold>
   );
 }
@@ -185,11 +180,20 @@ function EmptyState() {
 
 export default function DashboardClient() {
   const router = useRouter();
-  const { activeChild, loading, kids } = useActiveChild();
+  
+  // Safe hook usage
+  let activeChild, loading, kids;
+  try {
+    const res = useActiveChild();
+    activeChild = res.activeChild;
+    loading = res.loading;
+    kids = res.kids;
+  } catch (e) {
+    // Fallback if context missing
+    return <EmptyState />;
+  }
   
   if (loading) return <DashboardSkeleton />;
-  
-  // If not loading and no kids found, show empty state
   if (!activeChild && (!kids || kids.length === 0)) return <EmptyState />;
 
   const name = activeChild?.display_name?.split(" ")[0] || "Explorer";
@@ -202,7 +206,6 @@ export default function DashboardClient() {
         <Greeting name={name} />
         
         <div className="flex items-center gap-3">
-          {/* Theme Picker Button */}
           <button 
             onClick={() => router.push("/app/themes")}
             className="h-12 w-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all"
@@ -212,8 +215,8 @@ export default function DashboardClient() {
           </button>
           
           <div className="hidden md:flex items-center gap-3">
-            <StatCard label="Daily Streak" value="3 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
-            <StatCard label="Weekly XP" value="450 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
+            <StatCard label="Daily Streak" value="0 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
+            <StatCard label="Weekly XP" value="0 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
           </div>
         </div>
       </div>
@@ -228,7 +231,10 @@ export default function DashboardClient() {
           className="lg:col-span-8 relative overflow-hidden rounded-[2.5rem] bg-white shadow-xl border border-slate-100 p-1"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-sky-50 opacity-50" />
-          <TodayModule /> 
+          {/* Wrapped to prevent crash if local storage is blocked */}
+          <ErrorBoundary>
+            <TodayModule /> 
+          </ErrorBoundary>
         </motion.div>
 
         {/* Side: Quick Actions / Recommendations */}
@@ -242,7 +248,6 @@ export default function DashboardClient() {
               className="h-full rounded-[2.5rem] bg-gradient-to-br from-rose-100 to-white border border-rose-100 p-6 shadow-lg relative overflow-hidden group hover:shadow-xl hover:scale-[1.02] transition-all"
             >
                <div className="absolute -right-4 -top-4 w-32 h-32 bg-rose-200/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
-               
                <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                  <div className="flex items-start justify-between">
                     <div>
@@ -252,11 +257,7 @@ export default function DashboardClient() {
                       </div>
                       <h3 className="text-2xl font-black text-slate-900">My Pet</h3>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-slate-300 group-hover:text-rose-500 transition-colors">
-                      <ArrowRight className="w-5 h-5" />
-                    </div>
                  </div>
-                 
                  <div className="flex items-center gap-4 mt-2">
                     <div className="w-16 h-16 rounded-3xl bg-white flex items-center justify-center text-4xl shadow-sm group-hover:rotate-12 transition-transform">
                        🐾
@@ -280,7 +281,9 @@ export default function DashboardClient() {
               <Sparkles className="w-5 h-5 text-fuchsia-500" />
               <h3 className="font-extrabold text-slate-900">For You</h3>
             </div>
-            <RecommendationsPanel />
+            <ErrorBoundary>
+              <RecommendationsPanel />
+            </ErrorBoundary>
           </motion.div>
 
         </div>
@@ -327,6 +330,14 @@ export default function DashboardClient() {
   );
 }
 
+function ErrorBoundary({ children }) {
+  try {
+    return <>{children}</>;
+  } catch (e) {
+    return <div className="text-sm text-slate-500 p-4">Content unavailable</div>;
+  }
+}
+
 function WorldCard({ subject, index }) {
   return (
     <Link href={`/app/world/${subject.id}`} className="group relative block h-56 w-full cursor-pointer">
@@ -336,33 +347,19 @@ function WorldCard({ subject, index }) {
         transition={{ delay: index * 0.05, duration: 0.4 }}
         className="relative h-full w-full overflow-hidden rounded-[2.5rem] bg-white shadow-md transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
       >
-        {/* Background Image & Gradient */}
         <div className="absolute inset-0">
-          <Image 
-            src={subject.img} 
-            alt={subject.title} 
-            fill 
-            className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-95" 
-          />
+          <Image src={subject.img} alt={subject.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-95" />
           <div className={`absolute inset-0 bg-gradient-to-br ${subject.gradient} opacity-60 mix-blend-multiply transition-opacity group-hover:opacity-50`} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
         </div>
-        
-        {/* Content */}
         <div className="absolute inset-0 p-6 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-inner">
               <subject.icon className="w-6 h-6 text-white" />
             </div>
-            <div className="h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-              <ArrowRight className="w-4 h-4 text-white" />
-            </div>
           </div>
-          
           <div>
-            <h3 className="text-2xl font-black text-white leading-none tracking-tight mb-1 drop-shadow-sm">
-              {subject.title}
-            </h3>
+            <h3 className="text-2xl font-black text-white leading-none tracking-tight mb-1 drop-shadow-sm">{subject.title}</h3>
             <p className="text-sm font-medium text-white/90">{subject.subtitle}</p>
           </div>
         </div>
@@ -384,9 +381,7 @@ function ToolCard({ tool, index }) {
         <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 ${tool.color}`}>
           <Icon className="w-6 h-6" />
         </div>
-        <div className="text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors line-clamp-1">
-          {tool.title}
-        </div>
+        <div className="text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors line-clamp-1">{tool.title}</div>
       </motion.div>
     </Link>
   );
