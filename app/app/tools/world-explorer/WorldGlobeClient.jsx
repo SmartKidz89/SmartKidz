@@ -2,8 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Vector3, Color, MeshStandardMaterial } from "three";
+import { useEffect, useMemo, useState } from "react";
 
 // Fallback data in case external API fails or is blocked
 const FALLBACK_COUNTRIES = [
@@ -17,30 +16,25 @@ const FALLBACK_COUNTRIES = [
   { name: { common: "United Kingdom" }, latlng: [55, -3], cca2: "GB", region: "Europe", flag: "🇬🇧" },
 ];
 
-function latLngToVec3(lat, lng, radius = 1) {
+// Return simple [x, y, z] array instead of THREE.Vector3
+function latLngToPos(lat, lng, radius = 1) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lng + 180) * (Math.PI / 180);
   const x = -(radius * Math.sin(phi) * Math.cos(theta));
   const z = radius * Math.sin(phi) * Math.sin(theta);
   const y = radius * Math.cos(phi);
-  return new Vector3(x, y, z);
+  return [x, y, z];
 }
 
 function Earth() {
-  const meshRef = useRef();
-
-  const material = useMemo(() => {
-    return new MeshStandardMaterial({
-      color: new Color("#1e40af"), // Deep blue ocean
-      roughness: 0.8,
-      metalness: 0.1,
-    });
-  }, []);
-
   return (
-    <mesh ref={meshRef}>
+    <mesh>
       <sphereGeometry args={[1, 64, 64]} />
-      <primitive object={material} attach="material" />
+      <meshStandardMaterial 
+        color="#1e40af" // Deep blue
+        roughness={0.8}
+        metalness={0.1}
+      />
     </mesh>
   );
 }
@@ -56,7 +50,7 @@ function CountryMarkers({ countries, onSelect }) {
         return {
           id: c.cca2 || c.cca3 || c.name?.common,
           country: c,
-          position: latLngToVec3(lat, lng, 1.02), // slightly above surface
+          position: latLngToPos(lat, lng, 1.02), // slightly above surface
         };
       });
   }, [countries]);
@@ -82,12 +76,11 @@ function CountryMarkers({ countries, onSelect }) {
             onSelect?.(m.country);
           }}
         >
-          {/* Larger hit area for easier tapping */}
-          <sphereGeometry args={[hovered === m.id ? 0.025 : 0.015, 16, 16]} />
+          <sphereGeometry args={[hovered === m.id ? 0.03 : 0.018, 16, 16]} />
           <meshStandardMaterial
-            color={hovered === m.id ? "#fbbf24" : "#ffffff"} // Amber-400 / White
+            color={hovered === m.id ? "#fbbf24" : "#ffffff"} 
             emissive={hovered === m.id ? "#d97706" : "#000000"}
-            emissiveIntensity={hovered === m.id ? 0.8 : 0}
+            emissiveIntensity={hovered === m.id ? 0.5 : 0}
           />
         </mesh>
       ))}
@@ -104,7 +97,7 @@ export default function WorldGlobeClient({ onSelect }) {
     async function load() {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
 
         const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2,cca3,latlng,region,subregion,capital,flag", {
           signal: controller.signal
@@ -129,13 +122,13 @@ export default function WorldGlobeClient({ onSelect }) {
   }, []);
 
   return (
-    <div className="w-full h-full relative bg-slate-900">
+    <div className="w-full h-full relative bg-slate-900 overflow-hidden">
       <Canvas camera={{ position: [0, 0, 2.8], fov: 45 }}>
-        <ambientLight intensity={0.5} />
+        <ambientLight intensity={0.6} />
         <directionalLight position={[5, 3, 5]} intensity={1.5} />
         <pointLight position={[-5, -3, -5]} intensity={0.5} />
         
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
         
         <Earth />
         <CountryMarkers countries={countries} onSelect={onSelect} />
@@ -154,8 +147,8 @@ export default function WorldGlobeClient({ onSelect }) {
       
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/50 px-4 py-2 rounded-full text-white text-xs font-bold backdrop-blur-md">
-            Loading countries...
+          <div className="bg-black/60 px-4 py-2 rounded-full text-white text-xs font-bold backdrop-blur-md animate-pulse">
+            Loading Map...
           </div>
         </div>
       )}
