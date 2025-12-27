@@ -22,6 +22,10 @@ const FALLBACK_COUNTRIES = [
   { name: { common: "Germany" }, cca2: "DE", region: "Europe", capital: ["Berlin"], flags: { png: "https://flagcdn.com/w320/de.png", svg: "https://flagcdn.com/de.svg" } },
 ];
 
+const FLAG_OVERRIDES = {
+  AF: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Flag_of_Afghanistan_%282013%E2%80%932021%29.svg/320px-Flag_of_Afghanistan_%282013%E2%80%932021%29.svg.png"
+};
+
 export default function WorldExplorerGrid() {
   const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
   const [loading, setLoading] = useState(true);
@@ -133,43 +137,47 @@ export default function WorldExplorerGrid() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-2 md:px-0">
-           {filtered.map((country) => (
-             <Link 
-               key={country.cca2} 
-               href={`/app/tools/world-explorer/${country.cca2}`}
-               className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
-             >
-                {/* Flag Aspect */}
-                <div className="aspect-[1.6] relative bg-slate-50 overflow-hidden">
-                   <Image 
-                     src={country.flags.svg || country.flags.png} 
-                     alt={`Flag of ${country.name.common}`}
-                     fill
-                     className="object-cover transition-transform duration-500 group-hover:scale-110"
-                   />
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                
-                {/* Details */}
-                <div className="p-4 flex-1 flex flex-col">
-                   <h3 className="font-black text-slate-900 leading-tight mb-1 line-clamp-1" title={country.name.common}>
-                     {country.name.common}
-                   </h3>
-                   <div className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
-                      <Compass className="w-3 h-3" /> {country.region}
-                   </div>
-                   
-                   <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
-                      <div className="text-xs font-semibold text-slate-500 truncate max-w-[80px]">
-                        {country.capital?.[0] || "No Capital"}
-                      </div>
-                      <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-colors">
-                        <MapPin className="w-3 h-3" />
-                      </div>
-                   </div>
-                </div>
-             </Link>
-           ))}
+           {filtered.map((country) => {
+             const flagSrc = FLAG_OVERRIDES[country.cca2] || country.flags.svg || country.flags.png;
+             
+             return (
+               <Link 
+                 key={country.cca2} 
+                 href={`/app/tools/world-explorer/${country.cca2}`}
+                 className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
+               >
+                  {/* Flag Aspect */}
+                  <div className="aspect-[1.6] relative bg-slate-50 overflow-hidden">
+                     <Image 
+                       src={flagSrc} 
+                       alt={`Flag of ${country.name.common}`}
+                       fill
+                       className="object-cover transition-transform duration-500 group-hover:scale-110"
+                     />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  
+                  {/* Details */}
+                  <div className="p-4 flex-1 flex flex-col">
+                     <h3 className="font-black text-slate-900 leading-tight mb-1 line-clamp-1" title={country.name.common}>
+                       {country.name.common}
+                     </h3>
+                     <div className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
+                        <Compass className="w-3 h-3" /> {country.region}
+                     </div>
+                     
+                     <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
+                        <div className="text-xs font-semibold text-slate-500 truncate max-w-[80px]">
+                          {country.capital?.[0] || "No Capital"}
+                        </div>
+                        <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                          <MapPin className="w-3 h-3" />
+                        </div>
+                     </div>
+                  </div>
+               </Link>
+             );
+           })}
         </div>
       )}
       

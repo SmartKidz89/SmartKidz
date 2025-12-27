@@ -4,6 +4,33 @@ export const runtime = "nodejs";
 
 // Enhanced Fallback Data with Rich Content
 const FALLBACK_DATA = {
+  AF: {
+    name: { common: "Afghanistan", official: "Islamic Republic of Afghanistan" },
+    region: "Asia",
+    capital: ["Kabul"],
+    population: 40000000,
+    // Using the 2013-2021 Republic flag (Tricolor) which is widely recognized in educational contexts
+    flags: { 
+      png: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Flag_of_Afghanistan_%282013%E2%80%932021%29.svg/320px-Flag_of_Afghanistan_%282013%E2%80%932021%29.svg.png", 
+      svg: "https://upload.wikimedia.org/wikipedia/commons/c/cd/Flag_of_Afghanistan_%282013%E2%80%932021%29.svg" 
+    },
+    flag: "🇦🇫",
+    maps: { googleMaps: "https://goo.gl/maps/k7F7B" },
+    rich: {
+      funFact: "Afghanistan is famous for its beautiful blue stone called Lapis Lazuli, used in art for thousands of years.",
+      food: "Kabuli Pulao (rice with carrots and raisins).",
+      landmark: "The Blue Mosque in Mazar-i-Sharif.",
+      hello: "Salam",
+      language: "Pashto & Dari",
+      animal: "Snow Leopard",
+      sport: "Cricket and Buzkashi",
+      currency: "Afghani (؋)",
+      climate: "Hot summers and very cold winters with snow in the mountains.",
+      history: "Located on the ancient Silk Road, connecting people from all over the world.",
+      festival: "Nowruz (New Year) celebrated in spring.",
+      nature: "High mountains like the Hindu Kush and deep valleys."
+    }
+  },
   AU: { 
     name: { common: "Australia", official: "Commonwealth of Australia" }, 
     region: "Oceania", 
@@ -222,8 +249,12 @@ export async function GET(req) {
     if (!country) {
       country = FALLBACK_DATA[code];
     } else {
-      // We have real API data, but let's augment it with our curated rich data if available
-      // This ensures "Hello" and "Fun Fact" are high quality for popular countries
+      // Merge rich data.
+      // IMPORTANT: For Afghanistan (AF) and potentially others, we might want to override the flag 
+      // if the API returns a version we don't want (e.g. strict educational/historical preference).
+      if (code === "AF" && FALLBACK_DATA.AF.flags) {
+        country.flags = FALLBACK_DATA.AF.flags;
+      }
       country.rich = FALLBACK_DATA[code].rich;
     }
   }
