@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Sparkles, Shield, Zap, Star, Infinity as InfinityIcon, HelpCircle } from "lucide-react";
+import { Check, Sparkles, Shield, Zap, Star, Infinity as InfinityIcon, HelpCircle, ArrowRight } from "lucide-react";
 import CinematicScroll from "@/components/marketing/CinematicScroll";
-import SectionReveal from "@/components/marketing/SectionReveal";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import { cn } from "@/lib/utils";
 
@@ -52,10 +51,10 @@ function PricingCard({ plan, popular = false, delay = 0 }) {
       <Link
         href="https://app.smartkidz.app/app/signup"
         className={cn(
-          "w-full h-12 rounded-xl flex items-center justify-center font-bold transition-all shadow-lg active:scale-95",
+          "w-full h-14 rounded-full flex items-center justify-center font-bold transition-all shadow-lg active:scale-95 text-lg",
           popular
             ? "bg-white text-slate-900 hover:bg-indigo-50"
-            : "bg-slate-100 text-slate-900 hover:bg-slate-200 hover:text-slate-900"
+            : "bg-slate-900 text-white hover:bg-slate-800"
         )}
       >
         Start 7-Day Free Trial
@@ -147,7 +146,7 @@ const FAQS = [
 
 export default function PricingPage() {
   return (
-    <PageScaffold title={null} className="bg-slate-50/50">
+    <div className="bg-slate-50/50">
       <CinematicScroll>
         
         {/* 1. HERO */}
@@ -189,12 +188,12 @@ export default function PricingPage() {
         {/* 2. PRICING CARDS */}
         <section className="pb-20">
           <Container className="max-w-5xl">
-            <div className="grid md:grid-cols-2 gap-6 items-center">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
               <PricingCard plan={PLANS[0]} delay={0.3} />
               <PricingCard plan={PLANS[1]} popular delay={0.4} />
             </div>
             
-            <div className="mt-8 text-center">
+            <div className="mt-12 text-center">
                <p className="text-sm font-semibold text-slate-500 flex items-center justify-center gap-2">
                  <Shield className="w-4 h-4" />
                  Secure payment via Stripe • 256-bit SSL Encryption
@@ -213,9 +212,7 @@ export default function PricingPage() {
             
             <div className="grid sm:grid-cols-2 gap-6">
               {INCLUDED_FEATURES.map((feat, i) => (
-                <SectionReveal key={feat.title} delay={i * 0.1}>
-                  <FeatureItem {...feat} />
-                </SectionReveal>
+                <FeatureItem key={feat.title} {...feat} />
               ))}
             </div>
           </Container>
@@ -271,6 +268,6 @@ export default function PricingPage() {
         </section>
 
       </CinematicScroll>
-    </PageScaffold>
+    </div>
   );
 }
