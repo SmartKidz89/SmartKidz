@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-// Allow longer timeout for large generation
 export const maxDuration = 60; 
 
 const SUBJECTS = {
@@ -17,14 +16,13 @@ const SUBJECTS = {
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-// Full dataset: 8 subj * 6 yr * 3 levels * 100 lessons = 14,400 rows
 const LESSONS_PER_LEVEL = 100; 
 
-function escapeCsv(field) {
+function escapeCsv(field, forceQuote = false) {
   if (field == null) return '';
   const s = String(field);
-  // If value contains quotes, commas, or newlines, wrap in quotes and escape internal quotes
-  if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+  // Quote if requested OR if it contains special CSV chars
+  if (forceQuote || s.includes('"') || s.includes(',') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
@@ -56,7 +54,6 @@ export async function GET() {
   const writer = stream.writable.getWriter();
   const encoder = new TextEncoder();
 
-  // Start generation in background
   (async () => {
     try {
       await writer.write(encoder.encode('id,year_level,subject_id,title,topic,curriculum_tags,content_json,created_at,updated_at\n'));
@@ -80,19 +77,20 @@ export async function GET() {
 
               const content = generateContent(subjectData.name, topic, year, level);
 
-              const rowData = [
-                id,
-                year,
-                subjId,
-                title,
-                topic,
-                curriculumTags, // Passed to escapeCsv below to handle safe formatting
-                content,
-                now,
-                now
+              // Build row manually to control quoting
+              const rowParts = [
+                escapeCsv(id),
+                escapeCsv(year),
+                escapeCsv(subjId),
+                escapeCsv(title),
+                escapeCsv(topic),
+                escapeCsv(curriculumTags, true), // FORCE QUOTE the array column
+                escapeCsv(content),
+                escapeCsv(now),
+                escapeCsv(now)
               ];
 
-              const rowString = rowData.map(escapeCsv).join(',') + '\n';
+              const rowString = rowParts.join(',') + '\n';
               await writer.write(encoder.encode(rowString));
             }
           }
