@@ -99,7 +99,7 @@ export function Hero() {
           >
             <div className="relative rounded-[2.2rem] overflow-hidden aspect-[16/10] bg-slate-50 border-[6px] border-slate-900">
                <Image
-                src="/illustrations/scenes/hero-explore-worlds.png"
+                src="/illustrations/scenes/home-hero.webp"
                 alt="SmartKidz Dashboard - Explore Worlds"
                 fill
                 className="object-cover object-top scale-[1.01]"
