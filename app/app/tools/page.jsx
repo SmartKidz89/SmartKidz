@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 const TOOLS = [
+  { href: "/app/tools/pixel-art", label: "Pixel Studio", icon: "🎨", desc: "Draw colorful block art.", color: "from-pink-400 to-rose-500" },
   { href: "/app/tools/worksheet", label: "Worksheet Builder", icon: "🧾", desc: "Create & print custom practice.", color: "from-orange-400 to-amber-500" },
   { href: "/app/tools/homework", label: "Homework Generator", icon: "📝", desc: "Fresh questions from your lessons.", color: "from-blue-400 to-indigo-500" },
   { href: "/app/tools/dictionary", label: "Smart Dictionary", icon: "📖", desc: "Kid-friendly definitions.", color: "from-emerald-400 to-teal-500" },
