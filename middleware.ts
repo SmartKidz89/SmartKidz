@@ -1,32 +1,61 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-/**
- * Simplified single-domain middleware.
- *
- * - Marketing lives under /marketing
- * - App (authenticated) lives under /app
- * - Everything else redirects to /marketing
- *
- * This avoids subdomain-based routing, which commonly breaks on first deploy.
- */
-export function middleware(req) {
-  const url = req.nextUrl;
-  const { pathname } = url;
+// Public visitors should land on the Coming Soon page.
+// We also block signup routes until launch.
+const BLOCKED_ROUTES = new Set([
+  "/signup",
+  "/login",
+  "/marketing/signup",
+  "/marketing/login",
+  "/app/signup"
+]);
 
-  // Always allow Next internals and API routes
-  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.startsWith("/favicon.ico")) {
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Allow Next internals & static assets
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/robots.txt") ||
+    pathname.startsWith("/sitemap.xml") ||
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|txt|xml|json|css|js|map)$/)
+  ) {
     return NextResponse.next();
   }
 
-  // Allow app and marketing sections
-  if (pathname === "/app" || pathname.startsWith("/app/")) return NextResponse.next();
-  if (pathname === "/marketing" || pathname.startsWith("/marketing/")) return NextResponse.next();
+  // Block signup/login routes (public)
+  if (BLOCKED_ROUTES.has(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
-  // Root and everything else -> marketing home
-  url.pathname = "/marketing";
-  return NextResponse.redirect(url);
+  // Allow the app for signed-in use (and internal testing).
+  if (pathname.startsWith("/app")) {
+    return NextResponse.next();
+  }
+
+  // Allow marketing informational pages (features/pricing/etc.)
+  if (pathname.startsWith("/marketing")) {
+    return NextResponse.next();
+  }
+
+  // Everything else goes to Coming Soon
+  if (pathname !== "/") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|assets|fonts|images|.*\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"]
 };

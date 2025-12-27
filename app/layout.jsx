@@ -13,7 +13,8 @@ const nunito = Nunito({
 export const metadata = {
   title: "Smart Kidz — Years 1–6 Learning (AU)",
   description:
-    "Maths, English & Science that adapts to your child. Calm, structured, mastery-first learning for Australian families."
+    "Maths, English & Science that adapts to your child. Calm, structured, mastery-first learning for Australian families.",
+  robots: { index: false, follow: false }
 };
 
 export default function RootLayout({ children }) {
