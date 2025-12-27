@@ -6,8 +6,8 @@ import ScreenshotsShowcase from "@/components/marketing/ScreenshotsShowcase";
 import TestimonialsCarousel from "@/components/marketing/TestimonialsCarousel";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import CinematicScroll from "@/components/marketing/CinematicScroll";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 
-import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 const testimonials = [
   { id: "t1", quote: "My kids ask to do SmartKidz before screen time. That never happened with worksheets.", name: "Sarah M.", initials: "SM", meta: "Parent of 2 • Melbourne" },
   { id: "t2", quote: "The parent dashboard is the best part. I can see exactly what’s clicked for each child.", name: "Daniel K.", initials: "DK", meta: "Parent of 3 • Brisbane" },
@@ -23,72 +23,75 @@ const faqs = [
 
 export default function MarketingHome() {
   return (
-    
-    <PageScaffold title="Marketing">
-<CinematicScroll>
-      <section data-scene>
-        <Hero />
-      </section>
+    <PageScaffold title={null}>
+      <CinematicScroll>
+        <section data-scene>
+          <Hero />
+        </section>
 
-      <section data-scene>
-        <SectionReveal className="py-10">
+        <section data-scene>
           <LogoStrip />
-        </SectionReveal>
-      </section>
+        </section>
 
-      <section data-scene data-pin>
-        <SectionReveal className="py-14">
+        <section data-scene>
           <FeatureGrid />
-        </SectionReveal>
-      </section>
+        </section>
 
-      <section data-scene>
-        <SectionReveal className="py-14">
-          <div className="container-pad" data-reveal>
-            <ScreenshotsShowcase />
-          </div>
-        </SectionReveal>
-      </section>
+        <section data-scene>
+          <SectionReveal className="py-16">
+            <div className="container-pad text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Peek Inside the App</h2>
+              <p className="text-lg text-slate-600">Designed for kids, built for learning.</p>
+            </div>
+            <div className="container-pad" data-reveal>
+              <ScreenshotsShowcase />
+            </div>
+          </SectionReveal>
+        </section>
 
-      <section data-scene>
-        <SectionReveal className="py-14">
+        <section data-scene>
           <SubjectTiles />
-        </SectionReveal>
-      </section>
+        </section>
 
-      <section data-scene>
-        <SectionReveal className="py-14">
-          <div className="container-pad grid lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-5" data-reveal>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Parents love the calm, kids love the fun.</h2>
-              <p className="mt-3 text-slate-600">SmartKidz is built to feel playful without feeling chaotic — and to keep learning moving forward.</p>
+        <section data-scene>
+          <SectionReveal className="py-20 bg-white/50 backdrop-blur-sm">
+            <div className="container-pad grid lg:grid-cols-12 gap-10 items-start">
+              <div className="lg:col-span-5" data-reveal>
+                <div className="inline-block rounded-full bg-amber-100 text-amber-800 px-4 py-1.5 text-xs font-bold mb-4 uppercase tracking-wider">
+                  Community Love
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
+                  Parents love the calm,<br/> kids love the fun.
+                </h2>
+                <p className="mt-4 text-lg text-slate-600 font-medium leading-relaxed">
+                  Join thousands of Australian families who have switched from fighting over homework to celebrating streaks.
+                </p>
+              </div>
+              <div className="lg:col-span-7" data-reveal>
+                <TestimonialsCarousel items={testimonials} />
+              </div>
             </div>
-            <div className="lg:col-span-7" data-reveal>
-              <TestimonialsCarousel items={testimonials} />
-            </div>
-          </div>
-        </SectionReveal>
-      </section>
+          </SectionReveal>
+        </section>
 
-      <section data-scene>
-        <SectionReveal className="py-14">
-          <div className="container-pad grid lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-5" data-reveal>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">FAQ</h2>
-              <p className="mt-3 text-slate-600">Everything you need to know before you start.</p>
+        <section data-scene>
+          <SectionReveal className="py-20">
+            <div className="container-pad grid lg:grid-cols-12 gap-10 items-start">
+              <div className="lg:col-span-5" data-reveal>
+                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Frequently Asked Questions</h2>
+                <p className="text-slate-600 font-medium">Everything you need to know before you start.</p>
+              </div>
+              <div className="lg:col-span-7" data-reveal>
+                <FAQAccordion items={faqs} />
+              </div>
             </div>
-            <div className="lg:col-span-7" data-reveal>
-              <FAQAccordion items={faqs} />
-            </div>
-          </div>
-        </SectionReveal>
-      </section>
+          </SectionReveal>
+        </section>
 
-      <section data-scene>
-        <CTA />
-      </section>
-    </CinematicScroll>
-  
+        <section data-scene>
+          <CTA />
+        </section>
+      </CinematicScroll>
     </PageScaffold>
   );
 }

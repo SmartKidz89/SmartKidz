@@ -3,195 +3,151 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3 } from "lucide-react";
 
 function Container({ children, className = "" }) {
   return <div className={"container-pad " + className}>{children}</div>;
 }
 
+// --- HERO SECTION ---
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      {/* soft blobs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-brand-secondary/25 blur-3xl" />
-        <div className="absolute top-20 -right-24 h-80 w-80 rounded-full bg-brand-mint/25 blur-3xl" />
-        <div className="absolute -bottom-28 left-1/3 h-96 w-96 rounded-full bg-brand-spark/20 blur-3xl" />
+    <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-24">
+      {/* Background Blobs */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-sky-100/50 to-transparent rounded-full blur-3xl opacity-60" />
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-indigo-200/30 blur-3xl" />
+        <div className="absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-emerald-200/30 blur-3xl" />
       </div>
 
-      <Container className="relative py-16 sm:py-20">
-        <div className="grid lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-6 space-y-6">
-            <motion.p
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 shadow-soft"
-            >
-              Built for Aussie families • Prep–Year 6
-            </motion.p>
+      <Container className="relative">
+        <div className="text-center max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-slate-200 px-4 py-1.5 text-xs font-extrabold text-slate-600 shadow-sm backdrop-blur-md mb-6"
+          >
+            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Australian Curriculum Aligned • Prep to Year 6
+          </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900"
-            >
-              Turn learning into an adventure your kids actually want to do.
-            </motion.h1>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 leading-[1.1]"
+          >
+            The screen time you’ll <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">
+              actually feel good about.
+            </span>
+          </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.05 }}
-              className="text-lg text-slate-600 max-w-xl"
-            >
-              SmartKidz blends short, game-like lessons with real curriculum alignment,
-              so kids build skills fast — and parents stay in control.
-            </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
+          >
+            SmartKidz turns Maths, English, and Science into a calm, confidence-building adventure. 
+            No ads. No pressure. Just real learning progress.
+          </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="flex flex-col sm:flex-row gap-3"
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Link
+              href="https://app.smartkidz.app/app/signup"
+              className="h-14 px-8 rounded-full bg-slate-900 text-white text-lg font-bold shadow-xl hover:bg-slate-800 hover:scale-105 transition-all flex items-center gap-2"
             >
-              <Link
-                href="https://app.smartkidz.app/app/login"
-                className="sk-btn-primary inline-flex justify-center"
-              >
-                Launch App
-              </Link>
-              <Link
-                href="/marketing/features"
-                className="sk-btn-muted inline-flex justify-center"
-              >
-                See what’s inside
-              </Link>
+              Start Free Trial <Sparkles className="w-5 h-5 text-amber-300" />
+            </Link>
+            <Link
+              href="#how-it-works"
+              className="h-14 px-8 rounded-full bg-white border border-slate-200 text-slate-700 text-lg font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center"
+            >
+              See how it works
+            </Link>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.5 }}
+            className="mt-6 text-sm font-semibold text-slate-500"
+          >
+            7-day free trial • Cancel anytime • Unlimited kids
+          </motion.div>
+        </div>
+
+        {/* Hero Visual */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
+          className="mt-16 relative mx-auto max-w-5xl"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 rounded-[2.5rem] blur opacity-30" />
+          <div className="relative rounded-[2rem] border border-white/50 bg-white/80 shadow-2xl backdrop-blur-xl overflow-hidden aspect-[16/10] sm:aspect-[2/1]">
+            <Image
+              src="/illustrations/app/kids-dashboard-header.webp"
+              alt="SmartKidz App Interface"
+              fill
+              className="object-cover"
+              priority
+            />
+            
+            {/* Floating Elements for Depth */}
+            <motion.div 
+              animate={{ y: [0, -10, 0] }} 
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-8 left-8 p-3 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50 hidden sm:block"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-xl">🏆</div>
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase">Streak</div>
+                  <div className="text-sm font-black text-slate-900">7 Days Fire!</div>
+                </div>
+              </div>
             </motion.div>
 
-            <div className="flex flex-wrap gap-2 pt-2">
-              {["Maths", "Reading", "Humanities", "Energy & rewards"].map((t) => (
-                <span key={t} className="sk-chip">
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-6 relative">
-            <div className="relative mx-auto max-w-md">
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.05 }}
-                className="absolute -inset-6 rounded-[2.25rem] bg-white/60 blur-2xl"
-              />
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.7, delay: 0.08 }}
-                className="relative rounded-[2.25rem] border border-slate-200 bg-white/70 shadow-elevated p-3"
-              >
-                <div className="grid gap-4">
-                  <div className="relative overflow-hidden rounded-[2rem] bg-slate-50 border border-slate-200/60">
-                    <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-xs font-extrabold text-slate-800 shadow">
-                      <span className="text-base">👨‍👩‍👧‍👦</span> Parent view
-                    </div>
-                    <div className="relative aspect-[16/9]">
-                      <Image
-                        src="/illustrations/app/parent-dashboard-header.webp"
-                        alt="SmartKidz Parent Dashboard preview"
-                        fill
-                        sizes="(max-width: 1024px) 90vw, 560px"
-                        className="object-cover"
-                        priority
-                      />
-                    </div>
-                  </div>
-
-                  <div className="relative overflow-hidden rounded-[2rem] bg-slate-50 border border-slate-200/60">
-                    <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-xs font-extrabold text-slate-800 shadow">
-                      <span className="text-base">🧒</span> Kids view
-                    </div>
-                    <div className="relative aspect-[16/9]">
-                      <Image
-                        src="/illustrations/app/kids-dashboard-header.webp"
-                        alt="SmartKidz Kids Dashboard preview"
-                        fill
-                        sizes="(max-width: 1024px) 90vw, 560px"
-                        className="object-cover"
-                      />
-                    </div>
-                  </div>
+            <motion.div 
+              animate={{ y: [0, 10, 0] }} 
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute bottom-8 right-8 p-3 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50 hidden sm:block"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">🧠</div>
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase">Skill Mastered</div>
+                  <div className="text-sm font-black text-slate-900">Fractions</div>
                 </div>
-              </motion.div>
-            </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </Container>
     </section>
   );
 }
 
+// --- SOCIAL PROOF ---
 export function LogoStrip() {
   return (
-    <Container className="py-10">
-      <div className="sk-card p-6">
-        <p className="text-center text-sm font-semibold text-slate-600">
-          Inspired by the best learning platforms — designed for Aussie curriculum.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-8 opacity-80">          <span className="text-sm font-extrabold tracking-tight text-slate-800">SmartKidz</span>
-          <span className="text-sm font-extrabold text-slate-800">Australian Curriculum</span>
-          <span className="text-sm font-extrabold text-slate-800">Multi‑kid accounts</span>
-          <span className="text-sm font-extrabold text-slate-800">Weekly reports</span>
-        </div>
-      </div>
-    </Container>
-  );
-}
-
-export function FeatureGrid() {
-  const items = [
-    {
-      title: "Kid-led learning (not locked)",
-      desc: "Kids can choose what they want to practise — you still set goals and guardrails.",
-      icon: "🎯",
-    },
-    {
-      title: "Game-style motivation",
-      desc: "Streaks, rewards, confetti, and progress paths that keep them coming back.",
-      icon: "⚡",
-    },
-    {
-      title: "Parents stay in control",
-      desc: "Profiles, settings, accessibility options, and clear progress analytics.",
-      icon: "🛡️",
-    },
-    {
-      title: "Aligned to school outcomes",
-      desc: "Prep–Year 6 pathways designed to match real learning expectations.",
-      icon: "📚",
-    },
-  ];
-
-  return (
-    <Container className="py-14">
-      <div className="text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-          A platform kids love — with real learning underneath.
-        </h2>
-        <p className="mt-3 text-slate-600">
-          Fun visuals, short lessons, and measurable skill growth — without the “boring worksheet” vibe.
-        </p>
-      </div>
-
-      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {items.map((it) => (
-          <div key={it.title} className="sk-card-tappable p-6">
-            <div className="text-3xl">{it.icon}</div>
-            <h3 className="mt-3 font-extrabold text-slate-900">{it.title}</h3>
-            <p className="mt-2 text-sm text-slate-600">{it.desc}</p>
+    <Container className="py-10 border-y border-slate-100 bg-slate-50/50">
+      <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-wide mb-6">
+        Trusted by Australian families for
+      </p>
+      <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100">
+        {["Maths Mastery", "English Confidence", "Science Discovery", "Exam Prep", "School Readiness"].map((label) => (
+          <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <CheckCircle2 className="w-5 h-5 text-brand-mint" />
+            <span className="font-extrabold text-slate-900">{label}</span>
           </div>
         ))}
       </div>
@@ -199,133 +155,170 @@ export function FeatureGrid() {
   );
 }
 
-export function SubjectTiles() {
-  const tiles = [
-    { key: "maths", label: "Maths", img: "/illustrations/subjects/world-maths.webp" },
-    { key: "english", label: "English", img: "/illustrations/subjects/world-reading.webp" },
-    { key: "hass", label: "HASS", img: "/illustrations/subjects/world-science.webp" },
-    { key: "hpe", label: "Health & PE", img: "/illustrations/subjects/world-energy.webp", soon: true },
-    { key: "languages", label: "Languages", img: "/illustrations/subjects/world-reading.webp", soon: true },
-    { key: "technologies", label: "Technologies", img: "/illustrations/subjects/world-energy.webp", soon: true },
-    { key: "arts", label: "The Arts", img: "/illustrations/subjects/world-maths.webp", soon: true },
-  ];
-
-  const MotionLink = motion(Link);
-
-  const sparkles = [
-    { top: "18%", left: "14%", delay: 0.0 },
-    { top: "32%", right: "18%", delay: 0.2 },
-    { bottom: "18%", left: "22%", delay: 0.35 },
-  ];
-
+// --- FEATURE BENTO GRID ---
+export function FeatureGrid() {
   return (
-    <Container className="py-14">
-      <div className="flex items-end justify-between gap-6 flex-wrap">
-        <div>
-          <h2 className="text-3xl font-extrabold text-slate-900">Choose your world</h2>
-          <p className="mt-2 text-slate-600">Each subject has its own vibe, rewards, and mastery map.</p>
+    <Container id="how-it-works" className="py-20">
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+          Everything they need to grow. <br />
+          <span className="text-slate-500">Nothing they don't.</span>
+        </h2>
+        <p className="text-lg text-slate-600 font-medium">
+          We stripped away the ads, the addictive social hooks, and the clutter. 
+          What's left is a pure, premium learning experience.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(280px,auto)]">
+        {/* Card 1: Adaptive */}
+        <div className="md:col-span-2 rounded-[2.5rem] bg-indigo-50 border border-indigo-100 p-8 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Map className="w-64 h-64 text-indigo-600" />
+          </div>
+          <div className="relative z-10 h-full flex flex-col justify-between">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg mb-6">
+              <Map className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Adaptive Learning Paths</h3>
+              <p className="text-slate-700 font-medium leading-relaxed max-w-md">
+                SmartKidz adapts to your child's pace. Struggle with a topic? We'll offer a helpful hint and a different angle. Cruising along? We'll serve up a challenge to keep them engaged.
+              </p>
+            </div>
+          </div>
         </div>
-        <Link href="/marketing/subjects/maths" className="sk-btn-muted">
-          Explore subjects
-        </Link>
-      </div>
 
-      <div className="mt-8 grid md:grid-cols-2 gap-6">
-        {tiles.map((t) => (
-          <MotionLink
-            key={t.key}
-            href={`/marketing/subjects/${t.key}`}
-            whileHover={{ y: -4 }}
-            whileTap={{ scale: 0.99 }}
-            transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="group sk-card-tappable overflow-hidden relative"
-          >
-            <div className="relative h-44 sm:h-52">
-              <motion.div
-                aria-hidden
-                className="absolute inset-0"
-                initial={false}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Image src={t.img} alt={`${t.label} world`} fill className="object-cover" />
-              </motion.div>
-              <div className="absolute inset-0 bg-slate-900/5 group-hover:bg-slate-900/0 transition-colors" />
-
-              {/* playful sparkles */}
-              {sparkles.map((s, idx) => (
-                <motion.span
-                  key={idx}
-                  aria-hidden
-                  className="absolute h-3 w-3 rounded-full bg-white/85 shadow-soft"
-                  style={{ top: s.top, left: s.left, right: s.right, bottom: s.bottom }}
-                  initial={{ opacity: 0.0, scale: 0.6, y: 6 }}
-                  whileInView={{ opacity: 0.9, scale: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  animate={{
-                    y: [0, -6, 0],
-                    opacity: [0.75, 1, 0.75],
-                    scale: [1, 1.15, 1],
-                  }}
-                  transition={{
-                    duration: 2.8,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: s.delay,
-                  }}
-                />
-              ))}
-
-              {/* mascot peek */}
-              <motion.div
-                aria-hidden
-                className="absolute -bottom-4 -right-4 h-16 w-16 rounded-3xl border border-white/60 bg-white/70 shadow-elevated grid place-items-center"
-                initial={{ rotate: -8, scale: 0.98 }}
-                whileHover={{ rotate: 6, scale: 1.03 }}
-                transition={{ type: "spring", stiffness: 380, damping: 20 }}
-              >
-                <span className="text-2xl">👋</span>
-              </motion.div>
+        {/* Card 2: Rewards */}
+        <div className="rounded-[2.5rem] bg-amber-50 border border-amber-100 p-8 relative overflow-hidden group">
+          <div className="absolute -bottom-4 -right-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Trophy className="w-48 h-48 text-amber-600" />
+          </div>
+          <div className="relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg mb-6">
+              <Trophy className="w-7 h-7" />
             </div>
-            <div className="p-5 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-600">World</p>
-                <p className="text-xl font-extrabold text-slate-900">{t.label}</p>
-              </div>
-              <motion.span
-                aria-hidden
-                className="text-slate-500 group-hover:text-slate-900 transition-colors"
-                initial={{ x: 0 }}
-                whileHover={{ x: 6 }}
-                transition={{ type: "spring", stiffness: 420, damping: 24 }}
-              >
-                →
-              </motion.span>
-            </div>
-          </MotionLink>
-        ))}
-      </div>
-    </Container>
-  );
-}
-
-export function CTA() {
-  return (
-    <Container className="py-14">
-      <div className="relative overflow-hidden rounded-4xl border border-slate-200 bg-white/70 shadow-elevated p-8 sm:p-10">
-        <div aria-hidden className="absolute inset-0 opacity-70 bg-grid-soft" />
-        <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="max-w-xl">
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              Ready to make learning feel effortless?
-            </h3>
-            <p className="mt-2 text-slate-600">
-              Create a parent account, add your kids, and let them explore worlds at their own pace.
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Rewards that Matter</h3>
+            <p className="text-slate-700 font-medium">
+              Earn XP, unlock avatar gear, and build streaks. We use motivation to build habits, not addiction.
             </p>
           </div>
-          <Link href="https://app.smartkidz.app/app/login" className="sk-btn-primary">
-            Launch App
+        </div>
+
+        {/* Card 3: Parent Insights */}
+        <div className="rounded-[2.5rem] bg-emerald-50 border border-emerald-100 p-8 relative overflow-hidden group">
+          <div className="absolute top-1/2 -translate-y-1/2 -right-6 opacity-10 group-hover:opacity-20 transition-opacity">
+            <BarChart3 className="w-48 h-48 text-emerald-600" />
+          </div>
+          <div className="relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg mb-6">
+              <BarChart3 className="w-7 h-7" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Insights for You</h3>
+            <p className="text-slate-700 font-medium">
+              Get a weekly summary of their progress. Know exactly where they are excelling and where they might need a hug or a high-five.
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Safe */}
+        <div className="md:col-span-2 rounded-[2.5rem] bg-rose-50 border border-rose-100 p-8 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.1),transparent)]" />
+          <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start md:items-center h-full">
+            <div className="flex-1">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg mb-6">
+                <Shield className="w-7 h-7" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">100% Kid-Safe Environment</h3>
+              <p className="text-slate-700 font-medium leading-relaxed">
+                We take safety seriously. SmartKidz has <strong>no ads</strong>, <strong>no external links</strong>, and <strong>no chat functionality</strong>. It is a walled garden designed purely for learning and confidence.
+              </p>
+            </div>
+            <div className="shrink-0 relative">
+               {/* Visual filler for safety */}
+               <div className="w-40 h-40 bg-white rounded-3xl shadow-sm border border-rose-100 flex items-center justify-center rotate-3 group-hover:rotate-6 transition-transform">
+                  <span className="text-6xl">🔒</span>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Container>
+  );
+}
+
+// --- SUBJECT TILES ---
+export function SubjectTiles() {
+  const subjects = [
+    { id: "math", name: "Maths", color: "bg-sky-500", img: "/illustrations/subjects/world-maths.webp" },
+    { id: "eng", name: "English", color: "bg-violet-500", img: "/illustrations/subjects/world-english.webp" },
+    { id: "sci", name: "Science", color: "bg-emerald-500", img: "/illustrations/subjects/world-science.webp" },
+    { id: "lang", name: "Languages", color: "bg-indigo-500", img: "/illustrations/subjects/world-languages.webp" },
+  ];
+
+  return (
+    <Container className="py-20 bg-slate-50 rounded-[3rem] my-10">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Explore our Worlds</h2>
+        <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
+          Every subject is a unique world to explore. Mapped to the Australian Curriculum for Years 1–6.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
+        {subjects.map((s) => (
+          <Link key={s.id} href={`/marketing/subjects/${s.id}`} className="group relative aspect-[3/4] rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all hover:-translate-y-2">
+            <Image src={s.img} alt={s.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
+            <div className="absolute bottom-0 inset-x-0 p-5">
+              <div className="text-white font-black text-xl md:text-2xl">{s.name}</div>
+              <div className="text-white/80 text-sm font-semibold mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Explore →</div>
+            </div>
           </Link>
+        ))}
+      </div>
+    </Container>
+  );
+}
+
+// --- CTA ---
+export function CTA() {
+  return (
+    <Container className="py-24">
+      <div className="relative rounded-[3rem] bg-slate-900 overflow-hidden px-6 py-16 sm:px-16 sm:py-20 text-center">
+        {/* Background FX */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <div className="absolute top-[-50%] left-[-20%] w-[800px] h-[800px] bg-indigo-600/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-50%] right-[-20%] w-[800px] h-[800px] bg-emerald-600/20 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative z-10 max-w-3xl mx-auto">
+          <h2 className="text-4xl sm:text-5xl font-black text-white mb-6 tracking-tight">
+            Ready to build their confidence?
+          </h2>
+          <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10 leading-relaxed">
+            Join thousands of Australian families using SmartKidz to make learning fun again. 
+            Start your free 7-day trial today.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="https://app.smartkidz.app/app/signup"
+              className="h-14 px-8 rounded-full bg-white text-slate-900 text-lg font-bold shadow-lg hover:bg-slate-100 hover:scale-105 transition-all flex items-center"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/marketing/pricing"
+              className="h-14 px-8 rounded-full bg-transparent border-2 border-slate-700 text-white text-lg font-bold hover:bg-slate-800 transition-all flex items-center"
+            >
+              View Pricing
+            </Link>
+          </div>
+          
+          <p className="mt-6 text-sm text-slate-500 font-semibold">
+            No credit card required for preview • Cancel anytime
+          </p>
         </div>
       </div>
     </Container>
