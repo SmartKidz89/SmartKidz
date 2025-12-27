@@ -38,6 +38,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow public setup tools (temporary)
+  if (pathname.startsWith("/setup")) {
+    return NextResponse.next();
+  }
+
   // Allow login routes explicitly
   if (pathname === "/login" || pathname === "/marketing/login") {
     return NextResponse.next();
