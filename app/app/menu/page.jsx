@@ -10,6 +10,7 @@ const ITEMS = [
   { title: "Worlds", desc: "Choose a learning world", href: "/app/worlds", icon: "🗺️" },
   { title: "Rewards", desc: "Level up, streaks and season pass", href: "/app/rewards", icon: "🎁" },
   { title: "Avatar", desc: "Spend coins and customise", href: "/app/avatar", icon: "🧸" },
+  { title: "My Pet", desc: "Feed and play with your pet", href: "/app/pet", icon: "🐾" },
   { title: "Recommended Next", desc: "Personalised next steps", href: "/app/recommendations", icon: "✨" },
   { title: "Collection", desc: "Your sticker book", href: "/app/collection", icon: "📒" },
   { title: "Parents", desc: "Insights and reports", href: "/app/parent", icon: "👨‍👩‍👧‍👦" },

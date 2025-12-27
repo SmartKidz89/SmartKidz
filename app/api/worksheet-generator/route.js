@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { validatePrompt } from "@/lib/safety/guardrails";
 
 export const runtime = "nodejs";
 
-// Fallback content generators for when OpenAI is not available
 const FALLBACK_TOPICS = {
   multiplication: {
     title: "Multiplication Mastery",
@@ -49,7 +49,7 @@ const FALLBACK_TOPICS = {
 
 function generateFallback(prompt, count) {
   const p = prompt.toLowerCase();
-  let topic = FALLBACK_TOPICS.multiplication; // default
+  let topic = FALLBACK_TOPICS.multiplication; 
   
   if (p.includes("add") || p.includes("sum") || p.includes("plus")) topic = FALLBACK_TOPICS.addition;
   else if (p.includes("writ") || p.includes("sent") || p.includes("story")) topic = FALLBACK_TOPICS.writing;
@@ -80,11 +80,20 @@ export async function POST(req) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
     }
 
+    // Safety Check
+    try {
+      validatePrompt(prompt);
+    } catch (err) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+
     // 1. Try OpenAI if key is present
     if (process.env.OPENAI_API_KEY) {
       try {
         const systemPrompt = `You are a teacher creating a worksheet for a Year ${yearLevel} student.
         User request: "${prompt}".
+        
+        ENSURE CONTENT IS G-RATED and age-appropriate.
         
         Return a valid JSON object with:
         - title: string
@@ -114,7 +123,6 @@ export async function POST(req) {
           const data = await aiRes.json();
           const raw = data.choices?.[0]?.message?.content;
           if (raw) {
-            // cleaning markdown code blocks if present
             const jsonStr = raw.replace(/```json/g, "").replace(/```/g, "").trim();
             const result = JSON.parse(jsonStr);
             return NextResponse.json(result);
@@ -122,7 +130,6 @@ export async function POST(req) {
         }
       } catch (e) {
         console.error("AI Worksheet generation failed", e);
-        // Fall through to fallback
       }
     }
 

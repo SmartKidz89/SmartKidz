@@ -100,7 +100,6 @@ const SUBJECTS = [
 
 const TOOLS = [
   { href: "/app/pet", title: "My Pet", icon: "🐾", color: "bg-rose-100 text-rose-700" },
-  { href: "/app/tools/lesson-builder", title: "Lesson Builder", icon: "🧠", color: "bg-fuchsia-100 text-fuchsia-700" },
   { href: "/app/tools/worksheet", title: "Worksheets", icon: "🧾", color: "bg-orange-100 text-orange-700" },
   { href: "/app/tools/world-explorer", title: "Explorer", icon: "🌍", color: "bg-sky-100 text-sky-700" },
   { href: "/app/tools/dictionary", title: "Dictionary", icon: "📖", color: "bg-emerald-100 text-emerald-700" },

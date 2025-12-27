@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validatePrompt } from "@/lib/safety/guardrails";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,13 @@ export async function POST(req) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
+    // Safety Check
+    try {
+      validatePrompt(prompt);
+    } catch (err) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+
     // 1. Try OpenAI
     if (process.env.OPENAI_API_KEY) {
       try {
@@ -33,6 +41,7 @@ export async function POST(req) {
         - Simple, engaging language.
         - Provide a title.
         - For each page, provide the story text AND a short, descriptive image prompt for an illustrator.
+        - ENSURE CONTENT IS G-RATED. No violence, scary themes, or rudeness.
         
         Return JSON format:
         {

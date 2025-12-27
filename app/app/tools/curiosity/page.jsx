@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { playUISound, haptic } from "@/components/ui/sound";
-import { Sparkles, ChevronLeft, Search, Lightbulb, Compass, BrainCircuit, Mic } from "lucide-react";
+import { Sparkles, ChevronLeft, Search, Lightbulb, Compass, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { validatePrompt } from "@/lib/safety/guardrails";
 
 const SUGGESTIONS = [
   "Why is the sky blue?",
@@ -16,10 +17,7 @@ const SUGGESTIONS = [
   "How do magnets work?",
 ];
 
-// ... keep existing buildAnswer logic from previous version but just import/inline it ...
-// Re-implementing simplified inline for self-containment
 function buildAnswer(question, year) {
-  // Mock logic for demonstration of UI
   return {
     title: "Curiosity Science",
     topic: "science",
@@ -41,17 +39,31 @@ export default function CuriosityExplorerPage() {
   const [q, setQ] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   function handleSearch(query) {
-    if (!query) return;
-    setLoading(true);
+    const term = query || q;
+    if (!term) return;
+
+    setError(null);
     setResult(null);
     try { playUISound("tap"); } catch {}
+
+    // Safety check
+    try {
+      validatePrompt(term);
+    } catch (err) {
+      setError(err.message);
+      try { playUISound("error"); } catch {}
+      return;
+    }
+
+    setLoading(true);
     
     // Simulate API delay
     setTimeout(() => {
-      const answer = buildAnswer(query, year);
-      setResult({ ...answer, query });
+      const answer = buildAnswer(term, year);
+      setResult({ ...answer, query: term });
       setLoading(false);
       try { playUISound("success"); haptic("medium"); } catch {}
     }, 1500);
@@ -94,9 +106,15 @@ export default function CuriosityExplorerPage() {
               Ask
             </button>
           </div>
+
+          {error && (
+            <div className="mt-4 p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 font-bold text-center animate-in slide-in-from-top-2">
+              ⚠️ {error}
+            </div>
+          )}
           
           {/* Suggestions */}
-          {!result && !loading && (
+          {!result && !loading && !error && (
             <div className="mt-8 text-center">
               <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Or try one of these</div>
               <div className="flex flex-wrap justify-center gap-3">

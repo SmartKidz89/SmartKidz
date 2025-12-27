@@ -8,7 +8,6 @@ const TOOLS = [
   { href: "/app/tools/worksheet", label: "Worksheet Builder", icon: "🧾", desc: "Create & print custom practice.", color: "from-orange-400 to-amber-500" },
   { href: "/app/tools/homework", label: "Homework Generator", icon: "📝", desc: "Fresh questions from your lessons.", color: "from-blue-400 to-indigo-500" },
   { href: "/app/tools/dictionary", label: "Smart Dictionary", icon: "📖", desc: "Kid-friendly definitions.", color: "from-emerald-400 to-teal-500" },
-  { href: "/app/tools/lesson-builder", label: "Lesson Builder", icon: "🧠", desc: "Design your own lessons.", color: "from-fuchsia-400 to-pink-500" },
   { href: "/app/tools/storybook", label: "Magic Storybook", icon: "📘", desc: "Write and illustrate stories.", color: "from-violet-400 to-purple-600" },
   { href: "/app/tools/curiosity", label: "Curiosity Explorer", icon: "🔎", desc: "Ask big questions.", color: "from-rose-400 to-red-500" },
   { href: "/app/tools/reflection", label: "Daily Reflection", icon: "🌱", desc: "Build confidence & gratitude.", color: "from-lime-400 to-green-500" },

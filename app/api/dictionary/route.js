@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validatePrompt } from "@/lib/safety/guardrails";
 
 export const runtime = "nodejs";
 
@@ -8,7 +9,14 @@ export async function GET(req) {
 
   if (!term) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
-  // 1. Try OpenAI if available (Best for kid-friendly definitions)
+  // Safety Check
+  try {
+    validatePrompt(term);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+
+  // 1. Try OpenAI if available
   if (process.env.OPENAI_API_KEY) {
     try {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -22,7 +30,7 @@ export async function GET(req) {
           messages: [
             { 
               role: "system", 
-              content: "You are a friendly dictionary for a 7-year-old. Return a JSON object with keys: 'word' (the word), 'simple' (a very simple definition), and 'example' (a short, easy sentence using the word)." 
+              content: "You are a friendly dictionary for a 7-year-old. Return a JSON object with keys: 'word' (the word), 'simple' (a very simple definition), and 'example' (a short, easy sentence using the word). Ensure G-rated content." 
             },
             { role: "user", content: `Define: ${term}` }
           ],
@@ -44,11 +52,10 @@ export async function GET(req) {
       }
     } catch (e) {
       console.error("AI Dictionary fail", e);
-      // Fallthrough to standard API
     }
   }
 
-  // 2. Fallback: Free Dictionary API (Standard definitions)
+  // 2. Fallback: Free Dictionary API
   try {
     const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(term)}`);
     if (!res.ok) throw new Error("Not found");
@@ -56,7 +63,6 @@ export async function GET(req) {
     const data = await res.json();
     const entry = data[0];
     
-    // Find a definition that ideally has an example
     let bestDef = entry.meanings?.[0]?.definitions?.[0];
     for (const m of entry.meanings || []) {
       const withEx = m.definitions.find(d => d.example);
