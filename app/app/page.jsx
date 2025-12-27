@@ -1,7 +1,7 @@
 "use client";
 
-import { WorldsAndToolsGrid } from "@/components/app/world/WorldsAndToolsGrid";
+import { WorldMap } from "@/components/app/world/WorldMap";
 
 export default function AppRoot() {
-  return <WorldsAndToolsGrid />;
+  return <WorldMap />;
 }
