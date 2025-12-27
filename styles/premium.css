@@ -11,10 +11,10 @@
 */
 
 :root{
-  /* Accent gradients */
-  --skz-g-1: radial-gradient(800px 500px at 15% 0%, rgba(0,191,165,.22), transparent 60%);
-  --skz-g-2: radial-gradient(900px 500px at 85% 10%, rgba(255,111,97,.18), transparent 55%);
-  --skz-g-3: radial-gradient(900px 600px at 55% 95%, rgba(245,158,11,.14), transparent 60%);
+  /* Accent gradients - VIBRANT UPDATE */
+  --skz-g-1: radial-gradient(800px 500px at 15% 0%, rgba(124, 58, 237, 0.18), transparent 60%); /* Electric Violet */
+  --skz-g-2: radial-gradient(900px 500px at 85% 10%, rgba(236, 72, 153, 0.16), transparent 55%); /* Hot Pink */
+  --skz-g-3: radial-gradient(900px 600px at 55% 95%, rgba(14, 165, 233, 0.14), transparent 60%);  /* Bright Sky */
 
   /* Premium glass + clay */
   --skz-clay: rgba(255,255,255,.86);
@@ -33,7 +33,7 @@
     var(--skz-g-1),
     var(--skz-g-2),
     var(--skz-g-3),
-    linear-gradient(180deg, rgb(var(--skz-bg-1)) 0%, rgb(var(--skz-bg-0)) 55%, rgb(var(--skz-bg-0)) 100%);
+    linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #ffffff 100%);
 }
 
 .app-ui{
