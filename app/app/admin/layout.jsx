@@ -6,19 +6,11 @@ async function isAdminUser(supabase) {
   const user = userRes?.user;
   if (!user) return { ok: false, reason: "not_signed_in" };
 
-  // Demo mode: allow admin routes for deterministic UAT without DB setup.
-  const demo = (process.env.NEXT_PUBLIC_DEMO_MODE || "").toString().toLowerCase();
-  if (demo === "1" || demo === "true") return { ok: true, user };
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error) return { ok: false, reason: "profile_error" };
-  const role = (data?.role || "parent").toString().toLowerCase();
-  if (role !== "admin") return { ok: false, reason: "not_admin" };
+  // For setup phase: Allow ALL authenticated users to access admin tools
+  // This allows you to run the generator script.
+  // TODO: Revert this to strict check later:
+  // const role = (data?.role || "parent").toString().toLowerCase();
+  // if (role !== "admin") return { ok: false, reason: "not_admin" };
 
   return { ok: true, user };
 }
