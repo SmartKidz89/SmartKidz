@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, 
   Cpu, Activity, Languages, CheckCircle2, GraduationCap, 
-  ArrowRight, Layers, Repeat
+  ArrowRight, Layers, Repeat, MapPin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CinematicScroll from "@/components/marketing/CinematicScroll";
@@ -233,29 +233,39 @@ export default function CurriculumPage() {
         {/* 4. GLOBAL SUPPORT (New) */}
         <section className="py-20">
           <Container>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-black text-slate-900 mb-4">Supported Worldwide</h2>
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-indigo-600 mb-4">
+                <Globe className="w-3 h-3" /> Global Reach
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Localized for 12 Regions</h2>
               <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-                We automatically adapt spelling, units (metric/imperial), and curriculum standards to where you live.
+                We automatically adapt spelling (Colour vs Color), units (Metric vs Imperial), and curriculum standards to where you live.
               </p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {SUPPORTED_COUNTRIES.map((c) => (
-                <div key={c.code} className="flex flex-col items-center justify-center p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm text-center hover:shadow-md transition-shadow">
-                  <div className="text-3xl mb-2">
+                <div key={c.code} className="flex flex-col items-center justify-center p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm text-center hover:shadow-md transition-shadow group hover:border-indigo-100">
+                  <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-300">
                     {/* Using emoji flags, but could use CDN images if preferred */}
                     <img 
                       src={`https://flagcdn.com/w40/${c.code.toLowerCase() === 'int' ? 'un' : c.code.toLowerCase()}.png`} 
                       alt={c.name}
-                      className="h-6 w-auto rounded shadow-sm"
+                      className="h-8 w-auto rounded shadow-sm"
                       onError={(e) => { e.target.style.display = 'none'; }} 
                     />
                   </div>
-                  <div className="font-bold text-slate-900">{c.name}</div>
-                  <div className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-wide">{c.curriculum}</div>
+                  <div className="font-bold text-slate-900 text-lg mb-1">{c.name}</div>
+                  <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full uppercase tracking-wide">{c.curriculum}</div>
                 </div>
               ))}
+            </div>
+            
+            <div className="mt-12 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-500 font-medium text-sm bg-slate-100 px-4 py-2 rounded-full">
+                <MapPin className="w-4 h-4" />
+                <span>Don't see your country? Select <strong>International</strong> for global standards.</span>
+              </div>
             </div>
           </Container>
         </section>
