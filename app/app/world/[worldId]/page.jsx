@@ -7,9 +7,11 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Star, Play, Globe, Languages as LanguagesIcon, ChevronRight } from "lucide-react";
+import { ArrowLeft, BookOpen, Star, Play, Globe, Languages as LanguagesIcon, ChevronRight, Zap, Trophy, Crown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Subject ID Aliases
+// --- Configuration ---
+
 const SUBJECT_ALIASES = {
   MATH: ["MATH", "MAT", "MATHS"],
   ENG: ["ENG", "ENGLISH"],
@@ -18,11 +20,9 @@ const SUBJECT_ALIASES = {
   HPE: ["HPE", "HEALTH", "PE"],
   ART: ["ART", "ARTS", "THEARTS", "MUS", "DRAMA"],
   TECH: ["TECH", "TECHNOLOGIES", "CODE"],
-  // LANG is the parent category; individual codes are handled as separate worlds when drilled down
   LANG: ["LANG", "LOTE", "AUS", "IND", "JPN", "ZHO", "FRA", "SPA", "ABL"]
 };
 
-// Map URL slugs to Canonical Category Keys
 const SLUG_MAP = {
   math: "MATH", maths: "MATH", mathematics: "MATH",
   reading: "ENG", english: "ENG", literacy: "ENG",
@@ -33,32 +33,16 @@ const SLUG_MAP = {
   tech: "TECH", technologies: "TECH", technology: "TECH",
   lang: "LANG", languages: "LANG", lote: "LANG",
   // Direct language mapping
-  auslan: "AUS", aus: "AUS",
-  french: "FRA", fra: "FRA",
-  spanish: "SPA", spa: "SPA",
-  japanese: "JPN", jpn: "JPN",
-  chinese: "ZHO", zho: "ZHO", mandarin: "ZHO",
-  indonesian: "IND", ind: "IND",
-  aboriginal: "ABL", abl: "ABL"
+  auslan: "AUS", aus: "AUS", french: "FRA", spanish: "SPA",
+  japanese: "JPN", chinese: "ZHO", mandarin: "ZHO", indonesian: "IND", aboriginal: "ABL"
 };
 
 const SUBJECT_LABELS = {
-  MATH: "Mathematics",
-  ENG: "English",
-  SCI: "Science",
-  HASS: "HASS",
-  HPE: "Health & PE",
-  ART: "The Arts",
-  TECH: "Technologies",
-  LANG: "Languages",
-  // Specific Languages
-  AUS: "Auslan",
-  FRA: "French",
-  SPA: "Spanish",
-  JPN: "Japanese",
-  ZHO: "Chinese (Mandarin)",
-  IND: "Indonesian",
-  ABL: "Aboriginal Languages"
+  MATH: "Mathematics", ENG: "English", SCI: "Science",
+  HASS: "HASS", HPE: "Health & PE", ART: "The Arts",
+  TECH: "Technologies", LANG: "Languages",
+  AUS: "Auslan", FRA: "French", SPA: "Spanish",
+  JPN: "Japanese", ZHO: "Chinese", IND: "Indonesian", ABL: "First Nations"
 };
 
 const SUBJECT_IMAGES = {
@@ -69,37 +53,37 @@ const SUBJECT_IMAGES = {
   HPE: "/illustrations/subjects/world-health.webp",
   ART: "/illustrations/subjects/world-arts.webp",
   TECH: "/illustrations/subjects/world-energy.webp",
-  LANG: "/illustrations/subjects/world-languages.webp",
-  // Reuse main lang image for sub-langs or add specific ones if available
-  AUS: "/illustrations/subjects/world-languages.webp",
-  FRA: "/illustrations/subjects/world-languages.webp", 
-  SPA: "/illustrations/subjects/world-languages.webp",
-  JPN: "/illustrations/subjects/world-languages.webp",
-  ZHO: "/illustrations/subjects/world-languages.webp",
-  IND: "/illustrations/subjects/world-languages.webp",
-  ABL: "/illustrations/subjects/world-languages.webp",
+  LANG: "/illustrations/subjects/world-languages.webp"
 };
 
-// Configuration for the Language Hub Tiles
 const LANGUAGE_TILES = [
   { id: "AUS", title: "Auslan", flag: "👐", color: "bg-teal-500", desc: "Australian Sign Language" },
-  { id: "FRA", title: "French", flag: "🇫🇷", color: "bg-blue-600", desc: "Bonjour! Let's learn French." },
-  { id: "JPN", title: "Japanese", flag: "🇯🇵", color: "bg-rose-500", desc: "Konnichiwa! Explore Japan." },
-  { id: "ZHO", title: "Chinese", flag: "🇨🇳", color: "bg-red-600", desc: "Ni Hao! Mandarin basics." },
-  { id: "IND", title: "Indonesian", flag: "🇮🇩", color: "bg-red-500", desc: "Apa Kabar? Indonesian." },
-  { id: "SPA", title: "Spanish", flag: "🇪🇸", color: "bg-amber-500", desc: "Hola! Spanish adventures." },
-  { id: "ABL", title: "Aboriginal & TSI", flag: "🌏", color: "bg-orange-600", desc: "First Nations languages." },
+  { id: "FRA", title: "French", flag: "🇫🇷", color: "bg-blue-600", desc: "Bonjour!" },
+  { id: "JPN", title: "Japanese", flag: "🇯🇵", color: "bg-rose-500", desc: "Konnichiwa!" },
+  { id: "ZHO", title: "Chinese", flag: "🇨🇳", color: "bg-red-600", desc: "Ni Hao!" },
+  { id: "IND", title: "Indonesian", flag: "🇮🇩", color: "bg-red-500", desc: "Apa Kabar?" },
+  { id: "SPA", title: "Spanish", flag: "🇪🇸", color: "bg-amber-500", desc: "Hola!" },
+  { id: "ABL", title: "First Nations", flag: "🌏", color: "bg-orange-600", desc: "Local Languages" },
 ];
+
+const LEVELS = {
+  Beginning: { label: "Beginner", color: "bg-emerald-100 text-emerald-700", icon: "🌱" },
+  Intermediate: { label: "Intermediate", color: "bg-sky-100 text-sky-700", icon: "🚀" },
+  Advanced: { label: "Advanced", color: "bg-purple-100 text-purple-700", icon: "🔥" },
+  Default: { label: "Practice", color: "bg-slate-100 text-slate-700", icon: "⭐" }
+};
+
+function getDifficulty(title) {
+  if (/beginning|beginner/i.test(title)) return LEVELS.Beginning;
+  if (/intermediate|medium/i.test(title)) return LEVELS.Intermediate;
+  if (/advanced|challenge|hard/i.test(title)) return LEVELS.Advanced;
+  return LEVELS.Default;
+}
 
 export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
-  
   const canonicalId = SLUG_MAP[rawId] || rawId.toUpperCase();
-  
-  // If we are looking for a specific language (e.g. FRA), targetIds should NOT include "LANG"
-  // If we are looking for the hub "LANG", we include all aliases to count them if needed, 
-  // but we will mainly display tiles.
   const targetIds = SUBJECT_ALIASES[canonicalId] || [canonicalId];
 
   const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
@@ -109,38 +93,18 @@ export default function SubjectLessonsPage() {
 
   useEffect(() => {
     let mounted = true;
-
     async function load() {
       setLoading(true);
       setError("");
-
       try {
-        // If it's the main Languages hub, we don't necessarily need to fetch ALL lessons immediately
-        // unless we want lesson counts. For now, let's fetch lightly or skip if just rendering tiles.
-        if (canonicalId === "LANG") {
-           // We might fetch counts later, but for speed, let's just finish loading.
-           setLoading(false);
-           return;
-        }
+        if (canonicalId === "LANG") { setLoading(false); return; }
 
-        // Try to fetch real name from DB if possible
-        const { data: subData } = await supabase
-          .from("subjects")
-          .select("name")
-          .in("id", targetIds)
-          .limit(1)
-          .maybeSingle();
-        
-        if (mounted && subData?.name) {
-          setSubjectName(subData.name);
-        } else if (mounted) {
-           // Fallback to local label map
-           setSubjectName(SUBJECT_LABELS[canonicalId] || canonicalId);
-        }
+        const { data: subData } = await supabase.from("subjects").select("name").in("id", targetIds).limit(1).maybeSingle();
+        if (mounted && subData?.name) setSubjectName(subData.name);
 
         const { data: lessonData, error: lessonError } = await supabase
           .from("lessons")
-          .select("id,title,year_level,topic,subject_id,curriculum_tags")
+          .select("id,title,year_level,topic,subject_id")
           .in("subject_id", targetIds)
           .order("year_level", { ascending: true })
           .order("title", { ascending: true });
@@ -150,20 +114,15 @@ export default function SubjectLessonsPage() {
           setLessons(Array.isArray(lessonData) ? lessonData : []);
         }
       } catch (err) {
-        if (mounted) {
-          console.error("Load error:", err);
-          setError("Could not load lessons.");
-        }
+        if (mounted) setError("Could not load lessons.");
       } finally {
         if (mounted) setLoading(false);
       }
     }
-
     load();
     return () => { mounted = false; };
-  }, [canonicalId, targetIds]);
+  }, [canonicalId]);
 
-  // Group lessons by Year Level
   const groups = useMemo(() => {
     if (!lessons.length) return [];
     const byYear = {};
@@ -172,23 +131,14 @@ export default function SubjectLessonsPage() {
       if (!byYear[y]) byYear[y] = [];
       byYear[y].push(l);
     }
-    return Object.keys(byYear)
-      .sort((a,b) => {
-        const na = Number(a), nb = Number(b);
-        if (!isNaN(na) && !isNaN(nb)) return na - nb;
-        return a.localeCompare(b);
-      })
-      .map(y => ({
-        id: y,
-        title: y === "General" ? "General" : `Year ${y}`,
-        lessons: byYear[y]
-      }));
+    return Object.keys(byYear).sort().map(y => ({
+      id: y,
+      title: y === "General" ? "General" : `Year ${y}`,
+      lessons: byYear[y]
+    }));
   }, [lessons]);
 
   const heroImage = SUBJECT_IMAGES[canonicalId] || SUBJECT_IMAGES.MATH;
-  const subtitle = canonicalId === "LANG" 
-    ? "Explore a new language. Pick a flag to start!" 
-    : "Choose a lesson to start your adventure.";
 
   // --- RENDER: LANGUAGE HUB ---
   if (canonicalId === "LANG") {
@@ -197,21 +147,20 @@ export default function SubjectLessonsPage() {
         <div className="mb-6">
           <Link 
             href="/app/worlds" 
-            className="inline-flex items-center gap-2 rounded-2xl bg-white/50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 rounded-full bg-white/60 backdrop-blur px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-all shadow-sm ring-1 ring-slate-900/5"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Worlds
           </Link>
         </div>
 
-        <div className="relative mb-10 overflow-hidden rounded-4xl bg-white/60 border border-white/60 p-6 md:p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
-            <div className="relative h-28 w-28 shrink-0 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-md ring-4 ring-white/50">
+        <div className="relative mb-10 overflow-hidden rounded-[2.5rem] bg-indigo-50 border border-indigo-100 p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center gap-8">
+            <div className="relative h-28 w-28 shrink-0 rounded-3xl bg-white text-indigo-600 flex items-center justify-center shadow-md ring-4 ring-white/50 text-5xl">
               <LanguagesIcon className="w-14 h-14" />
             </div>
             <div>
-              <div className="text-xs font-extrabold tracking-wide text-slate-500 uppercase mb-1">World</div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Languages</h1>
-              <p className="mt-2 text-lg text-slate-600 font-medium max-w-2xl">{subtitle}</p>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Languages</h1>
+              <p className="mt-2 text-lg text-slate-600 font-medium">Explore the world. Pick a flag to start learning.</p>
             </div>
           </div>
         </div>
@@ -223,24 +172,23 @@ export default function SubjectLessonsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="group relative h-full overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-brand-primary/40 hover:bg-white"
+                className="group relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 p-6 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 hover:border-brand-primary/40"
               >
-                <div className="flex items-start justify-between">
-                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-3xl shadow-sm ${lang.color} bg-opacity-10`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm ${lang.color} bg-opacity-10`}>
                     <span className="drop-shadow-sm">{lang.flag}</span>
                   </div>
-                  <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                  <div className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-colors">
                     <ChevronRight className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="mt-4">
-                  <h3 className="text-lg font-black text-slate-900 group-hover:text-brand-secondary transition-colors">
-                    {lang.title}
-                  </h3>
-                  <p className="text-sm font-medium text-slate-500 mt-1">
-                    {lang.desc}
-                  </p>
-                </div>
+                
+                <h3 className="text-xl font-black text-slate-900 group-hover:text-brand-primary transition-colors">
+                  {lang.title}
+                </h3>
+                <p className="text-sm font-bold text-slate-400 mt-1">
+                  {lang.desc}
+                </p>
               </motion.div>
             </Link>
           ))}
@@ -249,76 +197,62 @@ export default function SubjectLessonsPage() {
     );
   }
 
-  // --- RENDER: SPECIFIC SUBJECT LESSONS ---
+  // --- RENDER: SUBJECT LESSONS ---
   return (
     <PageScaffold title={null}>
       <div className="mb-6">
         <Link 
           href={SUBJECT_ALIASES.LANG.includes(canonicalId) ? "/app/world/LANG" : "/app/worlds"}
-          className="inline-flex items-center gap-2 rounded-2xl bg-white/50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 rounded-full bg-white/60 backdrop-blur px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-all shadow-sm ring-1 ring-slate-900/5"
         >
           <ArrowLeft className="w-4 h-4" /> {SUBJECT_ALIASES.LANG.includes(canonicalId) ? "Back to Languages" : "Back to Worlds"}
         </Link>
       </div>
 
-      <div className="relative mb-10 overflow-hidden rounded-4xl bg-white/60 border border-white/60 p-6 md:p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
-          <div className="relative h-28 w-28 shrink-0 rounded-3xl bg-white shadow-md overflow-hidden ring-4 ring-white/50">
-            <Image 
-              src={heroImage} 
-              alt={subjectName || "Subject"} 
-              fill 
-              className="object-cover scale-110"
-              priority 
-            />
+      <div className="relative mb-12 overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-2xl">
+        <div className="absolute inset-0">
+           <Image src={heroImage} alt={subjectName} fill className="object-cover opacity-60" priority />
+           <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent" />
+        </div>
+        <div className="relative z-10 p-8 md:p-12 text-white">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-4 border border-white/20">
+             World
           </div>
-          <div>
-            <div className="text-xs font-extrabold tracking-wide text-slate-500 uppercase mb-1">World</div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-              {subjectName || "Loading..."}
-            </h1>
-            <p className="mt-2 text-lg text-slate-600 font-medium max-w-2xl">
-              {subtitle}
-            </p>
-          </div>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 drop-shadow-lg">
+            {subjectName}
+          </h1>
+          <p className="text-lg md:text-xl text-slate-200 font-medium max-w-2xl leading-relaxed">
+            Choose your level. Master the skill. Earn the reward.
+          </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="h-40 rounded-3xl bg-white/40 animate-pulse" />
-          ))}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1,2,3,4,5,6].map(i => <div key={i} className="h-48 rounded-[2rem] bg-slate-100 animate-pulse" />)}
         </div>
       ) : error ? (
-        <div className="p-8 rounded-3xl bg-rose-50 border border-rose-100 text-rose-800 font-semibold text-center">
+        <div className="p-8 rounded-3xl bg-rose-50 border border-rose-100 text-rose-800 font-bold text-center">
           {error}
         </div>
       ) : lessons.length === 0 ? (
-        <div className="p-12 rounded-3xl bg-white/60 border border-white/50 text-center">
-          <div className="text-5xl mb-4 opacity-80">🗺️</div>
-          <div className="text-slate-900 font-black text-xl">No lessons found</div>
-          <div className="text-slate-600 mt-2 max-w-md mx-auto">
-            We couldn&apos;t find any lessons for <strong>{subjectName}</strong> yet.
-            <br/><br/>
-            <span className="text-xs opacity-75">Check back later for new content in this world.</span>
-          </div>
+        <div className="p-16 rounded-[2.5rem] bg-white border-4 border-dashed border-slate-100 text-center">
+          <div className="text-6xl mb-4 grayscale opacity-40">🗺️</div>
+          <div className="text-xl font-black text-slate-900">No lessons yet</div>
+          <p className="text-slate-500 mt-2">Check back soon for new adventures.</p>
         </div>
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-16">
           {groups.map((group) => (
-            <section key={group.id} className="space-y-5">
-              {/* Group Header */}
-              <div className="flex items-center gap-3">
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">{group.title}</h2>
-                  <div className="h-1 w-12 bg-brand-primary rounded-full mt-1.5" />
-                </div>
+            <section key={group.id} className="relative">
+              <div className="flex items-end gap-4 mb-6">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">{group.title}</h2>
+                <div className="h-px flex-1 bg-slate-200 mb-2.5" />
               </div>
               
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {group.lessons.map((l) => (
-                  <LessonCard key={l.id} lesson={l} />
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {group.lessons.map((l, i) => (
+                  <LessonCard key={l.id} lesson={l} index={i} />
                 ))}
               </div>
             </section>
@@ -329,43 +263,49 @@ export default function SubjectLessonsPage() {
   );
 }
 
-function LessonCard({ lesson }) {
+function LessonCard({ lesson, index }) {
+  const level = getDifficulty(lesson.title);
+  
   return (
     <Link href={`/app/lesson/${encodeURIComponent(lesson.id)}`} className="group block h-full">
       <motion.div 
-        whileHover={{ y: -4, scale: 1.01 }}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: index * 0.05 }}
+        whileHover={{ y: -6, scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="relative h-full flex flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm transition-all hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] hover:border-brand-primary/40 hover:bg-white"
+        className="relative h-full flex flex-col rounded-[2rem] bg-white border border-slate-100 p-1 shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] hover:border-brand-primary/30"
       >
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-slate-500 group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-colors">
-            Year {lesson.year_level}
-          </span>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-300 group-hover:bg-brand-primary group-hover:text-white transition-all">
-            <Play className="w-3.5 h-3.5 fill-current" />
-          </div>
+        <div className="flex-1 p-5 pb-2">
+           <div className="flex items-start justify-between mb-4">
+              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide", level.color)}>
+                {level.icon} {level.label}
+              </span>
+              {/* Fake 'coins' reward badge */}
+              <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-full flex items-center gap-1">
+                 <Zap className="w-3 h-3 fill-current" /> +20
+              </span>
+           </div>
+           
+           <h3 className="text-lg font-black text-slate-900 leading-snug mb-2 group-hover:text-brand-primary transition-colors line-clamp-2">
+             {lesson.title}
+           </h3>
+           
+           {lesson.topic && (
+             <p className="text-sm font-semibold text-slate-500 line-clamp-2">
+               {lesson.topic}
+             </p>
+           )}
         </div>
 
-        <div className="flex-1">
-          <h3 className="text-lg font-extrabold text-slate-900 leading-snug group-hover:text-brand-secondary transition-colors">
-            {lesson.title}
-          </h3>
-          {lesson.topic && (
-            <p className="mt-1.5 text-sm font-medium text-slate-500 line-clamp-2">
-              {lesson.topic}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-5 flex items-center gap-3 border-t border-slate-100 pt-3 opacity-80 group-hover:opacity-100 transition-opacity">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 group-hover:text-brand-primary transition-colors">
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Start</span>
-          </div>
-          <div className="ml-auto flex items-center gap-1 text-xs font-black text-amber-400">
-            <Star className="w-3.5 h-3.5 fill-current" />
-            <span>+12</span>
-          </div>
+        <div className="p-4 pt-2">
+           <div className="w-full h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between px-4 group-hover:bg-slate-900 group-hover:text-white transition-colors duration-300">
+              <span className="text-xs font-bold uppercase tracking-wider group-hover:text-white/90">Start</span>
+              <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
+                 <Play className="w-3 h-3 fill-current" />
+              </div>
+           </div>
         </div>
       </motion.div>
     </Link>
