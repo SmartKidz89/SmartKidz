@@ -7,9 +7,10 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import TodayModule from "@/components/today/TodayModule";
 import RecommendationsPanel from "@/components/app/RecommendationsPanel";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useFocusMode } from "@/components/ui/FocusModeProvider";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Star, ArrowRight, Zap, Map, Trophy, Sparkles
+  Wrench, Star, ArrowRight, Zap, Map, Trophy, Sparkles, Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -104,9 +105,9 @@ const TOOLS = [
   { href: "/app/tools/world-explorer", title: "Explorer", icon: "🌍", color: "bg-sky-100 text-sky-700" },
   { href: "/app/tools/dictionary", title: "Dictionary", icon: "📖", color: "bg-emerald-100 text-emerald-700" },
   { href: "/app/tools/storybook", title: "Storybook", icon: "📘", color: "bg-blue-100 text-blue-700" },
-  { href: "/app/tools/curiosity", title: "Curiosity", icon: "🔎", color: "bg-purple-100 text-purple-700" },
-  { href: "/app/tools/focus", title: "Focus Mode", icon: "🧘", color: "bg-teal-100 text-teal-700" },
+  { href: "/app/tools/curiosity", title: "Wonder Box", icon: "🔎", color: "bg-purple-100 text-purple-700" },
   { href: "/app/tools/timeline", title: "Timeline", icon: "⏳", color: "bg-amber-100 text-amber-700" },
+  { href: "/app/tools/reflection", title: "Reflection", icon: "🌱", color: "bg-teal-100 text-teal-700" },
 ];
 
 // --- Components ---
@@ -146,6 +147,7 @@ function StatCard({ label, value, icon: Icon, colorClass, delay = 0 }) {
 
 export default function DashboardClient() {
   const { activeChild } = useActiveChild();
+  const { focus, toggle: toggleFocus } = useFocusMode();
   const name = activeChild?.display_name?.split(" ")[0] || "Explorer";
 
   return (
@@ -154,9 +156,23 @@ export default function DashboardClient() {
       {/* 1. Hero / Header Area */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <Greeting name={name} />
-        <div className="hidden md:flex gap-3">
-          <StatCard label="Daily Streak" value="3 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
-          <StatCard label="Weekly XP" value="450 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
+        <div className="flex items-center gap-3">
+           <button
+             onClick={toggleFocus}
+             className={cn(
+               "flex items-center gap-2 px-4 py-2 rounded-2xl font-bold transition-all border",
+               focus 
+                 ? "bg-teal-100 text-teal-800 border-teal-200 shadow-inner"
+                 : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm"
+             )}
+           >
+             <Moon className="w-4 h-4" />
+             <span className="text-sm">{focus ? "Focus On" : "Focus Mode"}</span>
+           </button>
+           <div className="hidden md:flex gap-3">
+             <StatCard label="Streak" value="3 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
+             <StatCard label="Weekly XP" value="450 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
+           </div>
         </div>
       </div>
 

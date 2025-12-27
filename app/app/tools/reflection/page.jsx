@@ -1,261 +1,229 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { supabase } from "@/lib/supabase/client";
-import ChildAvatar from "@/components/avatar/ChildAvatar";
 import { playUISound, haptic } from "@/components/ui/sound";
+import { Smile, Frown, Meh, Star, ArrowRight, Save, History } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-const EMOJIS = [
-  { k: "happy", label: "Happy", icon: "😊" },
-  { k: "ok", label: "Okay", icon: "🙂" },
-  { k: "tired", label: "Tired", icon: "😴" },
-  { k: "stuck", label: "Stuck", icon: "😟" },
-  { k: "proud", label: "Proud", icon: "🌟" },
+const MOODS = [
+  { id: "happy", label: "Happy", icon: <Smile className="w-8 h-8" />, color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  { id: "ok", label: "Okay", icon: <Meh className="w-8 h-8" />, color: "bg-amber-100 text-amber-700 border-amber-200" },
+  { id: "stuck", label: "Stuck", icon: <Frown className="w-8 h-8" />, color: "bg-rose-100 text-rose-700 border-rose-200" },
+  { id: "proud", label: "Proud", icon: <Star className="w-8 h-8" />, color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
 ];
 
-function isYoung(year) {
-  return typeof year === "number" && year <= 1;
-}
+function ReflectionHistory({ childId, refreshTrigger }) {
+  const [items, setItems] = useState([]);
 
-function prompts(year) {
-  if (isYoung(year)) {
-    return {
-      easy: "What was easy today?",
-      tricky: "What was tricky today?",
-      proud: "What are you proud of?",
-      hint: "You can tap an emoji or choose a short answer. A parent can help read the questions."
-    };
-  }
-  return {
-    easy: "What felt easy today?",
-    tricky: "What felt tricky today?",
-    proud: "What are you proud of?",
-    hint: "Keep it short. One sentence is perfect."
-  };
-}
+  useEffect(() => {
+    if (!childId) return;
+    supabase
+      .from("child_reflections")
+      .select("*")
+      .eq("child_id", childId)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => setItems(data || []));
+  }, [childId, refreshTrigger]);
 
-function formatDate(d) {
-  try { return new Date(d).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
-  catch { return ""; }
+  if (!items.length) return null;
+
+  return (
+    <div className="mt-8">
+      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+        <History className="w-4 h-4" /> Past Thoughts
+      </h3>
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="bg-white/60 p-4 rounded-2xl border border-slate-100 text-sm">
+             <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold capitalize text-slate-900">{item.mood}</span>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-500">{new Date(item.created_at).toLocaleDateString()}</span>
+             </div>
+             {item.proud && <div className="text-slate-700">🏆 {item.proud}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ReflectionToolPage() {
   const { activeChild } = useActiveChild();
-  const childId = activeChild?.id;
-  const year = typeof activeChild?.year_level === "number" ? activeChild.year_level : 2;
-
-  const p = useMemo(() => prompts(year), [year]);
-
-  const [mood, setMood] = useState("happy");
-  const [easy, setEasy] = useState("");
-  const [tricky, setTricky] = useState("");
-  const [proud, setProud] = useState("");
+  const [step, setStep] = useState(1);
+  const [data, setData] = useState({ mood: null, easy: "", tricky: "", proud: "" });
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [completed, setCompleted] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setErr("");
-      setLoading(true);
-      if (!childId) { setItems([]); setLoading(false); return; }
-
-      const { data, error } = await supabase
-        .from("child_reflections")
-        .select("id, mood, easy, tricky, proud, created_at")
-        .eq("child_id", childId)
-        .order("created_at", { ascending: false })
-        .limit(30);
-
-      if (!mounted) return;
-      if (error) {
-        setErr(error.message);
-        setItems([]);
-        setLoading(false);
-        return;
-      }
-      setItems(data || []);
-      setLoading(false);
-    }
-    load();
-    return () => { mounted = false; };
-  }, [childId]);
-
-  async function save() {
-    setErr("");
-    if (!childId) { setErr("Select a child first."); return; }
+  async function handleSave() {
     setSaving(true);
-    try { playUISound("tap"); haptic("light"); } catch {}
-
-    const payload = {
-      child_id: childId,
-      mood,
-      easy: easy || null,
-      tricky: tricky || null,
-      proud: proud || null,
-    };
-
-    const { error } = await supabase.from("child_reflections").insert(payload);
-    if (error) {
-      setErr(error.message);
+    try {
+      await supabase.from("child_reflections").insert({
+        child_id: activeChild?.id,
+        ...data,
+      });
+      playUISound("complete");
+      haptic("medium");
+      setCompleted(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
       setSaving(false);
-      return;
     }
-
-    try { playUISound("complete"); haptic("light"); } catch {}
-    setEasy(""); setTricky(""); setProud("");
-    // reload
-    const { data } = await supabase
-      .from("child_reflections")
-      .select("id, mood, easy, tricky, proud, created_at")
-      .eq("child_id", childId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    setItems(data || []);
-    setSaving(false);
   }
 
-  return (
-    <PageMotion className="max-w-6xl mx-auto space-y-6">
-      <div className="skz-glass p-6 md:p-8 skz-border-animate skz-shine">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <ChildAvatar config={activeChild?.avatar_config || {}} size={64} />
-            <div>
-              <div className="text-sm text-slate-500">Journal tool</div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Reflection & confidence</h1>
-              <p className="mt-2 text-sm md:text-base text-slate-700">
-                A calm journal that helps kids notice progress and build confidence over time.
-              </p>
-              <div className="mt-2 text-xs text-slate-500">{p.hint}</div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button className="skz-chip px-4 py-3 skz-press" onClick={() => history.back()}>Back</button>
-            <a className="skz-glass skz-border-animate skz-shine px-4 py-3 skz-press text-sm" href="/app/parent/reflections">
-              Parent view →
-            </a>
-          </div>
-        </div>
-      </div>
+  const next = () => {
+    playUISound("tap");
+    setStep(s => s + 1);
+  };
 
-      {err ? (
-        <div className="skz-card p-5 text-rose-700">
-          <div className="font-semibold">Couldn’t load/save reflections</div>
-          <div className="mt-2 text-sm">{err}</div>
-          <div className="mt-3 text-xs text-slate-600">
-            If you haven’t created the <span className="font-mono">child_reflections</span> table yet, run the SQL in <span className="font-mono">supabase/sql/child_reflections.sql</span>.
-          </div>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="skz-card p-6 skz-glow skz-shine">
-          <div className="text-sm font-semibold">How do you feel?</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {EMOJIS.map((e) => (
-              <button
-                key={e.k}
-                className={`skz-chip px-3 py-2 skz-press text-sm ${mood === e.k ? "ring-2 ring-indigo-400/60" : ""}`}
-                onClick={() => { try { playUISound("tap"); } catch {}; setMood(e.k); }}
-              >
-                <span className="mr-2">{e.icon}</span>{e.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <Field label={p.easy} value={easy} onChange={setEasy} young={isYoung(year)} />
-            <Field label={p.tricky} value={tricky} onChange={setTricky} young={isYoung(year)} />
-            <Field label={p.proud} value={proud} onChange={setProud} young={isYoung(year)} />
-          </div>
-
-          <button
-            className="mt-5 w-full skz-glass skz-border-animate skz-shine px-5 py-3 skz-press"
-            disabled={saving}
-            onClick={save}
-          >
-            {saving ? "Saving…" : "Save reflection"}
-          </button>
-
-          <div className="mt-3 text-xs text-slate-500">
-            Private to this child. Parents can view in the Family Hub.
-          </div>
-        </div>
-
-        <div className="skz-card p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold">Confidence timeline</div>
-              <div className="text-xs text-slate-500 mt-1">Your reflections over time</div>
-            </div>
-            <div className="skz-chip px-3 py-2 text-sm">🌱 Growth</div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {loading ? (
-              <div className="text-sm text-slate-600">Loading…</div>
-            ) : items.length ? (
-              items.map((it) => (
-                <div key={it.id} className="skz-glass p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-sm font-semibold">Mood: {it.mood}</div>
-                    <div className="text-xs text-slate-500">{formatDate(it.created_at)}</div>
-                  </div>
-                  <div className="mt-2 text-sm text-slate-700 space-y-1">
-                    {it.easy ? <div><span className="text-slate-500">Easy:</span> {it.easy}</div> : null}
-                    {it.tricky ? <div><span className="text-slate-500">Tricky:</span> {it.tricky}</div> : null}
-                    {it.proud ? <div><span className="text-slate-500">Proud:</span> {it.proud}</div> : null}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-slate-600">
-                No reflections yet. Save your first one to start your timeline.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </PageMotion>
-  );
-}
-
-function Field({ label, value, onChange, young }) {
-  if (young) {
-    const options = [
-      "It was easy",
-      "It was okay",
-      "It was hard",
-      "I want help",
-      "I feel proud",
-    ];
+  if (completed) {
     return (
-      <div className="skz-glass p-4">
-        <div className="text-xs text-slate-500">{label}</div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {options.map((o) => (
-            <button key={o} className={`skz-chip px-3 py-2 text-sm skz-press ${value===o ? "ring-2 ring-indigo-400/60" : ""}`} onClick={() => onChange(o)}>
-              {o}
-            </button>
-          ))}
+      <PageMotion className="max-w-xl mx-auto py-20 text-center">
+        <div className="bg-white rounded-[3rem] p-10 shadow-2xl border border-slate-100">
+          <div className="text-6xl mb-6 animate-bounce">🌟</div>
+          <h1 className="text-3xl font-black text-slate-900 mb-4">Saved!</h1>
+          <p className="text-slate-600 font-medium text-lg mb-8">
+            Great job reflecting on your learning today.
+          </p>
+          <button 
+            onClick={() => { setCompleted(false); setStep(1); setData({ mood: null, easy: "", tricky: "", proud: "" }); }}
+            className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold text-lg hover:scale-105 transition-transform"
+          >
+            Check in again
+          </button>
         </div>
-      </div>
+        <ReflectionHistory childId={activeChild?.id} refreshTrigger={completed} />
+      </PageMotion>
     );
   }
+
   return (
-    <div className="skz-glass p-4">
-      <div className="text-xs text-slate-500">{label}</div>
-      <textarea
-        className="mt-2 w-full skz-glass p-3 outline-none min-h-[84px]"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="One sentence is perfect…"
-      />
-    </div>
+    <PageMotion className="max-w-2xl mx-auto pb-20">
+      {/* Progress Bar */}
+      <div className="flex gap-2 mb-8 px-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className={`h-2 flex-1 rounded-full transition-colors ${i <= step ? "bg-brand-primary" : "bg-slate-200"}`} />
+        ))}
+      </div>
+
+      <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-10 shadow-xl border border-white/50 min-h-[400px] flex flex-col relative overflow-hidden">
+        
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div 
+              key="step1"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1 flex flex-col justify-center"
+            >
+              <h2 className="text-3xl font-black text-center text-slate-900 mb-8">How are you feeling?</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {MOODS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setData({...data, mood: m.id}); next(); }}
+                    className={`p-6 rounded-3xl border-2 flex flex-col items-center gap-3 transition-all hover:scale-105 active:scale-95 ${m.color} bg-opacity-10 border-opacity-20 hover:bg-opacity-20`}
+                  >
+                    {m.icon}
+                    <span className="font-bold text-lg">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div 
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1 flex flex-col"
+            >
+              <h2 className="text-2xl font-black text-slate-900 mb-2">What felt easy today?</h2>
+              <p className="text-slate-500 font-medium mb-6">Or something that was fun!</p>
+              <textarea
+                autoFocus
+                value={data.easy}
+                onChange={(e) => setData({...data, easy: e.target.value})}
+                placeholder="I enjoyed..."
+                className="w-full h-40 rounded-2xl border-2 border-slate-200 p-4 text-lg font-medium focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none transition-all resize-none bg-slate-50 focus:bg-white"
+              />
+              <div className="mt-auto pt-6 flex justify-end">
+                <button onClick={next} className="px-8 py-3 rounded-2xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:scale-105 transition-transform">
+                  Next <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div 
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1 flex flex-col"
+            >
+              <h2 className="text-2xl font-black text-slate-900 mb-2">What was tricky?</h2>
+              <p className="text-slate-500 font-medium mb-6">It's okay to find things hard sometimes.</p>
+              <textarea
+                autoFocus
+                value={data.tricky}
+                onChange={(e) => setData({...data, tricky: e.target.value})}
+                placeholder="I got stuck on..."
+                className="w-full h-40 rounded-2xl border-2 border-slate-200 p-4 text-lg font-medium focus:border-rose-400 focus:ring-4 focus:ring-rose-100 outline-none transition-all resize-none bg-slate-50 focus:bg-white"
+              />
+              <div className="mt-auto pt-6 flex justify-end">
+                <button onClick={next} className="px-8 py-3 rounded-2xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:scale-105 transition-transform">
+                  Next <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div 
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1 flex flex-col"
+            >
+              <h2 className="text-2xl font-black text-slate-900 mb-2">What are you proud of?</h2>
+              <p className="text-slate-500 font-medium mb-6">Big or small, a win is a win!</p>
+              <textarea
+                autoFocus
+                value={data.proud}
+                onChange={(e) => setData({...data, proud: e.target.value})}
+                placeholder="I am proud that I..."
+                className="w-full h-40 rounded-2xl border-2 border-slate-200 p-4 text-lg font-medium focus:border-amber-400 focus:ring-4 focus:ring-amber-100 outline-none transition-all resize-none bg-slate-50 focus:bg-white"
+              />
+              <div className="mt-auto pt-6 flex justify-end">
+                <button 
+                  onClick={handleSave} 
+                  disabled={saving}
+                  className="px-8 py-3 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  {saving ? "Saving..." : "Save Reflection"} <Save className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="text-center mt-6">
+        <button onClick={() => history.back()} className="text-slate-400 font-bold hover:text-slate-600 text-sm">
+          Cancel & Exit
+        </button>
+      </div>
+    </PageMotion>
   );
 }
