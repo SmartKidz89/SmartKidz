@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-// Increase timeout to max allowed on Vercel Pro (ensure your local dev doesn't kill it too fast)
 export const maxDuration = 60; 
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-// 50 lessons per level = 150 per year/subject/country (~86k total rows)
+// 50 per level = 150 per year/subject = ~7200 per country
 const LESSONS_PER_LEVEL = 50; 
 
-// --- Country Configuration ---
 const COUNTRIES = {
   AU: { name: "Australia", term: "Year", curriculum: "Australian Curriculum (AC9)", code: "AU", math: "Maths", hass: "HASS" },
   NZ: { name: "New Zealand", term: "Year", curriculum: "New Zealand Curriculum", code: "NZ", math: "Maths", hass: "Social Sciences" },
@@ -25,11 +23,12 @@ const COUNTRIES = {
   INT: { name: "International", term: "Year", curriculum: "General International", code: "INT", math: "Mathematics", hass: "Humanities" },
 };
 
+const ALL_COUNTRY_CODES = Object.keys(COUNTRIES); // 12 countries
+
 function getTopics(subjectId, year, countryCode) {
   const isEarly = year <= 2;
   const config = COUNTRIES[countryCode] || COUNTRIES.AU;
   
-  // Localize Topic Names
   const moneyTerm = ["US", "CA", "IE", "AE"].includes(countryCode) ? "Money & Cents" : "Money & Finance";
   const historyTerm = countryCode === "US" ? "History" : "History";
 
@@ -124,10 +123,27 @@ function generateContent(countryCode, subjectName, topic, year, level) {
   });
 }
 
-export async function GET() {
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const batch = searchParams.get('batch');
+  
+  // Split countries into two groups
+  // Batch 1: AU, NZ, US, GB, CA, IN (6)
+  // Batch 2: SG, ZA, IE, AE, PH, INT (6)
+  let targetCountries = ALL_COUNTRY_CODES;
+  let filename = "smartkidz_lessons_global_full.csv";
+
+  if (batch === "1") {
+    targetCountries = ALL_COUNTRY_CODES.slice(0, 6);
+    filename = "smartkidz_lessons_part1_AU-IN.csv";
+  } else if (batch === "2") {
+    targetCountries = ALL_COUNTRY_CODES.slice(6);
+    filename = "smartkidz_lessons_part2_SG-INT.csv";
+  }
+
   const headers = new Headers();
   headers.set('Content-Type', 'text/csv; charset=utf-8');
-  headers.set('Content-Disposition', 'attachment; filename="smartkidz_lessons_global_full.csv"');
+  headers.set('Content-Disposition', `attachment; filename="${filename}"`);
 
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -140,9 +156,8 @@ export async function GET() {
 
       const now = new Date().toISOString();
       const subjectIds = Object.keys(SUBJECT_NAMES);
-      const countryCodes = Object.keys(COUNTRIES);
 
-      for (const country of countryCodes) {
+      for (const country of targetCountries) {
         const config = COUNTRIES[country];
 
         for (const subjId of subjectIds) {
