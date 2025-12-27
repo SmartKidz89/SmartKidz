@@ -94,9 +94,14 @@ const REFERRAL_SOURCES = [
   { value: "other", label: "Other" },
 ];
 
-// We'll dynamically change "Year" to "Grade" based on country selection below, 
-// but for the static list we keep generic values.
-const LEVELS = [1, 2, 3, 4, 5, 6];
+const YEAR_LEVELS = [
+  { value: 1, label: "Level 1" },
+  { value: 2, label: "Level 2" },
+  { value: 3, label: "Level 3" },
+  { value: 4, label: "Level 4" },
+  { value: 5, label: "Level 5" },
+  { value: 6, label: "Level 6" },
+];
 
 export default function OnboardingPage() {
   const { session, supabase } = useSession();
@@ -105,11 +110,12 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [complete, setComplete] = useState(false);
+  const [locating, setLocating] = useState(true);
 
   // Form State
   const [formData, setFormData] = useState({
     full_name: "",
-    country: "AU", 
+    country: "", // Will be auto-set
     address_line1: "",
     city: "",
     state: "",
@@ -121,17 +127,38 @@ export default function OnboardingPage() {
   // Helper to determine term (Year/Grade/Class)
   const getGradeTerm = (c) => {
     if (["US", "CA", "ZA", "PH"].includes(c)) return "Grade";
-    if (["IN", "SG"].includes(c)) return "Class/Primary";
+    if (["IN", "SG", "IE"].includes(c)) return "Class";
+    if (c === "NZ") return "Year";
     return "Year";
   };
 
   const gradeTerm = getGradeTerm(formData.country);
 
+  // 1. Prefill Name from Auth
   useEffect(() => {
     if (session?.user?.user_metadata?.full_name) {
       setFormData(prev => ({ ...prev, full_name: session.user.user_metadata.full_name }));
     }
   }, [session]);
+
+  // 2. Auto-detect Country
+  useEffect(() => {
+    fetch("/api/geo")
+      .then(res => res.json())
+      .then(data => {
+        const detected = data.country || "AU";
+        // Check if we support this specific country, otherwise default to International
+        const isSupported = COUNTRIES.some(c => c.value === detected);
+        const finalCountry = isSupported ? detected : "INT";
+        
+        setFormData(prev => ({ ...prev, country: finalCountry }));
+        setLocating(false);
+      })
+      .catch(() => {
+        setFormData(prev => ({ ...prev, country: "AU" }));
+        setLocating(false);
+      });
+  }, []);
 
   const updateForm = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -290,10 +317,12 @@ export default function OnboardingPage() {
               >
                 <div className="text-center mb-8">
                   <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-emerald-600">
-                    <Home className="w-8 h-8" />
+                    <Globe className="w-8 h-8" />
                   </div>
                   <h2 className="text-3xl font-black text-slate-900">Where are you based?</h2>
-                  <p className="text-slate-600 mt-2">This customizes the curriculum for your region.</p>
+                  <p className="text-slate-600 mt-2">
+                     {locating ? "Detecting location..." : "We've selected a curriculum for you."}
+                  </p>
                 </div>
 
                 <SelectField 
@@ -306,14 +335,14 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <InputField 
                     label="City" 
-                    placeholder="e.g. London" 
+                    placeholder="e.g. New York" 
                     value={formData.city} 
                     onChange={(v) => updateForm("city", v)}
                     required
                   />
                   <InputField 
                     label="Postcode" 
-                    placeholder="e.g. SW1A" 
+                    placeholder="e.g. 10001" 
                     value={formData.postcode} 
                     onChange={(v) => updateForm("postcode", v)}
                     required
@@ -393,7 +422,7 @@ export default function OnboardingPage() {
                            label={`${gradeTerm} Level`}
                            value={kid.year_level}
                            onChange={(v) => updateChild(index, "year_level", v)}
-                           options={LEVELS.map(l => ({ value: l, label: `${gradeTerm} ${l}` }))}
+                           options={YEAR_LEVELS.map(l => ({ value: l.value, label: `${gradeTerm} ${l.value}` }))}
                          />
                       </div>
                     </div>
