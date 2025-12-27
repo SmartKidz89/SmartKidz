@@ -9,11 +9,13 @@ import Link from "next/link";
 import jsPDF from "jspdf";
 
 const THEMES = [
-  "A space adventure",
-  "A dragon who can't breathe fire",
-  "The secret life of my pet hamster",
-  "A superhero with a silly power",
-  "The day it rained candy"
+  "A shy dragon who opens a bakery for clouds",
+  "Two astronauts solving a mystery on a purple planet",
+  "A detective cat looking for the missing golden yarn",
+  "A tree that grows toys instead of fruit",
+  "The robot who wanted to learn how to paint",
+  "An underwater school for mermaids and dolphins",
+  "The day gravity stopped working at the playground"
 ];
 
 export default function StorybookGenerator() {
