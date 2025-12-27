@@ -9,7 +9,7 @@ import RecommendationsPanel from "@/components/app/RecommendationsPanel";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Star, ArrowRight, Zap, Map, Trophy, Sparkles, Cat
+  Wrench, Star, ArrowRight, Zap, Map, Sparkles, Heart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -176,24 +176,37 @@ export default function DashboardClient() {
         {/* Side: Quick Actions / Recommendations */}
         <div className="lg:col-span-4 flex flex-col gap-4">
           
-          {/* Pet Module (New!) */}
-          <Link href="/app/pet" className="block">
+          {/* Pet Module (Enhanced) */}
+          <Link href="/app/pet" className="block h-full">
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="rounded-[2.5rem] bg-gradient-to-r from-rose-50 to-white border border-rose-100 p-6 shadow-lg flex items-center justify-between group hover:shadow-xl transition-all"
+              className="h-full rounded-[2.5rem] bg-gradient-to-br from-rose-100 to-white border border-rose-100 p-6 shadow-lg relative overflow-hidden group hover:shadow-xl hover:scale-[1.02] transition-all"
             >
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
-                     🐾
-                  </div>
-                  <div>
-                    <div className="font-black text-slate-900 text-lg">My Pet</div>
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">Take care of them!</div>
-                  </div>
-               </div>
-               <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-slate-300 group-hover:text-rose-500 transition-colors">
-                  <ArrowRight className="w-5 h-5" />
+               <div className="absolute -right-4 -top-4 w-32 h-32 bg-rose-200/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
+               
+               <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                 <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Heart className="w-5 h-5 text-rose-500 fill-current animate-pulse" />
+                        <span className="text-xs font-black uppercase tracking-wider text-rose-600">Companion</span>
+                      </div>
+                      <h3 className="text-2xl font-black text-slate-900">My Pet</h3>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-slate-300 group-hover:text-rose-500 transition-colors">
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
+                 </div>
+                 
+                 <div className="flex items-center gap-4 mt-2">
+                    <div className="w-16 h-16 rounded-3xl bg-white flex items-center justify-center text-4xl shadow-sm group-hover:rotate-12 transition-transform">
+                       🐾
+                    </div>
+                    <div className="text-sm font-medium text-slate-600 leading-snug">
+                       Feed, play, and level up your buddy!
+                    </div>
+                 </div>
                </div>
             </motion.div>
           </Link>

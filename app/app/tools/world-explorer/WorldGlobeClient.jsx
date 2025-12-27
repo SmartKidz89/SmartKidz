@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Stars } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Vector3, Color, MeshStandardMaterial } from "three";
 
@@ -31,11 +31,9 @@ function Earth() {
 
   const material = useMemo(() => {
     return new MeshStandardMaterial({
-      color: new Color("#1e293b"), // Slate-800
-      roughness: 0.7,
+      color: new Color("#1e40af"), // Deep blue ocean
+      roughness: 0.8,
       metalness: 0.1,
-      emissive: new Color("#0f172a"), // Slate-900
-      emissiveIntensity: 0.2,
     });
   }, []);
 
@@ -58,7 +56,7 @@ function CountryMarkers({ countries, onSelect }) {
         return {
           id: c.cca2 || c.cca3 || c.name?.common,
           country: c,
-          position: latLngToVec3(lat, lng, 1.015), // slightly above surface
+          position: latLngToVec3(lat, lng, 1.02), // slightly above surface
         };
       });
   }, [countries]);
@@ -85,7 +83,7 @@ function CountryMarkers({ countries, onSelect }) {
           }}
         >
           {/* Larger hit area for easier tapping */}
-          <sphereGeometry args={[hovered === m.id ? 0.018 : 0.012, 16, 16]} />
+          <sphereGeometry args={[hovered === m.id ? 0.025 : 0.015, 16, 16]} />
           <meshStandardMaterial
             color={hovered === m.id ? "#fbbf24" : "#ffffff"} // Amber-400 / White
             emissive={hovered === m.id ? "#d97706" : "#000000"}
@@ -99,14 +97,14 @@ function CountryMarkers({ countries, onSelect }) {
 
 export default function WorldGlobeClient({ onSelect }) {
   const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       try {
-        // Try fetching real data with a timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
 
         const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2,cca3,latlng,region,subregion,capital,flag", {
           signal: controller.signal
@@ -121,8 +119,9 @@ export default function WorldGlobeClient({ onSelect }) {
           setCountries(data);
         }
       } catch (e) {
-        console.warn("World Explorer: Using fallback data due to API error", e);
-        // Keep fallback data
+        console.warn("World Explorer: Using fallback data", e);
+      } finally {
+        if (mounted) setLoaded(true);
       }
     }
     load();
@@ -130,22 +129,36 @@ export default function WorldGlobeClient({ onSelect }) {
   }, []);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative bg-slate-900">
       <Canvas camera={{ position: [0, 0, 2.8], fov: 45 }}>
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[3, 2, 3]} intensity={1.5} />
-        <pointLight position={[-2, -1, -2]} intensity={0.5} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[5, 3, 5]} intensity={1.5} />
+        <pointLight position={[-5, -3, -5]} intensity={0.5} />
+        
+        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        
         <Earth />
         <CountryMarkers countries={countries} onSelect={onSelect} />
+        
         <OrbitControls 
           enablePan={false} 
-          minDistance={1.5} 
-          maxDistance={4.5} 
-          rotateSpeed={0.6}
+          minDistance={1.6} 
+          maxDistance={5} 
+          rotateSpeed={0.5}
           enableDamping={true}
           dampingFactor={0.1}
+          autoRotate={!loaded}
+          autoRotateSpeed={0.5}
         />
       </Canvas>
+      
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/50 px-4 py-2 rounded-full text-white text-xs font-bold backdrop-blur-md">
+            Loading countries...
+          </div>
+        </div>
+      )}
     </div>
   );
 }
