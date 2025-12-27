@@ -55,29 +55,80 @@ function escapeCsv(field, forceQuote = false) {
 }
 
 function generateContent(subjectName, topic, year, level) {
+  const isBeg = level === 'Beginner';
+  const isAdv = level === 'Advanced';
+
+  // Richer Content Templates
+  const explanationIntro = isBeg 
+    ? `Welcome to **${topic}**! Today we are going to learn the basics. This is a super useful skill that helps you understand the world around you.`
+    : isAdv
+    ? `Ready for a challenge? We are diving deep into **${topic}**. We will look at complex rules and how to solve tricky problems.`
+    : `Let's build on what you know about **${topic}**. We will practice new strategies to make you faster and more accurate.`;
+
+  const explanationBody = `
+    **Key Idea:**
+    ${topic} is all about finding patterns. Whether you are looking at numbers, words, or nature, there is always a rule to discover.
+    
+    **How it works:**
+    1. **Observe:** Look closely at the question. What do you see?
+    2. **Connect:** Does this remind you of something you already know?
+    3. **Solve:** Use the steps we practice to find the answer.
+    
+    *Remember:* Take your time. It is not about being fast, it is about being sure!
+  `.trim();
+
+  const realWorldApps = [
+    `Next time you are at the shops, look for **${topic}** in action! It helps people compare prices and count change.`,
+    `Architects and builders use **${topic}** every day to make sure buildings stand up straight and strong.`,
+    `Scientists use **${topic}** to measure things in nature, like how tall a tree grows or how fast a car moves.`
+  ];
+  const realWorld = realWorldApps[Math.floor(Math.random() * realWorldApps.length)];
+
+  const strategies = [
+    `**The 'Stop & Think' Method:** Before you answer, pause for 3 seconds. Reread the question.`,
+    `**Visualise It:** Close your eyes and picture the problem in your head.`,
+    `**Teach a Friend:** If you can explain it to a toy or a friend, you really know it!`
+  ];
+
+  const workedExample = `
+    **Let's try one together!**
+    
+    *Problem:* How do we use ${topic} to solve a puzzle?
+    
+    **Step 1:** Read the question carefully. What is it asking us to find?
+    **Step 2:** Look for clues. Are there numbers? Key words? Pictures?
+    **Step 3:** Apply the rule. For ${topic}, we usually look for the pattern first.
+    **Step 4:** Check your work. Does the answer make sense?
+    
+    *Result:* Great job! You just used ${topic} to solve a problem.
+  `.trim();
+
   // Generate 10 varied questions
   const quiz = Array.from({ length: 10 }).map((_, i) => {
     return {
-      question: `${level} Question ${i + 1}: What is a key concept of ${topic}?`,
+      question: `${level} Question ${i + 1}: Which statement about ${topic} is true?`,
       options: [
-        `The correct principle of ${topic}`, 
-        `A common mistake in ${topic}`, 
-        `Unrelated option A`,
-        `Unrelated option B`
+        `The core rule of ${topic} applies here.`, 
+        `This is a common mistake people make.`, 
+        `This option is unrelated to the topic.`,
+        `This looks right but is actually wrong.`
       ],
-      answer: `The correct principle of ${topic}`,
-      explanation: `This is the correct answer because it aligns with Year ${year} ${topic} standards.`
+      answer: `The core rule of ${topic} applies here.`,
+      explanation: `Correct! In ${topic}, we always look for the core rule first. This helps us solve the problem accurately.`
     };
   });
 
   return JSON.stringify({
     duration_minutes: 15,
-    objective: `Learn ${topic} (${level})`,
-    explanation: `Detailed explanation of ${topic} for Year ${year}. Focus on key concepts and practice.`,
-    real_world_application: `See ${topic} in the world around you, like when shopping or planning.`,
-    memory_strategies: [`Link ${topic} to a daily habit to remember it better.`],
-    worked_example: `Step-by-step guide to ${topic}: 1. Identify. 2. Apply rule. 3. Check.`,
-    scenarios: [{ context: `Scenario for ${topic}`, questions: [{ prompt: "What next?", answer: "Follow the steps." }] }],
+    objective: `Master the concepts of ${topic} at a ${level} level.`,
+    explanation: `${explanationIntro}\n\n${explanationBody}`,
+    real_world_application: realWorld,
+    memory_strategies: strategies,
+    worked_example: workedExample,
+    scenarios: [{ 
+      context: `Imagine you are explaining ${topic} to a younger student.`, 
+      questions: [{ prompt: "What is the most important thing to remember?", answer: "Follow the steps carefully." }] 
+    }],
     quiz: quiz
   });
 }

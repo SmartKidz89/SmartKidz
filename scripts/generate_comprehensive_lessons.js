@@ -95,15 +95,15 @@ function escapeCsv(field) {
 
 function generateQuiz(subject, topic, level, count = 15) {
   return Array.from({ length: count }).map((_, i) => ({
-    question: `${level} Question ${i + 1} about ${topic}: What is the correct approach?`,
+    question: `${level} Question ${i + 1}: What is the key rule of ${topic}?`,
     options: [
-      `The correct answer for ${topic} (${level})`,
-      `A common misconception about ${topic}`,
-      `An unrelated fact`,
-      `A plausible but wrong answer`
+      `The correct principle of ${topic}`,
+      `A common mistake made in ${topic}`,
+      `An unrelated answer`,
+      `A trick answer`
     ],
-    answer: `The correct answer for ${topic} (${level})`,
-    explanation: `For ${level} level understanding of ${topic}, this is the correct choice because it follows the core rule.`
+    answer: `The correct principle of ${topic}`,
+    explanation: `For ${level} level understanding, this is correct because it follows the main rule of ${topic}.`
   }));
 }
 
@@ -111,50 +111,61 @@ function generateLessonContent(subject, topic, year, level, index) {
   const isAdv = level === 'Advanced';
   const isBeg = level === 'Beginner';
   
-  const complexity = isBeg ? "fundamental" : isAdv ? "complex" : "core";
-  const action = isBeg ? "identify" : isAdv ? "analyse" : "apply";
+  const explanationIntro = isBeg 
+    ? `Welcome to **${topic}**! Today we are going to learn the basics. This is a super useful skill that helps you understand the world around you.`
+    : isAdv
+    ? `Ready for a challenge? We are diving deep into **${topic}**. We will look at complex rules and how to solve tricky problems.`
+    : `Let's build on what you know about **${topic}**. We will practice new strategies to make you faster and more accurate.`;
+
+  const explanationBody = `
+    **Key Idea:**
+    ${topic} is all about finding patterns. Whether you are looking at numbers, words, or nature, there is always a rule to discover.
+    
+    **How it works:**
+    1. **Observe:** Look closely at the question. What do you see?
+    2. **Connect:** Does this remind you of something you already know?
+    3. **Solve:** Use the steps we practice to find the answer.
+    
+    *Tip:* Take your time. It is not about being fast, it is about being sure!
+  `.trim();
+
+  const realWorldApps = [
+    `Next time you are at the shops, look for **${topic}** in action!`,
+    `Architects and builders use **${topic}** every day.`,
+    `Scientists use **${topic}** to measure things in nature.`
+  ];
 
   return {
     duration_minutes: 15,
-    objective: `Students will learn to ${action} ${complexity} concepts related to ${topic}.`,
-    
-    explanation: `
-      **Welcome to ${topic}!**
-      
-      In this ${level} lesson, we are exploring the ${complexity} rules of ${topic}.
-      
-      1. **Concept**: Ideally, we focus on how ${topic} works in the real world.
-      2. **Process**: To solve problems in this area, first check your inputs, then apply the rule.
-      3. **Key Terminology**: Remember the word "Variable" implies change, while "Constant" implies staying the same.
-      
-      *Tip*: ${isAdv ? "Look out for exceptions to the rule." : "Take your time and double-check."}
-    `.trim(),
-
-    real_world_application: `You can see ${topic} in action when you are ${isBeg ? 'shopping or playing' : 'planning a project or building something'}.`,
-    
+    objective: `Master the concepts of ${topic} at a ${level} level.`,
+    explanation: `${explanationIntro}\n\n${explanationBody}`,
+    real_world_application: realWorldApps[index % realWorldApps.length],
     memory_strategies: [
-      `Keyword Association: Link ${topic} with the word "${isBeg ? 'Start' : 'Build'}".`,
-      `Visualization: Picture a ${isBeg ? 'simple box' : 'complex machine'} when thinking about this.`
+      `**The 'Stop & Think' Method:** Pause for 3 seconds before answering.`,
+      `**Visualise It:** Picture the problem in your head.`,
+      `**Teach a Friend:** Explain it to someone else to test your knowledge.`
     ],
-
     worked_example: `
-      **Problem**: How do we apply ${topic}?
-      **Step 1**: Identify the key parts.
-      **Step 2**: Apply the ${level} rule.
-      **Solution**: The result shows how ${topic} functions correctly.
+      **Let's try one together!**
+      
+      *Problem:* How do we use ${topic}?
+      
+      **Step 1:** Read the question carefully.
+      **Step 2:** Look for clues.
+      **Step 3:** Apply the rule.
+      **Step 4:** Check your work.
+      
+      *Result:* You solved it!
     `.trim(),
-
     scenarios: [
       {
         context: `Imagine you are explaining ${topic} to a friend.`,
         questions: [
-          { prompt: "What is the most important rule?", answer: "The core rule defined above." },
-          { prompt: "What happens if you reverse it?", answer: "It usually breaks the pattern." }
+          { prompt: "What is the most important rule?", answer: "The core rule defined above." }
         ]
       }
     ],
-
-    quiz: generateQuiz(subject, topic, level, 15) // 15 Questions
+    quiz: generateQuiz(subject, topic, level, 15)
   };
 }
 
