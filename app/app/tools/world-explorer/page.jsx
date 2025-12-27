@@ -1,136 +1,178 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Page as PageScaffold } from "@/components/ui/PageScaffold";
-import { ArrowRight, MapPin } from "lucide-react";
+import Image from "next/image";
+import { PageMotion } from "@/components/ui/PremiumMotion";
+import { Search, Loader2, MapPin, Globe, Compass } from "lucide-react";
 
-// Dynamically import the map component
-const WorldGlobeClient = dynamic(() => import("./WorldGlobeClient"), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-400 rounded-[2rem] md:rounded-[2.5rem]">
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-8 h-8 border-4 border-slate-700 border-t-white rounded-full animate-spin" />
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Loading Map...</div>
-      </div>
-    </div>
-  )
-});
+// Robust Fallback Data for offline/error states
+const FALLBACK_COUNTRIES = [
+  { name: { common: "Australia" }, cca2: "AU", region: "Oceania", capital: ["Canberra"], flags: { png: "https://flagcdn.com/w320/au.png", svg: "https://flagcdn.com/au.svg" } },
+  { name: { common: "United States" }, cca2: "US", region: "Americas", capital: ["Washington, D.C."], flags: { png: "https://flagcdn.com/w320/us.png", svg: "https://flagcdn.com/us.svg" } },
+  { name: { common: "United Kingdom" }, cca2: "GB", region: "Europe", capital: ["London"], flags: { png: "https://flagcdn.com/w320/gb.png", svg: "https://flagcdn.com/gb.svg" } },
+  { name: { common: "France" }, cca2: "FR", region: "Europe", capital: ["Paris"], flags: { png: "https://flagcdn.com/w320/fr.png", svg: "https://flagcdn.com/fr.svg" } },
+  { name: { common: "Japan" }, cca2: "JP", region: "Asia", capital: ["Tokyo"], flags: { png: "https://flagcdn.com/w320/jp.png", svg: "https://flagcdn.com/jp.svg" } },
+  { name: { common: "Brazil" }, cca2: "BR", region: "Americas", capital: ["Brasília"], flags: { png: "https://flagcdn.com/w320/br.png", svg: "https://flagcdn.com/br.svg" } },
+  { name: { common: "Egypt" }, cca2: "EG", region: "Africa", capital: ["Cairo"], flags: { png: "https://flagcdn.com/w320/eg.png", svg: "https://flagcdn.com/eg.svg" } },
+  { name: { common: "India" }, cca2: "IN", region: "Asia", capital: ["New Delhi"], flags: { png: "https://flagcdn.com/w320/in.png", svg: "https://flagcdn.com/in.svg" } },
+  { name: { common: "China" }, cca2: "CN", region: "Asia", capital: ["Beijing"], flags: { png: "https://flagcdn.com/w320/cn.png", svg: "https://flagcdn.com/cn.svg" } },
+  { name: { common: "Canada" }, cca2: "CA", region: "Americas", capital: ["Ottawa"], flags: { png: "https://flagcdn.com/w320/ca.png", svg: "https://flagcdn.com/ca.svg" } },
+  { name: { common: "Italy" }, cca2: "IT", region: "Europe", capital: ["Rome"], flags: { png: "https://flagcdn.com/w320/it.png", svg: "https://flagcdn.com/it.svg" } },
+  { name: { common: "Germany" }, cca2: "DE", region: "Europe", capital: ["Berlin"], flags: { png: "https://flagcdn.com/w320/de.png", svg: "https://flagcdn.com/de.svg" } },
+];
 
-export default function WorldExplorerPage() {
-  const [selected, setSelected] = useState(null);
+export default function WorldExplorerGrid() {
+  const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [regionFilter, setRegionFilter] = useState("All");
 
-  const actions = useMemo(() => {
-    if (!selected) return null;
-    const code = selected.cca2 || selected.cca3 || "";
-    const name = selected.name?.common || "Country";
-    return (
-      <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-300">
-        <div className="hidden sm:block text-sm opacity-80 font-medium">Selected:</div>
-        <div className="font-bold text-slate-900 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100 text-sm sm:text-base">
-          {selected.flag} {name}
-        </div>
-        {code ? (
-          <Link
-            className="ml-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 hover:scale-105 transition-all"
-            href={`/app/tools/world-explorer/${code.toUpperCase()}`}
-          >
-            Explore <ArrowRight className="w-4 h-4" />
-          </Link>
-        ) : null}
-      </div>
-    );
-  }, [selected]);
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+        const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2,flags,capital,region", {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error("API error");
+        
+        const data = await res.json();
+        if (mounted && Array.isArray(data) && data.length > 0) {
+          // Sort by name
+          data.sort((a, b) => a.name.common.localeCompare(b.name.common));
+          setCountries(data);
+        }
+      } catch (e) {
+        console.warn("Using fallback country data.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  // Filter Logic
+  const filtered = useMemo(() => {
+    return countries.filter(c => {
+      const matchesSearch = c.name.common.toLowerCase().includes(query.toLowerCase());
+      const matchesRegion = regionFilter === "All" || c.region === regionFilter;
+      return matchesSearch && matchesRegion;
+    });
+  }, [countries, query, regionFilter]);
+
+  const regions = ["All", ...new Set(countries.map(c => c.region).filter(Boolean))].sort();
 
   return (
-    <PageScaffold
-      title="World Explorer"
-      subtitle="Spin the globe. Tap a marker. Discover the world."
-      actions={actions}
-    >
-      <div className="flex flex-col gap-6 md:gap-8 pb-20">
+    <PageMotion className="max-w-6xl mx-auto pb-24">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 px-4 md:px-0">
+        <div>
+          <div className="flex items-center gap-2 text-indigo-600 font-bold uppercase tracking-wider text-xs mb-2">
+            <Globe className="w-4 h-4" /> Travel Guide
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">World Explorer</h1>
+          <p className="text-slate-600 font-medium mt-2 max-w-xl">
+            Pick a flag to start your adventure.
+          </p>
+        </div>
         
-        {/* Map Container - Responsive Height */}
-        <div className="relative w-full h-[50vh] min-h-[350px] md:h-[60vh] md:min-h-[500px] overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 bg-slate-900 shadow-2xl">
-          <div className="absolute inset-0">
-            <WorldGlobeClient onSelect={setSelected} />
+        {/* Search & Filter */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search country..." 
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full sm:w-64 h-12 pl-10 pr-4 rounded-2xl bg-white border border-slate-200 font-bold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm"
+            />
           </div>
           
-          {/* Overlay Instructions (Desktop Only to save space on mobile) */}
-          <div className="hidden md:flex pointer-events-none absolute bottom-6 left-0 right-0 justify-center z-10">
-            <div className="rounded-full bg-black/60 px-5 py-2.5 text-xs font-bold text-white/90 shadow-lg backdrop-blur border border-white/10 tracking-wide">
-              Tap a gold dot to see details
-            </div>
+          <div className="relative">
+             <select
+               value={regionFilter}
+               onChange={(e) => setRegionFilter(e.target.value)}
+               className="w-full sm:w-40 h-12 pl-4 pr-10 rounded-2xl bg-white border border-slate-200 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none shadow-sm cursor-pointer"
+             >
+               {regions.map(r => <option key={r} value={r}>{r}</option>)}
+             </select>
+             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+               ▼
+             </div>
           </div>
         </div>
+      </div>
 
-        {/* Details Panel - Underneath */}
-        <div className="w-full">
-          {!selected ? (
-            <div className="flex flex-col items-center justify-center text-center p-8 md:p-12 rounded-[2rem] md:rounded-[2.5rem] border-2 border-dashed border-slate-200 bg-white/50">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-full flex items-center justify-center text-2xl md:text-3xl mb-4 shadow-sm">
-                👆
-              </div>
-              <div className="text-lg md:text-xl font-black text-slate-400">Pick a location</div>
-              <p className="text-sm font-medium text-slate-400 mt-2">
-                Tap any marker on the map to reveal country facts.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 shadow-xl shadow-slate-200/50 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+      {/* Grid */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+           <Loader2 className="w-10 h-10 animate-spin mb-4" />
+           <p className="font-bold uppercase tracking-widest text-xs">Loading Countries...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-20 bg-slate-50 rounded-[2rem] border border-slate-100">
+           <div className="text-4xl mb-4">🌏</div>
+           <h3 className="text-xl font-bold text-slate-700">No countries found</h3>
+           <p className="text-slate-500 mt-2">Try searching for something else.</p>
+           <button 
+             onClick={() => { setQuery(""); setRegionFilter("All"); }}
+             className="mt-6 px-6 py-2 bg-white border border-slate-200 rounded-full font-bold text-slate-600 shadow-sm hover:bg-slate-100"
+           >
+             Clear Filters
+           </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-2 md:px-0">
+           {filtered.map((country) => (
+             <Link 
+               key={country.cca2} 
+               href={`/app/tools/world-explorer/${country.cca2}`}
+               className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col"
+             >
+                {/* Flag Aspect */}
+                <div className="aspect-[1.6] relative bg-slate-50 overflow-hidden">
+                   <Image 
+                     src={country.flags.svg || country.flags.png} 
+                     alt={`Flag of ${country.name.common}`}
+                     fill
+                     className="object-cover transition-transform duration-500 group-hover:scale-110"
+                   />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
                 
-                {/* Flag & Title */}
-                <div className="flex-1 w-full">
-                   <div className="flex items-center gap-4 mb-4">
-                      <div className="text-6xl md:text-8xl drop-shadow-sm cursor-default select-none hover:scale-105 transition-transform">
-                        {selected.flag || "🏳️"}
-                      </div>
-                      <div>
-                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-                          {selected.name?.common}
-                        </h2>
-                        <div className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide mt-1">
-                          {selected.region || "Unknown Region"}
-                        </div>
-                      </div>
+                {/* Details */}
+                <div className="p-4 flex-1 flex flex-col">
+                   <h3 className="font-black text-slate-900 leading-tight mb-1 line-clamp-1" title={country.name.common}>
+                     {country.name.common}
+                   </h3>
+                   <div className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
+                      <Compass className="w-3 h-3" /> {country.region}
                    </div>
                    
-                   <div className="flex flex-wrap gap-2 md:gap-3">
-                      <div className="bg-slate-50 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border border-slate-100">
-                         <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Capital</div>
-                         <div className="font-bold text-slate-900 text-sm md:text-base">{selected.capital?.[0] || "N/A"}</div>
+                   <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
+                      <div className="text-xs font-semibold text-slate-500 truncate max-w-[80px]">
+                        {country.capital?.[0] || "No Capital"}
                       </div>
-                      <div className="bg-slate-50 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border border-slate-100">
-                         <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Code</div>
-                         <div className="font-bold text-slate-900 text-sm md:text-base">{selected.cca3 || selected.cca2}</div>
+                      <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                        <MapPin className="w-3 h-3" />
                       </div>
                    </div>
                 </div>
-
-                {/* CTA */}
-                <div className="w-full md:w-auto flex flex-col justify-center gap-3">
-                  <Link
-                    className="group flex w-full md:w-auto items-center justify-center gap-3 rounded-2xl bg-slate-900 px-6 py-4 md:px-8 md:py-5 text-base md:text-lg font-black text-white shadow-xl shadow-slate-900/20 transition-all hover:scale-105 hover:bg-slate-800 active:scale-95"
-                    href={`/app/tools/world-explorer/${(selected.cca2 || selected.cca3 || "").toUpperCase()}`}
-                  >
-                    <span>Open Travel Guide</span>
-                    <div className="bg-white/20 rounded-full p-1 group-hover:translate-x-1 transition-transform">
-                      <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
-                    </div>
-                  </Link>
-                  <div className="text-center text-xs font-semibold text-slate-400">
-                    Food, animals, fun facts & more
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
+             </Link>
+           ))}
         </div>
-      </div>
-    </PageScaffold>
+      )}
+      
+    </PageMotion>
   );
 }
