@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import ParentInsightsDashboard from "@/components/parent/ParentInsightsDashboard";
 import AvatarBadge from "@/components/app/AvatarBadge";
-import { Page, BentoGrid, BentoCard, Divider } from "@/components/ui/PageScaffold";
+import { Page as PageScaffold, BentoGrid, BentoCard, Divider } from "@/components/ui/PageScaffold";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
