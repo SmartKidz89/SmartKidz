@@ -16,7 +16,6 @@ export default function BrandMark({ compact = false }) {
       {!compact && (
         <div className="leading-tight">
           <div className="font-extrabold tracking-tight text-slate-900">SmartKidz</div>
-          <div className="text-xs text-slate-600">Years 1–6 · Maths · English · Science</div>
         </div>
       )}
     </div>
