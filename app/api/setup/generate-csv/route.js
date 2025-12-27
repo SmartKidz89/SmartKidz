@@ -5,55 +5,63 @@ export const maxDuration = 60;
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-
-// Scaled up to 100 per level (= 300 per year/subject/country)
-const LESSONS_PER_LEVEL = 100; 
+const LESSONS_PER_LEVEL = 50; 
 
 const COUNTRIES = {
   AU: { name: "Australia", term: "Year", curriculum: "Australian Curriculum (AC9)", code: "AU", math: "Maths", hass: "HASS" },
   NZ: { name: "New Zealand", term: "Year", curriculum: "New Zealand Curriculum", code: "NZ", math: "Maths", hass: "Social Sciences" },
-  US: { name: "United States", term: "Grade", curriculum: "Common Core / State", code: "US", math: "Math", hass: "Social Studies" },
+  US: { name: "United States", term: "Grade", curriculum: "Common Core", code: "US", math: "Math", hass: "Social Studies" },
   GB: { name: "United Kingdom", term: "Year", curriculum: "National Curriculum", code: "GB", math: "Maths", hass: "Humanities" },
   CA: { name: "Canada", term: "Grade", curriculum: "Provincial Standards", code: "CA", math: "Math", hass: "Social Studies" },
-  IN: { name: "India", term: "Class", curriculum: "CBSE/ICSE Aligned", code: "IN", math: "Maths", hass: "Social Science" },
+  IN: { name: "India", term: "Class", curriculum: "CBSE Aligned", code: "IN", math: "Maths", hass: "Social Science" },
   SG: { name: "Singapore", term: "Primary", curriculum: "MOE Syllabus", code: "SG", math: "Maths", hass: "Social Studies" },
   ZA: { name: "South Africa", term: "Grade", curriculum: "CAPS", code: "ZA", math: "Maths", hass: "Social Sciences" },
   IE: { name: "Ireland", term: "Class", curriculum: "Primary Curriculum", code: "IE", math: "Maths", hass: "SESE" },
   AE: { name: "UAE", term: "Grade", curriculum: "Ministry of Education", code: "AE", math: "Math", hass: "Social Studies" },
   PH: { name: "Philippines", term: "Grade", curriculum: "K-12", code: "PH", math: "Math", hass: "Araling Panlipunan" },
-  INT: { name: "International", term: "Year", curriculum: "General International", code: "INT", math: "Mathematics", hass: "Humanities" },
+  INT: { name: "International", term: "Year", curriculum: "Global Standards", code: "INT", math: "Mathematics", hass: "Humanities" },
 };
 
-const ALL_COUNTRY_CODES = Object.keys(COUNTRIES); // 12 countries
+const ALL_COUNTRY_CODES = Object.keys(COUNTRIES);
 
-function getTopics(subjectId, year, countryCode) {
-  const isEarly = year <= 2;
-  const config = COUNTRIES[countryCode] || COUNTRIES.AU;
-  
-  const moneyTerm = ["US", "CA", "IE", "AE"].includes(countryCode) ? "Money & Cents" : "Money & Finance";
-  const historyTerm = countryCode === "US" ? "History" : "History";
+// --- 1. Year-Specific Curriculum Matrix ---
+// This ensures Year 1 gets "Counting" and Year 6 gets "Algebra".
 
-  switch (subjectId) {
-    case 'MATH':
-      return isEarly 
-        ? ['Counting', 'Shapes', 'Patterns', 'Measurements', 'Simple Data'] 
-        : ['Number Sense', 'Algebra', 'Geometry', 'Data Handling', moneyTerm];
-    case 'ENG':
-      return isEarly
-        ? ['Phonics', 'Sight Words', 'Listening', 'Sentences', 'Stories']
-        : ['Spelling', 'Grammar', 'Reading Comprehension', 'Writing', 'Literature'];
-    case 'SCI':
-      return isEarly
-        ? ['Living Things', 'Weather', 'Materials', 'My Body', 'Senses']
-        : ['Biology', 'Chemistry', 'Earth & Space', 'Physics', 'Scientific Inquiry'];
-    case 'HASS':
-      return isEarly
-        ? ['My Family', 'My Community', 'Celebrations']
-        : [historyTerm, 'Geography', 'Civics', 'Community'];
-    default:
-      return ['Concepts', 'Skills', 'Practice', 'Review', 'Challenge'];
+const TOPICS = {
+  MATH: {
+    1: ["Counting to 100", "Simple Addition", "2D Shapes", "Days of the Week", "Length & Height", "Simple Patterns"],
+    2: ["Place Value (100s)", "Addition & Subtraction", "Money Basics", "3D Objects", "Fractions (Halves/Quarters)", "Telling Time"],
+    3: ["Times Tables (2,5,10)", "3-Digit Place Value", "Measuring Liquids", "Angles Basics", "Data Charts", "Chance"],
+    4: ["Times Tables (Full)", "Division Basics", "Fractions & Decimals", "Area & Perimeter", "Symmetry", "Word Problems"],
+    5: ["Decimals & Percentages", "Long Multiplication", "Factors & Multiples", "24-Hour Time", "Angles & Degrees", "Budgets"],
+    6: ["Integers", "Cartesian Planes", "Order of Operations", "Volume & Capacity", "Probability", "Data Analysis"]
+  },
+  ENG: {
+    1: ["Phonics (Blends)", "Simple Sentences", "Retelling Stories", "Handwriting", "Capital Letters", "Rhyming"],
+    2: ["Compound Words", "Adjectives & Verbs", "Story Structure", "Punctuation (!?)", "Reading Fluency", "Spelling Rules"],
+    3: ["Paragraphs", "Persuasive Basics", "Nouns & Pronouns", "Editing Skills", "Prefixes & Suffixes", "Reading Comprehension"],
+    4: ["Narrative Arcs", "Dialogue", "Information Reports", "Similes & Metaphors", "Complex Sentences", "Vocabulary"],
+    5: ["Persuasive Devices", "Poetry Analysis", "Novel Studies", "Grammar Mechanics", "Note Taking", "Debating"],
+    6: ["Media Literacy", "Essay Structure", "Advanced Grammar", "Author's Purpose", "Creative Writing", "Research Skills"]
+  },
+  SCI: {
+    1: ["Living vs Non-Living", "Seasons & Weather", "Materials", "Five Senses", "Movement", "My Body"],
+    2: ["Life Cycles", "Water Cycle", "Mixing Materials", "Push & Pull", "Earth's Resources", "Sound"],
+    3: ["Heat & Energy", "Solids & Liquids", "Living Things Grow", "Day & Night", "Magnets", "Rocks & Soil"],
+    4: ["Forces & Friction", "Life Cycles (Advanced)", "Properties of Matter", "Erosion", "Sustainable Materials", "Plants"],
+    5: ["Light & Shadows", "Adaptations", "Solids Liquids Gases", "Solar System", "Electricity", "Scientific Method"],
+    6: ["Energy Sources", "Extreme Weather", "Chemical Changes", "Micro-organisms", "Circuits", "Environmental Science"]
+  },
+  // Default fallback for other subjects (can be expanded similarly)
+  GENERIC: {
+    1: ["Basics Level 1", "Exploration 1", "My World 1", "Creativity 1"],
+    2: ["Basics Level 2", "Exploration 2", "My World 2", "Creativity 2"],
+    3: ["Concepts Level 3", "Skills Level 3", "Inquiry 3", "Projects 3"],
+    4: ["Concepts Level 4", "Skills Level 4", "Inquiry 4", "Projects 4"],
+    5: ["Advanced Concepts 5", "Analysis 5", "Global View 5", "Innovation 5"],
+    6: ["Advanced Concepts 6", "Analysis 6", "Global View 6", "Innovation 6"]
   }
-}
+};
 
 const SUBJECT_NAMES = {
   MATH: 'Mathematics',
@@ -66,61 +74,89 @@ const SUBJECT_NAMES = {
   LANG: 'Languages'
 };
 
-function escapeCsv(field, forceQuote = false) {
+function getTopics(subjectId, year) {
+  return TOPICS[subjectId]?.[year] || TOPICS.GENERIC[year] || ["General Topic"];
+}
+
+function escapeCsv(field) {
   if (field == null) return '';
   const s = String(field);
-  if (forceQuote || s.includes('"') || s.includes(',') || s.includes('\n')) {
+  if (s.includes('"') || s.includes(',') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
 }
 
+// --- 2. Nuanced Content Generator ---
+
 function generateContent(countryCode, subjectName, topic, year, level) {
   const config = COUNTRIES[countryCode] || COUNTRIES.AU;
   const gradeLabel = `${config.term} ${year}`;
   
-  const isBeg = level === 'Beginner';
-  const isAdv = level === 'Advanced';
+  // Distinguish levels by depth, not just label
+  let focus = "";
+  let complexity = "";
+  
+  if (level === 'Beginner') {
+    focus = "Introduction to the concept.";
+    complexity = "simple, direct questions";
+  } else if (level === 'Intermediate') {
+    focus = "Practising the core skills.";
+    complexity = "standard problems";
+  } else {
+    focus = "Applying knowledge to new situations.";
+    complexity = "multi-step or critical thinking problems";
+  }
 
-  const explanationIntro = isBeg 
-    ? `Welcome to **${topic}**! In ${gradeLabel}, we build strong foundations. This skill helps you understand the world around you.`
-    : isAdv
-    ? `Ready for a challenge? We are diving deep into **${topic}**. We will apply rules to solve complex problems.`
-    : `Let's practice **${topic}**. We will use strategies to make you faster and more accurate.`;
-
-  const explanationBody = `
-    **Key Idea:**
-    ${topic} is important in the ${config.curriculum}. Whether in ${config.math} or ${subjectName}, there is a pattern to find.
+  const explanation = `
+    **Topic:** ${topic} (${gradeLabel})
     
-    **How it works:**
-    1. **Observe:** Look closely at the question.
-    2. **Connect:** Use what you know from ${gradeLabel}.
-    3. **Solve:** Take your time.
+    **Focus:** ${focus}
+    
+    In this lesson, we explore **${topic}**. This is a key part of the ${subjectName} curriculum for ${gradeLabel}.
+    
+    **Key Points:**
+    1. Understand the main idea of ${topic}.
+    2. Practice using ${topic} in ${complexity}.
+    3. Check your work carefully.
   `.trim();
 
-  const realWorld = `You use ${topic} every day in ${config.name}. Look for examples around your home or school!`;
+  // Generate specific quiz style based on level
+  const quiz = Array.from({ length: 10 }).map((_, i) => {
+    let qText = "";
+    let correct = "";
+    let distractors = [];
 
-  // Increased to 10 questions per quiz
-  const quiz = Array.from({ length: 10 }).map((_, i) => ({
-    question: `${level} Question ${i + 1}: Which applies to ${topic}?`,
-    options: [
-      `The correct principle of ${topic}`, 
-      `A common mistake`, 
-      `An unrelated answer`, 
-      `A trick answer`
-    ],
-    answer: `The correct principle of ${topic}`,
-    explanation: `Correct! This matches what we learn in ${gradeLabel}.`
-  }));
+    if (level === 'Beginner') {
+      qText = `What is the basic rule of ${topic}? (Question ${i+1})`;
+      correct = `The foundational rule of ${topic}.`;
+      distractors = [`A rule for a different topic`, `The opposite rule`, `Unrelated fact`];
+    } else if (level === 'Intermediate') {
+      qText = `How do you apply ${topic} in a standard situation? (Question ${i+1})`;
+      correct = `Apply the standard method for ${topic}.`;
+      distractors = [`Use a guessing method`, `Skip the first step`, `Apply a Year ${year-1} method`];
+    } else {
+      qText = `Solve this challenge problem about ${topic}. (Question ${i+1})`;
+      correct = `The solution derived from careful analysis of ${topic}.`;
+      distractors = [`A common misconception answer`, `A partially correct answer`, `A guess`];
+    }
+
+    return {
+      question: qText,
+      options: [correct, ...distractors], // In real app, shuffle these
+      answer: correct,
+      explanation: `Correct! ${focus}`
+    };
+  });
 
   return JSON.stringify({
     duration_minutes: 15,
-    objective: `Master ${topic} at a ${level} level (${gradeLabel}).`,
-    explanation: `${explanationIntro}\n\n${explanationBody}`,
-    real_world_application: realWorld,
-    memory_strategies: [`Stop & Think`, `Visualise It`, `Teach a Friend`],
-    worked_example: `Let's solve a ${topic} problem step-by-step using ${config.math} rules.`,
-    scenarios: [{ context: `Explaining ${topic} to a friend.`, questions: [{ prompt: "Key rule?", answer: "Follow the steps." }] }],
+    objective: `${level}: ${topic} for ${gradeLabel}.`,
+    explanation: explanation,
+    real_world_application: `We see ${topic} in the world around us in ${config.name}.`,
+    memory_strategies: [`Link ${topic} to something you know`, `Practice makes perfect`],
+    worked_example: `Here is how we solve a ${level} problem in ${topic}...`,
+    scenarios: [{ context: `A real-life situation involving ${topic}.`, questions: [{ prompt: "What would you do?", answer: "Apply the concept." }] }],
     quiz: quiz
   });
 }
@@ -129,21 +165,21 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const batch = searchParams.get('batch');
   
-  // Split 12 countries into 4 batches of 3
+  // Batch logic remains same
   let targetCountries = ALL_COUNTRY_CODES;
   let filename = "smartkidz_lessons_full.csv";
 
   if (batch === "1") {
-    targetCountries = ALL_COUNTRY_CODES.slice(0, 3); // AU, NZ, US
+    targetCountries = ALL_COUNTRY_CODES.slice(0, 3); 
     filename = "smartkidz_lessons_part1_AU_NZ_US.csv";
   } else if (batch === "2") {
-    targetCountries = ALL_COUNTRY_CODES.slice(3, 6); // GB, CA, IN
+    targetCountries = ALL_COUNTRY_CODES.slice(3, 6);
     filename = "smartkidz_lessons_part2_GB_CA_IN.csv";
   } else if (batch === "3") {
-    targetCountries = ALL_COUNTRY_CODES.slice(6, 9); // SG, ZA, IE
+    targetCountries = ALL_COUNTRY_CODES.slice(6, 9);
     filename = "smartkidz_lessons_part3_SG_ZA_IE.csv";
   } else if (batch === "4") {
-    targetCountries = ALL_COUNTRY_CODES.slice(9, 12); // AE, PH, INT
+    targetCountries = ALL_COUNTRY_CODES.slice(9, 12);
     filename = "smartkidz_lessons_part4_AE_PH_INT.csv";
   }
 
@@ -157,9 +193,7 @@ export async function GET(req) {
 
   (async () => {
     try {
-      // CSV Header
       await writer.write(encoder.encode('id,country,year_level,subject_id,title,topic,curriculum_tags,content_json,created_at,updated_at\n'));
-
       const now = new Date().toISOString();
       const subjectIds = Object.keys(SUBJECT_NAMES);
 
@@ -172,7 +206,8 @@ export async function GET(req) {
           if (subjId === "HASS") localizedSubject = config.hass; 
           
           for (const year of YEARS) {
-            const topics = getTopics(subjId, year, country);
+            // NEW: Get topics specific to this year level
+            const topics = getTopics(subjId, year);
             
             for (const level of LEVELS) {
               for (let i = 1; i <= LESSONS_PER_LEVEL; i++) {
@@ -180,6 +215,8 @@ export async function GET(req) {
                 const levelCode = level.substring(0, 3).toUpperCase();
                 
                 const id = `${country}_${subjId}_Y${year}_${levelCode}_${paddedI}`;
+                
+                // Distribute topics evenly across the lessons in this level
                 const topic = topics[(i - 1) % topics.length];
                 const title = `${topic}: ${level} Mission ${i}`;
                 
