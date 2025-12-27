@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/components/ui/ThemeProvider";
 
-/**
- * AmbientCanvas
- * Lightweight, dependency-free particle drift layer to add “alive” premium energy.
- * - Fixed canvas behind content
- * - Route-aware tinting
- * - Respects reduced-motion preference
- */
 export default function AmbientCanvas({ variant = "home" }) {
   const ref = useRef(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const canvas = ref.current;
@@ -25,13 +20,17 @@ export default function AmbientCanvas({ variant = "home" }) {
     let raf = 0;
     let w = 0, h = 0, dpr = 1;
 
+    // Use theme colors if on home/dashboard, otherwise defaults
+    const isHome = variant === "home";
+    const colors = isHome && theme?.colors ? theme.colors : { a: [0, 191, 165], b: [255, 111, 97] };
+
     const palette = {
-      home:   { a: [0, 191, 165], b: [255, 111, 97] },
+      home:   colors,
       worlds: { a: [0, 191, 165], b: [56, 189, 248] },
       lesson: { a: [255, 111, 97], b: [0, 191, 165] },
       rewards:{ a: [250, 204, 21], b: [255, 111, 97] },
       parent: { a: [15, 23, 42],  b: [0, 191, 165] },
-    }[variant] || { a: [0, 191, 165], b: [255, 111, 97] };
+    }[variant] || colors;
 
     const rand = (min, max) => min + Math.random() * (max - min);
     const mix = (c1, c2, t) => [
@@ -111,7 +110,7 @@ export default function AmbientCanvas({ variant = "home" }) {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(raf);
     };
-  }, [variant]);
+  }, [variant, theme]);
 
   return (
     <canvas
