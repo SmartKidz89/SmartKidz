@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+// Increase timeout to max allowed on Vercel Pro (ensure your local dev doesn't kill it too fast)
 export const maxDuration = 60; 
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-const LESSONS_PER_LEVEL = 100; 
+// Reduced from 100 to 25 to ensure the 43k row file generates successfully within HTTP limits.
+const LESSONS_PER_LEVEL = 25; 
 
 // --- Country Configuration ---
 const COUNTRIES = {
@@ -98,7 +100,7 @@ function generateContent(countryCode, subjectName, topic, year, level) {
 
   const realWorld = `You use ${topic} every day in ${config.name}. Look for examples around your home or school!`;
 
-  const quiz = Array.from({ length: 10 }).map((_, i) => ({
+  const quiz = Array.from({ length: 5 }).map((_, i) => ({
     question: `${level} Question ${i + 1}: Which applies to ${topic}?`,
     options: [
       `The correct principle of ${topic}`, 
@@ -125,7 +127,7 @@ function generateContent(countryCode, subjectName, topic, year, level) {
 export async function GET() {
   const headers = new Headers();
   headers.set('Content-Type', 'text/csv; charset=utf-8');
-  headers.set('Content-Disposition', 'attachment; filename="smartkidz_lessons_global_v2.csv"');
+  headers.set('Content-Disposition', 'attachment; filename="smartkidz_lessons_global_full.csv"');
 
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -133,6 +135,7 @@ export async function GET() {
 
   (async () => {
     try {
+      // CSV Header
       await writer.write(encoder.encode('id,country,year_level,subject_id,title,topic,curriculum_tags,content_json,created_at,updated_at\n'));
 
       const now = new Date().toISOString();
@@ -143,10 +146,9 @@ export async function GET() {
         const config = COUNTRIES[country];
 
         for (const subjId of subjectIds) {
-          // Localize Subject Name (e.g. HASS -> Social Studies)
           let localizedSubject = SUBJECT_NAMES[subjId];
-          if (subjId === "MATH") localizedSubject = config.math; // Math vs Maths
-          if (subjId === "HASS") localizedSubject = config.hass; // HASS vs Social Studies
+          if (subjId === "MATH") localizedSubject = config.math; 
+          if (subjId === "HASS") localizedSubject = config.hass; 
           
           for (const year of YEARS) {
             const topics = getTopics(subjId, year, country);
@@ -156,13 +158,10 @@ export async function GET() {
                 const paddedI = i.toString().padStart(3, '0');
                 const levelCode = level.substring(0, 3).toUpperCase();
                 
-                // ID: US_MATH_Y1_BEG_001
                 const id = `${country}_${subjId}_Y${year}_${levelCode}_${paddedI}`;
-                
                 const topic = topics[(i - 1) % topics.length];
                 const title = `${topic}: ${level} Mission ${i}`;
                 
-                // Tag: CCSS_MATH_G1... or AC9_MATH_Y1...
                 const tagPrefix = country === 'US' ? 'CCSS' : country === 'GB' ? 'NC' : country === 'AU' ? 'AC9' : country;
                 const tag = `${tagPrefix}_${subjId}_${config.term.charAt(0)}${year}_${levelCode}${i}`; 
                 const curriculumTags = `{${tag}}`;
