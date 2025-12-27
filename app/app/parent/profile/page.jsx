@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { Page as PageScaffold } from "@/components/ui/PageScaffold";
+import { getGradeLabel } from "@/lib/marketing/geoConfig";
 
-import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
 export default function ParentProfilePage() {
   const supabase = getSupabaseClient();
   const { kids, activeChildId, setActiveChild, refreshKids } = useActiveChild();
@@ -101,7 +102,7 @@ export default function ParentProfilePage() {
                 ${k.id === activeChildId ? "bg-brand-primary/10 border-brand-primary/30" : "bg-white border-slate-200 hover:bg-slate-50"}`}
             >
               <div className="text-lg font-black text-slate-900">{k.display_name}</div>
-              <div className="mt-1 text-sm font-semibold text-slate-600">Year {k.year_level}</div>
+              <div className="mt-1 text-sm font-semibold text-slate-600">{getGradeLabel(k.year_level, k.country)}</div>
 
               <div className="mt-3 text-xs font-extrabold text-slate-500">Child ID</div>
               <div className="text-xs font-mono text-slate-700 break-all">{k.id}</div>

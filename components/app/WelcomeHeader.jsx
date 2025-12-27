@@ -6,7 +6,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useEconomy } from "@/lib/economy/client";
 import { useFocusMode } from "@/components/ui/FocusModeProvider";
-import AvatarBadge from "./AvatarBadge"; // Switched to Badge for header usage
+import AvatarBadge from "./AvatarBadge"; 
 import { 
   LayoutGrid, Map, Trophy, Settings, LogOut, 
   Sparkles, Eye, EyeOff, Menu, X, ChevronDown
@@ -14,6 +14,7 @@ import {
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { getGradeLabel } from "@/lib/marketing/geoConfig";
 
 const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutGrid },
@@ -31,7 +32,6 @@ export default function WelcomeHeader() {
   const pathname = usePathname();
   const supabase = createClient();
 
-  // Glassmorphic header transition
   const headerBg = useTransform(scrollY, [0, 20], ["rgba(255,255,255,0.0)", "rgba(255,255,255,0.85)"]);
   const headerBorder = useTransform(scrollY, [0, 20], ["rgba(0,0,0,0)", "rgba(0,0,0,0.06)"]);
   const headerBackdrop = useTransform(scrollY, [0, 20], ["blur(0px)", "blur(12px)"]);
@@ -42,7 +42,9 @@ export default function WelcomeHeader() {
   };
 
   const displayName = activeChild?.display_name || "Explorer";
-  const displayYear = activeChild?.year_level ? `Year ${activeChild.year_level}` : "Student";
+  const displayYear = childLoading 
+    ? "Loading..." 
+    : getGradeLabel(activeChild?.year_level, activeChild?.country || "AU");
 
   return (
     <>

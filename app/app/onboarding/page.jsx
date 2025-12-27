@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check, MapPin, User, Users, Sparkles, Home, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ConfettiBurst from "@/components/app/ConfettiBurst";
+import ChildrenRepeater from "@/components/onboarding/ChildrenRepeater";
 
 // --- Components ---
 
@@ -71,18 +72,18 @@ function SelectField({ label, value, onChange, options }) {
 // --- Data ---
 
 const COUNTRIES = [
-  { value: "AU", label: "🇦🇺 Australia (Australian Curriculum)" },
-  { value: "NZ", label: "🇳🇿 New Zealand (NZ Curriculum)" },
-  { value: "US", label: "🇺🇸 United States (Common Core)" },
-  { value: "GB", label: "🇬🇧 United Kingdom (National Curriculum)" },
-  { value: "CA", label: "🇨🇦 Canada (Provincial Standards)" },
-  { value: "IN", label: "🇮🇳 India (CBSE/ICSE Aligned)" },
-  { value: "SG", label: "🇸🇬 Singapore (MOE Syllabus)" },
-  { value: "ZA", label: "🇿🇦 South Africa (CAPS)" },
-  { value: "IE", label: "🇮🇪 Ireland (Primary Curriculum)" },
-  { value: "AE", label: "🇦🇪 UAE (Ministry of Education)" },
-  { value: "PH", label: "🇵🇭 Philippines (K-12)" },
-  { value: "INT", label: "🌍 International (IB / General)" },
+  { value: "AU", label: "🇦🇺 Australia" },
+  { value: "NZ", label: "🇳🇿 New Zealand" },
+  { value: "US", label: "🇺🇸 United States" },
+  { value: "GB", label: "🇬🇧 United Kingdom" },
+  { value: "CA", label: "🇨🇦 Canada" },
+  { value: "IN", label: "🇮🇳 India" },
+  { value: "SG", label: "🇸🇬 Singapore" },
+  { value: "ZA", label: "🇿🇦 South Africa" },
+  { value: "IE", label: "🇮🇪 Ireland" },
+  { value: "AE", label: "🇦🇪 UAE" },
+  { value: "PH", label: "🇵🇭 Philippines" },
+  { value: "INT", label: "🌍 International" },
 ];
 
 const REFERRAL_SOURCES = [
@@ -92,15 +93,6 @@ const REFERRAL_SOURCES = [
   { value: "friend", label: "Friend or Family" },
   { value: "school", label: "School / Teacher" },
   { value: "other", label: "Other" },
-];
-
-const YEAR_LEVELS = [
-  { value: 1, label: "Level 1" },
-  { value: 2, label: "Level 2" },
-  { value: 3, label: "Level 3" },
-  { value: 4, label: "Level 4" },
-  { value: 5, label: "Level 5" },
-  { value: 6, label: "Level 6" },
 ];
 
 export default function OnboardingPage() {
@@ -123,16 +115,6 @@ export default function OnboardingPage() {
     referral_source: "",
     children: [{ display_name: "", year_level: 3 }] 
   });
-
-  // Helper to determine term (Year/Grade/Class)
-  const getGradeTerm = (c) => {
-    if (["US", "CA", "ZA", "PH"].includes(c)) return "Grade";
-    if (["IN", "SG", "IE"].includes(c)) return "Class";
-    if (c === "NZ") return "Year";
-    return "Year";
-  };
-
-  const gradeTerm = getGradeTerm(formData.country);
 
   // 1. Prefill Name from Auth
   useEffect(() => {
@@ -162,25 +144,6 @@ export default function OnboardingPage() {
 
   const updateForm = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateChild = (index, field, value) => {
-    const next = [...formData.children];
-    next[index] = { ...next[index], [field]: value };
-    setFormData(prev => ({ ...prev, children: next }));
-  };
-
-  const addChild = () => {
-    setFormData(prev => ({
-      ...prev,
-      children: [...prev.children, { display_name: "", year_level: 1 }]
-    }));
-  };
-
-  const removeChild = (index) => {
-    if (formData.children.length <= 1) return;
-    const next = formData.children.filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, children: next }));
   };
 
   const handleNext = () => {
@@ -321,7 +284,7 @@ export default function OnboardingPage() {
                   </div>
                   <h2 className="text-3xl font-black text-slate-900">Where are you based?</h2>
                   <p className="text-slate-600 mt-2">
-                     {locating ? "Detecting location..." : "We've selected a curriculum for you."}
+                     {locating ? "Detecting location..." : "We'll align the curriculum to your country."}
                   </p>
                 </div>
 
@@ -401,40 +364,12 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                  {formData.children.map((kid, index) => (
-                    <div key={index} className="p-4 rounded-3xl bg-slate-50 border border-slate-100 relative group">
-                      {formData.children.length > 1 && (
-                         <button 
-                           onClick={() => removeChild(index)}
-                           className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors text-xs font-bold uppercase tracking-wider"
-                         >
-                           Remove
-                         </button>
-                      )}
-                      <div className="grid gap-4">
-                         <InputField 
-                           label={`Child ${index + 1} Name`}
-                           placeholder="e.g. Leo"
-                           value={kid.display_name}
-                           onChange={(v) => updateChild(index, "display_name", v)}
-                         />
-                         <SelectField 
-                           label={`${gradeTerm} Level`}
-                           value={kid.year_level}
-                           onChange={(v) => updateChild(index, "year_level", v)}
-                           options={YEAR_LEVELS.map(l => ({ value: l.value, label: `${gradeTerm} ${l.value}` }))}
-                         />
-                      </div>
-                    </div>
-                  ))}
+                   <ChildrenRepeater 
+                     value={formData.children} 
+                     onChange={(k) => setFormData(prev => ({ ...prev, children: k }))} 
+                     country={formData.country}
+                   />
                 </div>
-                
-                <button 
-                  onClick={addChild}
-                  className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-500 font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-all"
-                >
-                  + Add another child
-                </button>
               </motion.div>
             )}
 

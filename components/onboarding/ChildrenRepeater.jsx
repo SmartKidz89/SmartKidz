@@ -1,21 +1,20 @@
 "use client";
 
-// The DB schema enforces year levels 1..6.
-const YEAR_OPTIONS = [
-  { label: "Year 1", value: 1 },
-  { label: "Year 2", value: 2 },
-  { label: "Year 3", value: 3 },
-  { label: "Year 4", value: 4 },
-  { label: "Year 5", value: 5 },
-  { label: "Year 6", value: 6 },
-];
+import { getGradeLabel, getGeoConfig } from "@/lib/marketing/geoConfig";
 
 function blankChild() {
   return { display_name: "", year_level: 1 };
 }
 
-export default function ChildrenRepeater({ value, onChange }) {
+export default function ChildrenRepeater({ value, onChange, country = "AU" }) {
   const kids = value?.length ? value : [blankChild()];
+  const geo = getGeoConfig(country);
+
+  // Generate localized options for this country
+  const options = [0, 1, 2, 3, 4, 5, 6].map(y => ({
+    value: y,
+    label: getGradeLabel(y, country)
+  }));
 
   function updateKid(index, patch) {
     const next = kids.map((k, i) => (i === index ? { ...k, ...patch } : k));
@@ -66,13 +65,13 @@ export default function ChildrenRepeater({ value, onChange }) {
               </label>
 
               <label className="grid gap-1">
-                <span className="text-sm font-semibold text-slate-700">Year level</span>
+                <span className="text-sm font-semibold text-slate-700">{geo.gradeTerm} Level</span>
                 <select
                   className="h-11 rounded-2xl border border-slate-300 px-4 outline-none focus:ring-2 focus:ring-slate-900/20"
                   value={kid.year_level}
                   onChange={(e) => updateKid(i, { year_level: Number(e.target.value) })}
                 >
-                  {YEAR_OPTIONS.map((opt) => (
+                  {options.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -94,5 +93,3 @@ export default function ChildrenRepeater({ value, onChange }) {
     </div>
   );
 }
-
-export { YEAR_OPTIONS };
