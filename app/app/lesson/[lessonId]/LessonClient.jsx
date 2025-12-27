@@ -9,47 +9,28 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useRewards } from "@/components/ui/RewardProvider";
 import { playUISound, haptic } from "@/components/ui/sound";
-import { useEncouragement } from "@/components/ui/useEmotionalMoments";
 
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { ACTIVE_CHILD_COOKIE, getCookie } from "@/lib/childCookie";
 
-import { getSkillsFor } from "@/lib/mastery/skills";
-import { applyMasteryDelta, syncMasteryToServer } from "@/lib/mastery/store";
 import { addSeasonXp } from "@/components/app/SeasonPassPanel";
 import { unlockSticker } from "@/components/app/CollectionBook";
 import { useEconomy } from "@/lib/economy/client";
 
 import { lessonTelemetry } from "@/lib/lesson/telemetry";
 import { deriveLearningSignals } from "@/lib/lesson/insights";
-import { appendProgress } from "@/lib/progress/log";
 
 import CoachBanner from "@/components/ui/CoachBanner";
 
-// Robust Fallback Content (Guarantees UI never breaks)
+// Robust Fallback Content
 const FALLBACK_LESSON = {
-  title: "Example: Counting to 10",
-  overview: "Learn to count objects and match them to numbers.",
+  title: "Lesson Loading...",
+  overview: "Please wait a moment.",
   content_json: {
-    explanation: "Counting is like climbing stairs. We say numbers in order: 1, 2, 3... The last number we say tells us how many things there are!",
-    memory_strategies: ["Touch each item as you count it.", "Say the numbers out loud."],
-    real_world_application: "Count the apples in your fruit bowl or the steps to your bedroom.",
-    quiz: [
-      {
-        q: "How many fingers on one hand?",
-        options: ["3", "5", "8", "10"],
-        answer: "5",
-        correctIndex: 1,
-        hint: "Count them: 1, 2, 3, 4..."
-      },
-      {
-        q: "What number comes after 2?",
-        options: ["1", "3", "5"],
-        answer: "3",
-        correctIndex: 1,
-        hint: "1, 2, ..."
-      }
-    ]
+    explanation: "We are loading your lesson content.",
+    memory_strategies: [],
+    real_world_application: "",
+    quiz: []
   }
 };
 
@@ -103,11 +84,11 @@ function getCorrectIndex(q) {
   }
   if (typeof q.correct_option === "number") return q.correct_option;
   // If answer text matches an option text, find index
-  if (q.options && typeof q.answer === "string") {
+  if (q.options && Array.isArray(q.options) && typeof q.answer === "string") {
      const idx = q.options.findIndex(o => o === q.answer);
      if (idx !== -1) return idx;
   }
-  return null; 
+  return 0; // Default to first if undetermined
 }
 
 function RichText({ text }) {
@@ -127,7 +108,6 @@ export default function LessonClient({ lessonId }) {
   const [lesson, setLesson] = useState(null);
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const [answers, setAnswers] = useState({});
   const [showQuizFeedback, setShowQuizFeedback] = useState({});
@@ -145,16 +125,16 @@ export default function LessonClient({ lessonId }) {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const { data, error: e } = await supabase.from("lessons").select("*").eq("id", lessonId).maybeSingle();
         
         if (cancelled) return;
 
-        // CRITICAL FIX: If DB returns nothing (e.g. RLS blocking, or empty DB), use fallback.
         if (!data || e) {
-           console.warn("Lesson not found in DB or blocked by RLS. Using fallback content.");
-           setLesson({ id: lessonId, title: FALLBACK_LESSON.title });
+           console.warn("Lesson not found in DB or blocked by RLS. Using fallback.");
+           // We keep the loading state true if strictly needed, but better to show something.
+           // For now, let's assume it failed and show fallback or empty.
+           setLesson({ id: lessonId, title: "Lesson Not Found" });
            setContent(FALLBACK_LESSON.content_json);
         } else {
            setLesson(data);
@@ -162,9 +142,8 @@ export default function LessonClient({ lessonId }) {
            setContent(typeof c === "string" ? JSON.parse(c) : c);
         }
       } catch (e) {
-        // Even on crash, use fallback
         if (!cancelled) {
-            setLesson({ id: lessonId, title: FALLBACK_LESSON.title });
+            setLesson({ id: lessonId, title: "Error Loading Lesson" });
             setContent(FALLBACK_LESSON.content_json);
         }
       } finally {
@@ -189,15 +168,26 @@ export default function LessonClient({ lessonId }) {
     setAnswers((prev) => ({ ...prev, [qIdx]: value }));
   }
 
+  // Safe accessors
+  const strategies = useMemo(() => {
+     const s = content?.memory_strategies;
+     return Array.isArray(s) ? s : [];
+  }, [content]);
+
+  const quizQuestions = useMemo(() => {
+     const q = content?.quiz;
+     if (Array.isArray(q)) return q;
+     if (content?.quiz?.questions && Array.isArray(content.quiz.questions)) return content.quiz.questions;
+     return [];
+  }, [content]);
+
   function computeQuizScore() {
-    const qs = Array.isArray(content?.quiz) ? content.quiz : Array.isArray(content?.quiz?.questions) ? content.quiz.questions : [];
     let totalKeyed = 0;
     let correct = 0;
-    for (let i = 0; i < qs.length; i++) {
-      const q = qs[i];
+    for (let i = 0; i < quizQuestions.length; i++) {
+      const q = quizQuestions[i];
       if (!isMultiChoice(q)) continue;
       const correctIdx = getCorrectIndex(q);
-      if (correctIdx == null) continue;
       totalKeyed += 1;
       if (answers[i] === correctIdx) correct += 1;
     }
@@ -208,11 +198,10 @@ export default function LessonClient({ lessonId }) {
   async function handleComplete() {
     setSaving(true);
     try {
-      const { accuracy, correct, totalKeyed } = computeQuizScore();
-      const telem = sessionRef.current?.finalize({ accuracy });
+      const { accuracy } = computeQuizScore();
+      sessionRef.current?.finalize({ accuracy });
 
       if (activeChildId) {
-        // Attempt to save progress, but don't block UI if it fails (e.g. no internet/RLS)
         try {
             await supabase.from("lesson_progress").upsert({
                 child_id: activeChildId,
@@ -252,7 +241,6 @@ export default function LessonClient({ lessonId }) {
       setTimeout(() => router.back(), 1500);
     } catch (e) {
       console.error(e);
-      // Fallback: just go back if saving errors out entirely
       router.back();
     } finally {
       setSaving(false);
@@ -262,7 +250,7 @@ export default function LessonClient({ lessonId }) {
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto text-center pt-20">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status" />
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em]" role="status" />
         <div className="mt-4 font-bold text-slate-500">Opening Lesson...</div>
       </div>
     );
@@ -272,9 +260,7 @@ export default function LessonClient({ lessonId }) {
   const overview = safeText(content?.objective || content?.learning_goal || content?.hook || content?.overview || "Lesson overview");
   
   const explanation = safeText(content?.explanation);
-  const strategies = Array.isArray(content?.memory_strategies) ? content.memory_strategies : [];
   const realWorld = safeText(content?.real_world_application || content?.realWorld);
-  const quizQuestions = Array.isArray(content?.quiz) ? content.quiz : Array.isArray(content?.quiz?.questions) ? content.quiz.questions : [];
 
   const liveSignals = (() => {
     try {
@@ -330,7 +316,7 @@ export default function LessonClient({ lessonId }) {
                     {strategies.map((tip, i) => (
                         <li key={i} className="flex gap-3 text-slate-800">
                             <span className="font-bold text-amber-500">{i+1}.</span>
-                            <span>{tip}</span>
+                            <span>{safeText(tip)}</span>
                         </li>
                     ))}
                 </ul>
@@ -368,7 +354,7 @@ export default function LessonClient({ lessonId }) {
 
               {isMultiChoice(q) ? (
                 <div className="grid gap-3">
-                  {q.options.map((opt, j) => {
+                  {(q.options || []).map((opt, j) => {
                     const selected = answers[i] === j;
                     const correctIndex = getCorrectIndex(q);
                     const show = !!showQuizFeedback[i];

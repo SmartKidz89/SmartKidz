@@ -78,30 +78,29 @@ function getDifficulty(title) {
 export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
-  const rawIdUpper = rawId.toUpperCase();
   
-  // 1. Check if it's a known Lang code from our tile list
-  const isLangCode = LANGUAGE_TILES.some(l => l.id === rawIdUpper);
+  // Direct language code check (e.g. /world/AUS)
+  const isLangCode = LANGUAGE_TILES.some(l => l.id === rawId.toUpperCase());
+  const canonicalId = isLangCode ? "LANG_SPECIFIC" : (SLUG_MAP[rawId] || rawId.toUpperCase());
   
-  // 2. Resolve Canonical ID
-  // If it's a known slug (math -> MATH), use that.
-  // If it's a Lang Code (AUS), treat as LANG_SPECIFIC.
-  // Otherwise, treat as an arbitrary subject ID (e.g. ABL).
-  let canonicalId = SLUG_MAP[rawId];
-  if (!canonicalId) {
-      if (isLangCode) canonicalId = "LANG_SPECIFIC";
-      else canonicalId = rawIdUpper; // Fallback to passing ID directly
+  // Build a query set that includes uppercase, lowercase, and exact match to be safe against data inconsistencies
+  let targetIds = [];
+  
+  if (canonicalId === "LANG_SPECIFIC") {
+    const code = rawId.toUpperCase();
+    targetIds = [code, code.toLowerCase()];
+  } else if (SUBJECT_ALIASES[canonicalId]) {
+    // Add lowercase versions of all aliases
+    targetIds = [...SUBJECT_ALIASES[canonicalId], ...SUBJECT_ALIASES[canonicalId].map(s => s.toLowerCase())];
+  } else {
+    // Fallback for unknown codes (like ABL if not mapped)
+    targetIds = [canonicalId, canonicalId.toLowerCase(), rawId];
   }
 
-  // 3. Build Target IDs for Query
-  // If we found a canonical alias list (e.g. MATH -> [MATH, MAT]), use it.
-  // If it's LANG_SPECIFIC, just query that ID.
-  // If it's arbitrary (ABL), just query that ID.
-  const targetIds = (canonicalId === "LANG_SPECIFIC" || !SUBJECT_ALIASES[canonicalId])
-    ? [rawIdUpper] 
-    : SUBJECT_ALIASES[canonicalId];
+  // Deduplicate
+  targetIds = [...new Set(targetIds)];
 
-  const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || rawIdUpper);
+  const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -113,7 +112,7 @@ export default function SubjectLessonsPage() {
       setError("");
       try {
         if (canonicalId === "LANG") { 
-          // Handled by render logic below (Language Hub)
+          // Handled by render logic below
           setLoading(false); 
           return; 
         }
@@ -138,7 +137,7 @@ export default function SubjectLessonsPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [canonicalId, targetIds]);
+  }, [canonicalId, targetIds.join(",")]); // Join IDs to ensure stable dependency
 
   const groups = useMemo(() => {
     if (!lessons.length) return [];
