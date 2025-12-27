@@ -9,7 +9,7 @@ import RecommendationsPanel from "@/components/app/RecommendationsPanel";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Star, Zap, Map, Sparkles, Heart, Paintbrush,
+  Wrench, Star, Zap, Map, Sparkles, Heart,
   Book, Globe2, PenTool, Compass, ALargeSmall
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -176,22 +176,6 @@ export default function DashboardClient() {
         <Greeting name={name} />
         
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/app/themes">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-4 rounded-3xl bg-white/70 border border-white/60 p-4 shadow-sm backdrop-blur-md transition-transform hover:scale-[1.02] cursor-pointer"
-            >
-              <div className="h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm bg-fuchsia-500 text-white">
-                <Paintbrush className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Style</div>
-                <div className="text-xl font-black text-slate-900">Themes</div>
-              </div>
-            </motion.div>
-          </Link>
-          
           <StatCard label="Daily Streak" value="3 Days" icon={Zap} colorClass="bg-amber-400" delay={0.1} />
           <StatCard label="Weekly XP" value="450 XP" icon={Star} colorClass="bg-brand-primary" delay={0.2} />
         </div>

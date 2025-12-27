@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useTheme } from "@/components/ui/ThemeProvider";
 
 export default function AmbientCanvas({ variant = "home" }) {
   const ref = useRef(null);
-  const { theme } = useTheme();
 
   useEffect(() => {
     const canvas = ref.current;
@@ -20,9 +18,8 @@ export default function AmbientCanvas({ variant = "home" }) {
     let raf = 0;
     let w = 0, h = 0, dpr = 1;
 
-    // Use theme colors if on home/dashboard, otherwise defaults
-    const isHome = variant === "home";
-    const colors = isHome && theme?.colors ? theme.colors : { a: [0, 191, 165], b: [255, 111, 97] };
+    // Default vibrant kid palette
+    const colors = { a: [0, 191, 165], b: [255, 111, 97] };
 
     const palette = {
       home:   colors,
@@ -110,7 +107,7 @@ export default function AmbientCanvas({ variant = "home" }) {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(raf);
     };
-  }, [variant, theme]);
+  }, [variant]);
 
   return (
     <canvas
