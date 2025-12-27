@@ -4,8 +4,20 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
+import { ArrowRight, MapPin } from "lucide-react";
 
-const WorldGlobeClient = dynamic(() => import("./WorldGlobeClient"), { ssr: false });
+// Dynamically import the heavy 3D component
+const WorldGlobeClient = dynamic(() => import("./WorldGlobeClient"), { 
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-brand-primary rounded-full animate-spin" />
+        <div className="text-xs font-bold uppercase tracking-wider">Loading Globe...</div>
+      </div>
+    </div>
+  )
+});
 
 export default function WorldExplorerPage() {
   const [selected, setSelected] = useState(null);
@@ -15,15 +27,17 @@ export default function WorldExplorerPage() {
     const code = selected.cca2 || selected.cca3 || "";
     const name = selected.name?.common || "Country";
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="text-sm opacity-80">Selected:</div>
-        <div className="font-semibold">{name}</div>
+      <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="text-sm opacity-80 font-medium">Selected:</div>
+        <div className="font-bold text-slate-900 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
+          {selected.flag} {name}
+        </div>
         {code ? (
           <Link
-            className="ml-auto inline-flex items-center justify-center rounded-xl bg-black/90 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black"
+            className="ml-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 hover:scale-105 transition-all"
             href={`/app/tools/world-explorer/${code.toUpperCase()}`}
           >
-            Enter
+            Explore <ArrowRight className="w-4 h-4" />
           </Link>
         ) : null}
       </div>
@@ -33,44 +47,83 @@ export default function WorldExplorerPage() {
   return (
     <PageScaffold
       title="World Explorer"
-      subtitle="Hover or tap a country to learn about culture, food, landmarks, and fun facts."
+      subtitle="Spin the globe. Tap a marker. Discover the world."
       actions={actions}
     >
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="relative overflow-hidden rounded-3xl border border-black/10 bg-gradient-to-b from-white to-black/[0.02] shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        {/* Globe Container - Added h-[600px] to prevent collapse */}
+        <div className="relative h-[500px] lg:h-[600px] overflow-hidden rounded-[2.5rem] border border-slate-200 bg-gradient-to-b from-sky-50/50 to-white shadow-inner">
           <div className="absolute inset-0">
             <WorldGlobeClient onSelect={setSelected} />
           </div>
-          <div className="pointer-events-none absolute bottom-3 left-3 rounded-2xl bg-white/80 px-3 py-2 text-xs shadow-sm backdrop-blur">
-            Tip: drag to rotate • scroll/pinch to zoom • tap a marker to select
+          
+          {/* Overlay Instructions */}
+          <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex justify-center">
+            <div className="rounded-full bg-white/90 px-4 py-2 text-xs font-bold text-slate-600 shadow-lg backdrop-blur border border-white/50">
+              Drag to rotate • Scroll to zoom • Tap a dot
+            </div>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-black/10 bg-white p-5 shadow-sm">
+        {/* Sidebar Info Panel */}
+        <div className="flex flex-col h-full min-h-[300px] rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50">
           {!selected ? (
-            <div className="space-y-2">
-              <div className="text-lg font-semibold">Pick a country</div>
-              <p className="text-sm opacity-80">
-                Rotate the globe and hover/tap a marker. Then press Enter to open a country profile.
-              </p>
+            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 p-4 opacity-60">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-4xl mb-2">
+                🌍
+              </div>
+              <div>
+                <div className="text-xl font-black text-slate-900">Pick a country</div>
+                <p className="text-sm font-medium text-slate-500 mt-2 max-w-[200px] mx-auto">
+                  Rotate the globe and tap any yellow marker to see details here.
+                </p>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="text-lg font-semibold">{selected.name?.common}</div>
-              <div className="text-sm opacity-80">
-                Region: {selected.region || "—"}{selected.subregion ? ` • ${selected.subregion}` : ""}
+            <div className="flex-1 flex flex-col space-y-6 animate-in fade-in zoom-in-95 duration-300">
+              {/* Header */}
+              <div className="text-center pb-6 border-b border-slate-100">
+                <div className="text-8xl mb-4 drop-shadow-sm transform hover:scale-110 transition-transform cursor-default">
+                  {selected.flag || "🏳️"}
+                </div>
+                <h2 className="text-3xl font-black text-slate-900 leading-tight">
+                  {selected.name?.common}
+                </h2>
+                <div className="text-sm font-bold text-slate-500 uppercase tracking-wide mt-1">
+                  {selected.region || "Unknown Region"}
+                </div>
               </div>
-              {Array.isArray(selected.capital) && selected.capital.length ? (
-                <div className="text-sm opacity-80">Capital: {selected.capital.join(", ")}</div>
-              ) : null}
-              {selected.flag ? <div className="text-5xl leading-none">{selected.flag}</div> : null}
-              <div className="pt-2">
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Capital</div>
+                  <div className="text-sm font-bold text-slate-700 truncate">
+                    {selected.capital?.[0] || "N/A"}
+                  </div>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Code</div>
+                  <div className="text-sm font-bold text-slate-700">
+                    {selected.cca3 || selected.cca2}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action */}
+              <div className="mt-auto pt-4">
                 <Link
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-black/90 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-black"
+                  className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-secondary px-6 py-4 text-base font-black text-white shadow-xl shadow-brand-primary/20 transition-all hover:scale-[1.02] hover:shadow-brand-primary/30 active:scale-95"
                   href={`/app/tools/world-explorer/${(selected.cca2 || selected.cca3 || "").toUpperCase()}`}
                 >
-                  Enter country
+                  <span>Open Travel Guide</span>
+                  <div className="bg-white/20 rounded-full p-1 group-hover:translate-x-1 transition-transform">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
                 </Link>
+                <div className="text-center mt-3 text-xs font-semibold text-slate-400">
+                  Learn about food, landmarks & more
+                </div>
               </div>
             </div>
           )}
