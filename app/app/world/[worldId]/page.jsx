@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter } from "lucide-react";
+import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter, Signal, SignalHigh, SignalMedium, SignalLow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveChild } from "@/hooks/useActiveChild";
 
@@ -76,6 +76,13 @@ function getDifficulty(title) {
   return LEVELS.Default;
 }
 
+const LEVEL_OPTIONS = [
+  { id: "All", label: "All", icon: Signal },
+  { id: "Beginner", label: "Beginner", icon: SignalLow },
+  { id: "Intermediate", label: "Intermediate", icon: SignalMedium },
+  { id: "Advanced", label: "Advanced", icon: SignalHigh },
+];
+
 export default function SubjectLessonsPage() {
   const params = useParams();
   const { activeChild, loading: childLoading } = useActiveChild();
@@ -107,6 +114,7 @@ export default function SubjectLessonsPage() {
   
   // Filtering State
   const [selectedYear, setSelectedYear] = useState(null); // Defaults to child year on load
+  const [selectedLevel, setSelectedLevel] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -173,9 +181,22 @@ export default function SubjectLessonsPage() {
 
   const groups = useMemo(() => {
     if (!lessons.length) return [];
-    // Group by Topic for cleaner display
+    
+    // 1. Client-side filtering by Level
+    let filtered = lessons;
+    if (selectedLevel !== "All") {
+      filtered = lessons.filter(l => {
+        const diff = getDifficulty(l.title);
+        if (selectedLevel === "Beginner") return diff === LEVELS.Beginning;
+        if (selectedLevel === "Intermediate") return diff === LEVELS.Intermediate;
+        if (selectedLevel === "Advanced") return diff === LEVELS.Advanced;
+        return true;
+      });
+    }
+
+    // 2. Group by Topic for cleaner display
     const byTopic = {};
-    for (const l of lessons) {
+    for (const l of filtered) {
       const t = l.topic || "General Practice";
       if (!byTopic[t]) byTopic[t] = [];
       byTopic[t].push(l);
@@ -185,7 +206,7 @@ export default function SubjectLessonsPage() {
       title: t,
       lessons: byTopic[t]
     }));
-  }, [lessons]);
+  }, [lessons, selectedLevel]);
 
   const heroImage = SUBJECT_IMAGES[canonicalId] || SUBJECT_IMAGES.MATH;
 
@@ -256,35 +277,60 @@ export default function SubjectLessonsPage() {
       </div>
 
       {/* 3. Filters Toolbar */}
-      <div className="sticky top-20 z-30 mb-8 p-2 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg flex flex-col md:flex-row items-center gap-4">
+      <div className="sticky top-20 z-30 mb-8 p-3 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg flex flex-col gap-4">
         
-        {/* Year Tabs */}
-        <div className="flex p-1 bg-slate-100/80 rounded-full overflow-x-auto max-w-full">
-           {[1, 2, 3, 4, 5, 6].map(y => (
-             <button
-               key={y}
-               onClick={() => setSelectedYear(y)}
-               className={cn(
-                 "px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
-                 selectedYear === y 
-                   ? "bg-slate-900 text-white shadow-md" 
-                   : "text-slate-500 hover:text-slate-900 hover:bg-white/50"
-               )}
-             >
-               Year {y}
-             </button>
-           ))}
+        {/* Top Row: Years + Search */}
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full">
+           <div className="flex p-1 bg-slate-100/80 rounded-full overflow-x-auto max-w-full no-scrollbar">
+              {[1, 2, 3, 4, 5, 6].map(y => (
+                <button
+                  key={y}
+                  onClick={() => setSelectedYear(y)}
+                  className={cn(
+                    "px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
+                    selectedYear === y 
+                      ? "bg-slate-900 text-white shadow-md" 
+                      : "text-slate-500 hover:text-slate-900 hover:bg-white/50"
+                  )}
+                >
+                  Year {y}
+                </button>
+              ))}
+           </div>
+
+           <div className="relative w-full md:w-auto md:flex-1 min-w-[200px]">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${subjectName}...`}
+                className="w-full h-11 pl-10 pr-4 rounded-full bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary/50 transition-all placeholder:font-medium"
+              />
+           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full md:w-auto md:flex-1">
-           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-           <input 
-             value={searchQuery}
-             onChange={(e) => setSearchQuery(e.target.value)}
-             placeholder={`Search ${subjectName}...`}
-             className="w-full h-11 pl-10 pr-4 rounded-full bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary/50 transition-all placeholder:font-medium"
-           />
+        {/* Bottom Row: Difficulty Levels */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar w-full">
+           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2 shrink-0">Level:</span>
+           {LEVEL_OPTIONS.map((level) => {
+             const Icon = level.icon;
+             const isActive = selectedLevel === level.id;
+             return (
+               <button
+                 key={level.id}
+                 onClick={() => setSelectedLevel(level.id)}
+                 className={cn(
+                   "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap",
+                   isActive 
+                     ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm" 
+                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                 )}
+               >
+                 <Icon className={cn("w-3.5 h-3.5", isActive ? "text-indigo-600" : "text-slate-400")} />
+                 {level.label}
+               </button>
+             );
+           })}
         </div>
       </div>
 
@@ -300,11 +346,16 @@ export default function SubjectLessonsPage() {
           <div className="text-6xl mb-4 grayscale opacity-40">🗺️</div>
           <div className="text-xl font-black text-slate-900">No lessons found</div>
           <p className="text-slate-500 mt-2">
-            We couldn't find lessons for Year {selectedYear} in this subject yet.
+             We couldn't find {selectedLevel === "All" ? "" : selectedLevel} lessons for Year {selectedYear}.
           </p>
-          <button onClick={() => setSelectedYear(Math.max(1, selectedYear - 1))} className="mt-4 text-brand-primary font-bold hover:underline">
-             Try Year {Math.max(1, selectedYear - 1)}
-          </button>
+          <div className="flex justify-center gap-4 mt-6">
+             <button onClick={() => setSelectedLevel("All")} className="text-brand-primary font-bold hover:underline">
+                View All Levels
+             </button>
+             <button onClick={() => setSelectedYear(Math.max(1, selectedYear - 1))} className="text-slate-500 font-bold hover:underline">
+                Try Year {Math.max(1, selectedYear - 1)}
+             </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-12">
