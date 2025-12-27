@@ -8,9 +8,13 @@ import { PageMotion } from "@/components/ui/PremiumMotion";
 import { Button } from "@/components/ui/Button";
 import { Printer, RefreshCw, ChevronLeft, Layers, CheckCircle2 } from "lucide-react";
 import { playUISound, haptic } from "@/components/ui/sound";
+import { useActiveChild } from "@/hooks/useActiveChild";
+import { getGeoConfig } from "@/lib/marketing/geoConfig";
 
 export default function HomeworkToolPage() {
   const supabase = useMemo(() => createClient(), []);
+  const { activeChild } = useActiveChild();
+  
   const [subjects, setSubjects] = useState([]);
   const [subjectId, setSubjectId] = useState("MAT");
   const [lessons, setLessons] = useState([]);
@@ -18,21 +22,38 @@ export default function HomeworkToolPage() {
   const [count, setCount] = useState(20);
   const [sheet, setSheet] = useState(null);
 
+  const geo = getGeoConfig(activeChild?.country || "AU");
+
   useEffect(() => {
     (async () => {
+      // Fetch subjects, but we might want to rename them in UI
       const { data } = await supabase.from("subjects").select("id,name").eq("status", "active");
-      if (data) setSubjects(data);
+      
+      if (data) {
+        // Map names based on country config
+        const mapped = data.map(s => {
+           if (s.id === 'MATH') return { ...s, name: geo.mathTerm };
+           if (s.id === 'HASS') return { ...s, name: geo.code === "US" ? "Social Studies" : "HASS" };
+           return s;
+        });
+        setSubjects(mapped);
+      }
     })();
-  }, [supabase]);
+  }, [supabase, geo]);
 
   useEffect(() => {
     (async () => {
       setLessons([]);
       setSelectedLessonIds(new Set());
-      const { data } = await supabase.from("lessons").select("id,title,topic").eq("subject_id", subjectId);
+      // Optionally filter by child's year/grade here too for better relevance
+      const { data } = await supabase.from("lessons")
+         .select("id,title,topic")
+         .eq("subject_id", subjectId)
+         .eq("year_level", activeChild?.year_level || 3); // Defaults to child's level
+         
       if (data) setLessons(data);
     })();
-  }, [supabase, subjectId]);
+  }, [supabase, subjectId, activeChild]);
 
   const toggleLesson = (id) => {
     setSelectedLessonIds((prev) => {
@@ -62,7 +83,7 @@ export default function HomeworkToolPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Homework Generator</h1>
-            <p className="text-slate-600 font-medium">Create practice sheets from completed lessons.</p>
+            <p className="text-slate-600 font-medium">Create practice sheets for {geo.gradeTerm} {activeChild?.year_level || 3}.</p>
           </div>
         </div>
         {sheet && (
@@ -119,7 +140,7 @@ export default function HomeworkToolPage() {
                    Include Content ({selectedLessonIds.size})
                  </label>
                  <div className="max-h-60 overflow-y-auto pr-2 space-y-2">
-                   {lessons.length === 0 && <div className="text-sm text-slate-400 p-2">No lessons available.</div>}
+                   {lessons.length === 0 && <div className="text-sm text-slate-400 p-2">No lessons available for this subject.</div>}
                    {lessons.map(l => (
                      <button
                        key={l.id}
@@ -170,7 +191,7 @@ export default function HomeworkToolPage() {
                   <div>
                     <h2 className="text-3xl font-black mb-1">Homework</h2>
                     <div className="text-indigo-200 print:text-slate-600 font-medium">
-                      {sheet.questions.length} Questions • {sheet.subjectId}
+                      {sheet.questions.length} Questions • {sheet.subjectId === "MATH" ? geo.mathTerm : sheet.subjectId}
                     </div>
                   </div>
                   <div className="hidden print:block text-right">

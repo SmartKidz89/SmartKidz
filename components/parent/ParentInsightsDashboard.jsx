@@ -3,17 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useActiveChild } from "@/hooks/useActiveChild";
-
-const SUBJECT_LABELS = {
-  MAT: "Maths",
-  ENG: "English",
-  SCI: "Science",
-  HASS: "HASS",
-  HPE: "HPE",
-  ARTS: "Arts",
-  TECH: "Technologies",
-  LANG: "Languages",
-};
+import { getGeoConfig } from "@/lib/marketing/geoConfig";
 
 function fmtPct(n) {
   if (n == null || Number.isNaN(n)) return "—";
@@ -53,7 +43,6 @@ export default function ParentInsightsDashboard() {
         });
 
         if (mounted) {
-           // Even if error, we set empty dash to prevent crash, just log it
            if (error) {
              console.warn("Dashboard RPC error:", error.message);
              setDash(null); 
@@ -76,6 +65,20 @@ export default function ParentInsightsDashboard() {
   const summary = dash?.summary || [];
   const badges = dash?.badges || [];
   const streak = dash?.streak || null;
+  
+  // Get dynamic config based on the selected kid's country
+  const geo = getGeoConfig(selectedKid?.country || "AU");
+
+  const SUBJECT_LABELS = {
+    MAT: geo.mathTerm,
+    ENG: "English",
+    SCI: "Science",
+    HASS: geo.code === "US" ? "Social Studies" : "HASS",
+    HPE: geo.code === "US" ? "Health & PE" : "HPE",
+    ARTS: "Arts",
+    TECH: "Technologies",
+    LANG: "Languages",
+  };
 
   return (
     <section className="rounded-4xl border border-slate-200 bg-white/60 shadow-soft p-5 sm:p-6">

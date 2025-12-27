@@ -9,91 +9,95 @@ import {
   Wrench, Compass, PenTool, Sparkles, Clock, Globe2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useActiveChild } from "@/hooks/useActiveChild";
+import { getGeoConfig } from "@/lib/marketing/geoConfig";
 
 // --- Configuration ---
 
-const SUBJECTS = [
-  { 
-    id: "MATH", 
-    title: "Mathematics", 
-    subtitle: "Numbers & Logic",
-    icon: Calculator, 
-    color: "text-sky-600",
-    bg: "bg-sky-50",
-    gradient: "from-sky-400 to-blue-600", 
-    img: "/illustrations/subjects/world-maths.webp", 
-  },
-  { 
-    id: "ENG", 
-    title: "English", 
-    subtitle: "Reading & Writing",
-    icon: BookOpen, 
-    color: "text-violet-600",
-    bg: "bg-violet-50",
-    gradient: "from-violet-400 to-fuchsia-600", 
-    img: "/illustrations/subjects/world-english.webp", 
-  },
-  { 
-    id: "SCI", 
-    title: "Science", 
-    subtitle: "Discovery Lab",
-    icon: FlaskConical, 
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    gradient: "from-emerald-400 to-teal-600", 
-    img: "/illustrations/subjects/world-science.webp", 
-  },
-  { 
-    id: "HASS", 
-    title: "HASS", 
-    subtitle: "History & World",
-    icon: Globe, 
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    gradient: "from-amber-400 to-orange-600", 
-    img: "/illustrations/subjects/world-energy.webp", 
-  },
-  { 
-    id: "ART", 
-    title: "The Arts", 
-    subtitle: "Create & Express",
-    icon: Palette, 
-    color: "text-pink-600",
-    bg: "bg-pink-50",
-    gradient: "from-pink-400 to-rose-600", 
-    img: "/illustrations/subjects/world-arts.webp", 
-  },
-  { 
-    id: "TECH", 
-    title: "Technologies", 
-    subtitle: "Design & Code",
-    icon: Cpu, 
-    color: "text-slate-600",
-    bg: "bg-slate-50",
-    gradient: "from-slate-400 to-slate-600", 
-    img: "/illustrations/subjects/world-energy.webp", 
-  },
-  { 
-    id: "HPE", 
-    title: "Health & PE", 
-    subtitle: "Active Bodies",
-    icon: Activity, 
-    color: "text-lime-600",
-    bg: "bg-lime-50",
-    gradient: "from-lime-400 to-green-600", 
-    img: "/illustrations/subjects/world-health.webp", 
-  },
-  { 
-    id: "LANG", 
-    title: "Languages", 
-    subtitle: "Global Talk",
-    icon: Languages, 
-    color: "text-indigo-600",
-    bg: "bg-indigo-50",
-    gradient: "from-indigo-400 to-cyan-600", 
-    img: "/illustrations/subjects/world-languages.webp", 
-  },
-];
+function getSubjects(geo) {
+  return [
+    { 
+      id: "MATH", 
+      title: geo.mathTerm, 
+      subtitle: "Numbers & Logic",
+      icon: Calculator, 
+      color: "text-sky-600",
+      bg: "bg-sky-50",
+      gradient: "from-sky-400 to-blue-600", 
+      img: "/illustrations/subjects/world-maths.webp", 
+    },
+    { 
+      id: "ENG", 
+      title: "English", 
+      subtitle: "Reading & Writing",
+      icon: BookOpen, 
+      color: "text-violet-600",
+      bg: "bg-violet-50",
+      gradient: "from-violet-400 to-fuchsia-600", 
+      img: "/illustrations/subjects/world-english.webp", 
+    },
+    { 
+      id: "SCI", 
+      title: "Science", 
+      subtitle: "Discovery Lab",
+      icon: FlaskConical, 
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      gradient: "from-emerald-400 to-teal-600", 
+      img: "/illustrations/subjects/world-science.webp", 
+    },
+    { 
+      id: "HASS", 
+      title: geo.code === "US" ? "Social Studies" : "HASS", 
+      subtitle: "History & World",
+      icon: Globe, 
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+      gradient: "from-amber-400 to-orange-600", 
+      img: "/illustrations/subjects/world-energy.webp", 
+    },
+    { 
+      id: "ART", 
+      title: "The Arts", 
+      subtitle: "Create & Express",
+      icon: Palette, 
+      color: "text-pink-600",
+      bg: "bg-pink-50",
+      gradient: "from-pink-400 to-rose-600", 
+      img: "/illustrations/subjects/world-arts.webp", 
+    },
+    { 
+      id: "TECH", 
+      title: "Technologies", 
+      subtitle: "Design & Code",
+      icon: Cpu, 
+      color: "text-slate-600",
+      bg: "bg-slate-50",
+      gradient: "from-slate-400 to-slate-600", 
+      img: "/illustrations/subjects/world-energy.webp", 
+    },
+    { 
+      id: "HPE", 
+      title: geo.code === "US" ? "Health & PE" : "HPE", 
+      subtitle: "Active Bodies",
+      icon: Activity, 
+      color: "text-lime-600",
+      bg: "bg-lime-50",
+      gradient: "from-lime-400 to-green-600", 
+      img: "/illustrations/subjects/world-health.webp", 
+    },
+    { 
+      id: "LANG", 
+      title: "Languages", 
+      subtitle: "Global Talk",
+      icon: Languages, 
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      gradient: "from-indigo-400 to-cyan-600", 
+      img: "/illustrations/subjects/world-languages.webp", 
+    },
+  ];
+}
 
 const TOOLS = [
   { href: "/app/tools/pixel-art", title: "Pixel Art", icon: Palette, color: "bg-pink-500", desc: "Draw in blocks" },
@@ -106,6 +110,10 @@ const TOOLS = [
 ];
 
 export default function WorldsIndexPage() {
+  const { activeChild } = useActiveChild();
+  const geo = getGeoConfig(activeChild?.country || "AU");
+  const SUBJECTS = getSubjects(geo);
+
   return (
     <PageScaffold title={null} className="pb-32">
       
