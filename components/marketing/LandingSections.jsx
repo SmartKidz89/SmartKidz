@@ -2,12 +2,34 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3, Globe2, PenTool, Lightbulb, Zap } from "lucide-react";
 import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
+import { cn } from "@/lib/utils";
 
 function Container({ children, className = "" }) {
   return <div className={"container-pad " + className}>{children}</div>;
+}
+
+// Fixed: Added missing ParallaxImage component
+function ParallaxImage({ src, alt, className }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [1.05, 1, 1.05]);
+
+  return (
+    <div ref={ref} className={cn("relative overflow-hidden rounded-[2.5rem] shadow-2xl border border-slate-900/5 bg-slate-100", className)}>
+      <motion.div style={{ y, scale }} className="absolute inset-0 w-full h-[120%] -top-[10%]">
+        <Image src={src} alt={alt} fill className="object-cover" />
+      </motion.div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none mix-blend-overlay" />
+    </div>
+  );
 }
 
 // --- HERO SECTION ---
@@ -88,13 +110,9 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Hero Visual - Premium 3D Style */}
+        {/* Hero Visual */}
         <div className="relative mx-auto max-w-5xl perspective-1000">
-          
-          {/* Glow Effect */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-gradient-to-r from-sky-300/30 via-purple-300/30 to-emerald-300/30 blur-[80px] -z-10 rounded-full" />
-
-          {/* Main Interface Card */}
           <motion.div
             initial={{ opacity: 0, rotateX: 15, y: 60 }}
             animate={{ opacity: 1, rotateX: 0, y: 0 }}
@@ -104,17 +122,16 @@ export function Hero() {
             <div className="relative rounded-[2.2rem] overflow-hidden aspect-[16/10] bg-slate-50 border-[6px] border-slate-900">
                <Image
                 src="/illustrations/scenes/home-hero.webp"
-                alt="SmartKidz Dashboard - Explore Worlds"
+                alt="SmartKidz Dashboard"
                 fill
                 className="object-cover object-top scale-[1.01]"
                 priority
               />
-              {/* Glossy Overlay */}
               <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-50 pointer-events-none mix-blend-overlay" />
             </div>
           </motion.div>
 
-          {/* Floating Element 1: Coins (Top Right) */}
+          {/* Floaters */}
           <motion.div
             initial={{ scale: 0, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -135,7 +152,6 @@ export function Hero() {
              </motion.div>
           </motion.div>
 
-          {/* Floating Element 2: Level Up (Bottom Left) */}
           <motion.div
             initial={{ scale: 0, opacity: 0, x: -20 }}
             animate={{ scale: 1, opacity: 1, x: 0 }}
@@ -154,27 +170,6 @@ export function Hero() {
                 </div>
              </motion.div>
           </motion.div>
-
-           {/* Floating Element 3: Streak (Bottom Right) */}
-           <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
-            className="absolute bottom-16 -right-2 sm:-right-6 z-10 hidden sm:block"
-          >
-             <motion.div
-               animate={{ y: [0, -6, 0] }}
-               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-               className="bg-white/90 backdrop-blur p-2.5 pr-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 rotate-3 hover:rotate-0 transition-transform"
-             >
-                <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-xl shadow-sm">🔥</div>
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Streak</div>
-                  <div className="text-sm font-black text-slate-900">7 Days</div>
-                </div>
-             </motion.div>
-          </motion.div>
-
         </div>
       </Container>
     </section>
@@ -230,8 +225,7 @@ export function FeatureGrid() {
             <div>
               <h3 className="text-2xl font-black text-slate-900 mb-2">Curiosity Engine</h3>
               <p className="text-slate-700 font-medium leading-relaxed max-w-md">
-                "Why is the sky blue?" "How do plants drink?" Kids ask big questions. 
-                Our <strong>safe, kid-friendly AI</strong> gives instant, age-appropriate answers—complete with mini-quizzes and real-world experiments.
+                "Why is the sky blue?" Our <strong>safe, kid-friendly AI</strong> gives instant, age-appropriate answers—complete with mini-quizzes and real-world experiments.
               </p>
             </div>
           </div>
@@ -248,7 +242,7 @@ export function FeatureGrid() {
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2">World Explorer</h3>
             <p className="text-slate-700 font-medium">
-              Tap any flag to teleport. Discover local foods, landmarks, greetings, and wildlife from 195+ countries.
+              Tap any flag to teleport. Discover local foods, landmarks, and greetings from 195+ countries.
             </p>
           </div>
         </div>
@@ -281,7 +275,7 @@ export function FeatureGrid() {
               <p className="text-slate-300 font-medium leading-relaxed">
                 We take safety seriously. <strong>No ads. No external links. No chat.</strong>
                 <br/>
-                Plus, weekly parent reports sent right to your inbox, so you know exactly what they've mastered.
+                Plus, weekly parent reports sent right to your inbox.
               </p>
             </div>
             <div className="shrink-0 relative">
@@ -343,7 +337,7 @@ export function CTA() {
           <div className="absolute bottom-[-50%] right-[-20%] w-[800px] h-[800px] bg-emerald-600/20 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative z-10 max-w-3xl mx-auto">
+        <div className="relative z-10 max-w-2xl mx-auto">
           <h2 className="text-4xl sm:text-5xl font-black text-white mb-6 tracking-tight">
             Ready to give them a head start?
           </h2>
