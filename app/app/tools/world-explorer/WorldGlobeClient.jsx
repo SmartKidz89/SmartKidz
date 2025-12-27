@@ -3,7 +3,19 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
+import { Vector3, Color, MeshStandardMaterial } from "three";
+
+// Fallback data in case external API fails or is blocked
+const FALLBACK_COUNTRIES = [
+  { name: { common: "Australia" }, latlng: [-25, 133], cca2: "AU", region: "Oceania", flag: "🇦🇺" },
+  { name: { common: "United States" }, latlng: [38, -97], cca2: "US", region: "Americas", flag: "🇺🇸" },
+  { name: { common: "France" }, latlng: [46, 2], cca2: "FR", region: "Europe", flag: "🇫🇷" },
+  { name: { common: "Japan" }, latlng: [36, 138], cca2: "JP", region: "Asia", flag: "🇯🇵" },
+  { name: { common: "Brazil" }, latlng: [-10, -55], cca2: "BR", region: "Americas", flag: "🇧🇷" },
+  { name: { common: "Egypt" }, latlng: [26, 30], cca2: "EG", region: "Africa", flag: "🇪🇬" },
+  { name: { common: "India" }, latlng: [20, 77], cca2: "IN", region: "Asia", flag: "🇮🇳" },
+  { name: { common: "United Kingdom" }, latlng: [55, -3], cca2: "GB", region: "Europe", flag: "🇬🇧" },
+];
 
 function latLngToVec3(lat, lng, radius = 1) {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -11,20 +23,19 @@ function latLngToVec3(lat, lng, radius = 1) {
   const x = -(radius * Math.sin(phi) * Math.cos(theta));
   const z = radius * Math.sin(phi) * Math.sin(theta);
   const y = radius * Math.cos(phi);
-  return new THREE.Vector3(x, y, z);
+  return new Vector3(x, y, z);
 }
 
 function Earth() {
   const meshRef = useRef();
 
-  // Simple premium-looking material without external textures.
   const material = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#0b2a4a"),
+    return new MeshStandardMaterial({
+      color: new Color("#1e293b"), // Slate-800
       roughness: 0.7,
-      metalness: 0.05,
-      emissive: new THREE.Color("#02131f"),
-      emissiveIntensity: 0.35,
+      metalness: 0.1,
+      emissive: new Color("#0f172a"), // Slate-900
+      emissiveIntensity: 0.2,
     });
   }, []);
 
@@ -40,14 +51,14 @@ function CountryMarkers({ countries, onSelect }) {
   const [hovered, setHovered] = useState(null);
 
   const markers = useMemo(() => {
-    return countries
+    return (countries || [])
       .filter((c) => Array.isArray(c.latlng) && c.latlng.length === 2)
       .map((c) => {
         const [lat, lng] = c.latlng;
         return {
           id: c.cca2 || c.cca3 || c.name?.common,
           country: c,
-          position: latLngToVec3(lat, lng, 1.01),
+          position: latLngToVec3(lat, lng, 1.015), // slightly above surface
         };
       });
   }, [countries]);
@@ -61,23 +72,24 @@ function CountryMarkers({ countries, onSelect }) {
           onPointerOver={(e) => {
             e.stopPropagation();
             setHovered(m.id);
-            document.body.style.cursor = "pointer";
+            if (typeof document !== 'undefined') document.body.style.cursor = "pointer";
           }}
           onPointerOut={(e) => {
             e.stopPropagation();
             setHovered(null);
-            document.body.style.cursor = "default";
+            if (typeof document !== 'undefined') document.body.style.cursor = "default";
           }}
           onClick={(e) => {
             e.stopPropagation();
             onSelect?.(m.country);
           }}
         >
-          <sphereGeometry args={[hovered === m.id ? 0.012 : 0.008, 16, 16]} />
+          {/* Larger hit area for easier tapping */}
+          <sphereGeometry args={[hovered === m.id ? 0.018 : 0.012, 16, 16]} />
           <meshStandardMaterial
-            color={hovered === m.id ? "#ffb703" : "#ffffff"}
-            emissive={hovered === m.id ? "#ffb703" : "#000000"}
-            emissiveIntensity={hovered === m.id ? 0.6 : 0.15}
+            color={hovered === m.id ? "#fbbf24" : "#ffffff"} // Amber-400 / White
+            emissive={hovered === m.id ? "#d97706" : "#000000"}
+            emissiveIntensity={hovered === m.id ? 0.8 : 0}
           />
         </mesh>
       ))}
@@ -86,32 +98,54 @@ function CountryMarkers({ countries, onSelect }) {
 }
 
 export default function WorldGlobeClient({ onSelect }) {
-  const [countries, setCountries] = useState([]);
+  const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
     async function load() {
       try {
-        // REST Countries provides names + lat/lng + codes. Good enough for MVP markers.
-        const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2,cca3,latlng,region,subregion,capital,flag");
+        // Try fetching real data with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+        const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2,cca3,latlng,region,subregion,capital,flag", {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error("API error");
+        
         const data = await res.json();
-        if (!cancelled && Array.isArray(data)) setCountries(data);
+        if (mounted && Array.isArray(data) && data.length > 0) {
+          setCountries(data);
+        }
       } catch (e) {
-        // Swallow; UI will show empty markers.
+        console.warn("World Explorer: Using fallback data due to API error", e);
+        // Keep fallback data
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => { mounted = false; };
   }, []);
 
   return (
-    <Canvas camera={{ position: [0, 0, 2.6], fov: 45 }}>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 2, 3]} intensity={1.2} />
-      <pointLight position={[-2, -1, -2]} intensity={0.6} />
-      <Earth />
-      <CountryMarkers countries={countries} onSelect={onSelect} />
-      <OrbitControls enablePan={false} minDistance={1.4} maxDistance={4} />
-    </Canvas>
+    <div className="w-full h-full">
+      <Canvas camera={{ position: [0, 0, 2.8], fov: 45 }}>
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[3, 2, 3]} intensity={1.5} />
+        <pointLight position={[-2, -1, -2]} intensity={0.5} />
+        <Earth />
+        <CountryMarkers countries={countries} onSelect={onSelect} />
+        <OrbitControls 
+          enablePan={false} 
+          minDistance={1.5} 
+          maxDistance={4.5} 
+          rotateSpeed={0.6}
+          enableDamping={true}
+          dampingFactor={0.1}
+        />
+      </Canvas>
+    </div>
   );
 }
