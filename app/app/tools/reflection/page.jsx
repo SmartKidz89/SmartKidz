@@ -1,261 +1,173 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { supabase } from "@/lib/supabase/client";
-import ChildAvatar from "@/components/avatar/ChildAvatar";
 import { playUISound, haptic } from "@/components/ui/sound";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Check, ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import ConfettiBurst from "@/components/app/ConfettiBurst";
 
-const EMOJIS = [
-  { k: "happy", label: "Happy", icon: "😊" },
-  { k: "ok", label: "Okay", icon: "🙂" },
-  { k: "tired", label: "Tired", icon: "😴" },
-  { k: "stuck", label: "Stuck", icon: "😟" },
-  { k: "proud", label: "Proud", icon: "🌟" },
+const MOODS = [
+  { k: "happy", label: "Happy", icon: "😊", color: "bg-amber-100 text-amber-600" },
+  { k: "ok", label: "Okay", icon: "🙂", color: "bg-blue-100 text-blue-600" },
+  { k: "tired", label: "Tired", icon: "😴", color: "bg-slate-100 text-slate-600" },
+  { k: "stuck", label: "Stuck", icon: "😟", color: "bg-rose-100 text-rose-600" },
+  { k: "proud", label: "Proud", icon: "🌟", color: "bg-yellow-100 text-yellow-600" },
 ];
-
-function isYoung(year) {
-  return typeof year === "number" && year <= 1;
-}
-
-function prompts(year) {
-  if (isYoung(year)) {
-    return {
-      easy: "What was easy today?",
-      tricky: "What was tricky today?",
-      proud: "What are you proud of?",
-      hint: "You can tap an emoji or choose a short answer. A parent can help read the questions."
-    };
-  }
-  return {
-    easy: "What felt easy today?",
-    tricky: "What felt tricky today?",
-    proud: "What are you proud of?",
-    hint: "Keep it short. One sentence is perfect."
-  };
-}
-
-function formatDate(d) {
-  try { return new Date(d).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
-  catch { return ""; }
-}
 
 export default function ReflectionToolPage() {
   const { activeChild } = useActiveChild();
   const childId = activeChild?.id;
-  const year = typeof activeChild?.year_level === "number" ? activeChild.year_level : 2;
 
-  const p = useMemo(() => prompts(year), [year]);
-
-  const [mood, setMood] = useState("happy");
-  const [easy, setEasy] = useState("");
-  const [tricky, setTricky] = useState("");
-  const [proud, setProud] = useState("");
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState({ mood: "", easy: "", tricky: "", proud: "" });
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [complete, setComplete] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setErr("");
-      setLoading(true);
-      if (!childId) { setItems([]); setLoading(false); return; }
+  const steps = [
+    { id: "mood", title: "How are you feeling?", type: "mood" },
+    { id: "proud", title: "What are you proud of today?", type: "text", placeholder: "I finished my maths lesson..." },
+    { id: "tricky", title: "Was anything tricky?", type: "text", placeholder: "I got stuck on fractions..." },
+    { id: "easy", title: "What felt easy?", type: "text", placeholder: "Reading was fun..." },
+  ];
 
-      const { data, error } = await supabase
-        .from("child_reflections")
-        .select("id, mood, easy, tricky, proud, created_at")
-        .eq("child_id", childId)
-        .order("created_at", { ascending: false })
-        .limit(30);
+  const currentStep = steps[step];
 
-      if (!mounted) return;
-      if (error) {
-        setErr(error.message);
-        setItems([]);
-        setLoading(false);
-        return;
-      }
-      setItems(data || []);
-      setLoading(false);
+  const handleNext = () => {
+    try { playUISound("tap"); } catch {}
+    if (step < steps.length - 1) {
+      setStep(s => s + 1);
+    } else {
+      handleSave();
     }
-    load();
-    return () => { mounted = false; };
-  }, [childId]);
+  };
 
-  async function save() {
-    setErr("");
-    if (!childId) { setErr("Select a child first."); return; }
+  const handleSave = async () => {
+    if (!childId) return;
     setSaving(true);
-    try { playUISound("tap"); haptic("light"); } catch {}
-
-    const payload = {
-      child_id: childId,
-      mood,
-      easy: easy || null,
-      tricky: tricky || null,
-      proud: proud || null,
-    };
-
-    const { error } = await supabase.from("child_reflections").insert(payload);
-    if (error) {
-      setErr(error.message);
+    
+    try {
+      await supabase.from("child_reflections").insert({
+        child_id: childId,
+        mood: data.mood,
+        proud: data.proud,
+        tricky: data.tricky,
+        easy: data.easy
+      });
+      setComplete(true);
+      try { playUISound("levelup"); haptic("success"); } catch {}
+    } catch (e) {
+      console.error(e);
+    } finally {
       setSaving(false);
-      return;
     }
+  };
 
-    try { playUISound("complete"); haptic("light"); } catch {}
-    setEasy(""); setTricky(""); setProud("");
-    // reload
-    const { data } = await supabase
-      .from("child_reflections")
-      .select("id, mood, easy, tricky, proud, created_at")
-      .eq("child_id", childId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    setItems(data || []);
-    setSaving(false);
-  }
-
-  return (
-    <PageMotion className="max-w-6xl mx-auto space-y-6">
-      <div className="skz-glass p-6 md:p-8 skz-border-animate skz-shine">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <ChildAvatar config={activeChild?.avatar_config || {}} size={64} />
-            <div>
-              <div className="text-sm text-slate-500">Journal tool</div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Reflection & confidence</h1>
-              <p className="mt-2 text-sm md:text-base text-slate-700">
-                A calm journal that helps kids notice progress and build confidence over time.
-              </p>
-              <div className="mt-2 text-xs text-slate-500">{p.hint}</div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button className="skz-chip px-4 py-3 skz-press" onClick={() => history.back()}>Back</button>
-            <a className="skz-glass skz-border-animate skz-shine px-4 py-3 skz-press text-sm" href="/app/parent/reflections">
-              Parent view →
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {err ? (
-        <div className="skz-card p-5 text-rose-700">
-          <div className="font-semibold">Couldn’t load/save reflections</div>
-          <div className="mt-2 text-sm">{err}</div>
-          <div className="mt-3 text-xs text-slate-600">
-            If you haven’t created the <span className="font-mono">child_reflections</span> table yet, run the SQL in <span className="font-mono">supabase/sql/child_reflections.sql</span>.
-          </div>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="skz-card p-6 skz-glow skz-shine">
-          <div className="text-sm font-semibold">How do you feel?</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {EMOJIS.map((e) => (
-              <button
-                key={e.k}
-                className={`skz-chip px-3 py-2 skz-press text-sm ${mood === e.k ? "ring-2 ring-indigo-400/60" : ""}`}
-                onClick={() => { try { playUISound("tap"); } catch {}; setMood(e.k); }}
-              >
-                <span className="mr-2">{e.icon}</span>{e.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <Field label={p.easy} value={easy} onChange={setEasy} young={isYoung(year)} />
-            <Field label={p.tricky} value={tricky} onChange={setTricky} young={isYoung(year)} />
-            <Field label={p.proud} value={proud} onChange={setProud} young={isYoung(year)} />
-          </div>
-
-          <button
-            className="mt-5 w-full skz-glass skz-border-animate skz-shine px-5 py-3 skz-press"
-            disabled={saving}
-            onClick={save}
-          >
-            {saving ? "Saving…" : "Save reflection"}
-          </button>
-
-          <div className="mt-3 text-xs text-slate-500">
-            Private to this child. Parents can view in the Family Hub.
-          </div>
-        </div>
-
-        <div className="skz-card p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold">Confidence timeline</div>
-              <div className="text-xs text-slate-500 mt-1">Your reflections over time</div>
-            </div>
-            <div className="skz-chip px-3 py-2 text-sm">🌱 Growth</div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {loading ? (
-              <div className="text-sm text-slate-600">Loading…</div>
-            ) : items.length ? (
-              items.map((it) => (
-                <div key={it.id} className="skz-glass p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-sm font-semibold">Mood: {it.mood}</div>
-                    <div className="text-xs text-slate-500">{formatDate(it.created_at)}</div>
-                  </div>
-                  <div className="mt-2 text-sm text-slate-700 space-y-1">
-                    {it.easy ? <div><span className="text-slate-500">Easy:</span> {it.easy}</div> : null}
-                    {it.tricky ? <div><span className="text-slate-500">Tricky:</span> {it.tricky}</div> : null}
-                    {it.proud ? <div><span className="text-slate-500">Proud:</span> {it.proud}</div> : null}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-slate-600">
-                No reflections yet. Save your first one to start your timeline.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </PageMotion>
-  );
-}
-
-function Field({ label, value, onChange, young }) {
-  if (young) {
-    const options = [
-      "It was easy",
-      "It was okay",
-      "It was hard",
-      "I want help",
-      "I feel proud",
-    ];
+  if (complete) {
     return (
-      <div className="skz-glass p-4">
-        <div className="text-xs text-slate-500">{label}</div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {options.map((o) => (
-            <button key={o} className={`skz-chip px-3 py-2 text-sm skz-press ${value===o ? "ring-2 ring-indigo-400/60" : ""}`} onClick={() => onChange(o)}>
-              {o}
-            </button>
-          ))}
+      <PageMotion className="min-h-[80vh] flex items-center justify-center">
+        <ConfettiBurst show={true} />
+        <div className="text-center p-10 bg-white rounded-[3rem] shadow-2xl border border-slate-100 max-w-lg mx-4">
+          <div className="text-8xl mb-6 animate-bounce">🌱</div>
+          <h2 className="text-3xl font-black text-slate-900 mb-4">Saved!</h2>
+          <p className="text-lg text-slate-600 font-medium mb-8">
+            Reflecting helps your brain grow. Great job taking a moment for yourself.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Link href="/app/tools" className="px-8 py-3 rounded-full bg-slate-100 text-slate-900 font-bold hover:bg-slate-200 transition-colors">
+              Tools
+            </Link>
+            <Link href="/app" className="px-8 py-3 rounded-full bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors">
+              Home
+            </Link>
+          </div>
         </div>
-      </div>
+      </PageMotion>
     );
   }
+
   return (
-    <div className="skz-glass p-4">
-      <div className="text-xs text-slate-500">{label}</div>
-      <textarea
-        className="mt-2 w-full skz-glass p-3 outline-none min-h-[84px]"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="One sentence is perfect…"
-      />
-    </div>
+    <PageMotion className="max-w-2xl mx-auto pb-20 pt-10">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 px-4">
+        <Link href="/app/tools" className="p-2 rounded-full hover:bg-white/50 transition-colors">
+          <ChevronLeft className="w-6 h-6 text-slate-500" />
+        </Link>
+        <div className="flex gap-2">
+          {steps.map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-2 rounded-full transition-all duration-500 ${i <= step ? "w-8 bg-slate-900" : "w-2 bg-slate-200"}`} 
+            />
+          ))}
+        </div>
+        <div className="w-10" /> {/* Spacer */}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden"
+        >
+          <div className="p-8 sm:p-12 min-h-[400px] flex flex-col">
+            <h2 className="text-3xl font-black text-slate-900 mb-8 text-center">
+              {currentStep.title}
+            </h2>
+
+            <div className="flex-1 flex flex-col justify-center">
+              {currentStep.type === "mood" ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {MOODS.map((m) => (
+                    <button
+                      key={m.k}
+                      onClick={() => { setData({ ...data, mood: m.k }); setTimeout(handleNext, 300); }}
+                      className={`p-4 rounded-3xl border-2 transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-2 ${
+                        data.mood === m.k 
+                          ? "border-slate-900 bg-slate-50" 
+                          : "border-slate-100 hover:border-slate-200"
+                      }`}
+                    >
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl ${m.color}`}>
+                        {m.icon}
+                      </div>
+                      <span className="font-bold text-slate-700">{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <textarea
+                  autoFocus
+                  value={data[currentStep.id]}
+                  onChange={(e) => setData({ ...data, [currentStep.id]: e.target.value })}
+                  placeholder={currentStep.placeholder}
+                  className="w-full h-48 p-6 rounded-3xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white text-xl font-medium text-slate-900 outline-none resize-none transition-all placeholder:text-slate-300"
+                />
+              )}
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              {currentStep.type !== "mood" && (
+                <button
+                  onClick={handleNext}
+                  className="flex items-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-bold text-lg hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 shadow-xl"
+                >
+                  {step === steps.length - 1 ? (saving ? "Saving..." : "Finish") : "Next"} 
+                  {!saving && <ArrowRight className="w-5 h-5" />}
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+    </PageMotion>
   );
 }

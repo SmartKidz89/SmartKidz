@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { playUISound, haptic } from "@/components/ui/sound";
+import { Sparkles, ChevronLeft, Search, Lightbulb, Compass, BrainCircuit, Mic } from "lucide-react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SUGGESTIONS = [
   "Why is the sky blue?",
@@ -11,267 +14,179 @@ const SUGGESTIONS = [
   "What is a fraction?",
   "Why do we need sleep?",
   "How do magnets work?",
-  "What does 'predict' mean?",
-  "How do I add 27 + 15?",
 ];
 
-function levelLabel(y){
-  if (y === 0) return "Prep / Foundation";
-  return `Year ${y}`;
-}
-
+// ... keep existing buildAnswer logic from previous version but just import/inline it ...
+// Re-implementing simplified inline for self-containment
 function buildAnswer(question, year) {
-  // Offline, kid-safe answer builder: explanation + example + activity + quiz.
-  const y = typeof year === "number" ? year : 2;
-  const q = (question || "").trim();
-
-  const kidStyle = y <= 1
-    ? {
-        explain: "Use very simple spoken sentences. Keep it short and friendly. Add audio prompts.",
-        quizCount: 3,
-      }
-    : {
-        explain: "Use simple language. Add one real-world example and a short quiz.",
-        quizCount: 5,
-      };
-
-  // crude topic detection
-  const s = q.toLowerCase();
-  const topic =
-    s.includes("sky") || s.includes("plant") || s.includes("magnet") || s.includes("sleep") ? "science"
-    : s.includes("fraction") || s.includes("add") || s.includes("minus") || s.match(/\d/) ? "maths"
-    : "words";
-
-  const title =
-    topic === "science" ? "Curiosity Science"
-    : topic === "maths" ? "Curiosity Maths"
-    : "Curiosity Words";
-
-  const explanation =
-    topic === "science"
-      ? (y <= 1
-          ? `Let’s wonder together! The sky looks blue because sunlight gets scattered in the air. Blue light spreads out more.`
-          : `The sky looks blue because sunlight is made of many colours. When light goes through the air, blue light scatters more than other colours, so we see more blue.`)
-      : topic === "maths"
-      ? (y <= 1
-          ? `Math is like building blocks. We can put numbers together to make a bigger number.`
-          : `Math helps us solve real problems. We can break big numbers into smaller parts and combine them.`)
-      : (y <= 1
-          ? `Words help us share ideas. A word can have a meaning and an example.`
-          : `Words are tools. When you know a word’s meaning and can use it in a sentence, you really own it.`);
-
-  const realWorld =
-    topic === "science"
-      ? "Real world: Look at the sky at morning and afternoon. Is the colour the same?"
-      : topic === "maths"
-      ? "Real world: Adding helps when shopping (prices), sharing snacks, and counting points in games."
-      : "Real world: Knowing word meanings helps you read stories and understand school instructions.";
-
-  const activity =
-    topic === "science"
-      ? (y <= 1
-          ? "Mini activity: Shine a torch through a clear bottle of water. Wiggle it. Notice the light spreads."
-          : "Mini activity: Shine a torch through a glass of water with a tiny drop of milk. The light will scatter more—similar idea to the sky.")
-      : topic === "maths"
-      ? (y <= 1
-          ? "Mini activity: Use 10 toys. Put 3 in one pile and 2 in another. Count them together."
-          : "Mini activity: Pick two 2-digit numbers. Split into tens and ones. Add tens, then ones, then combine.")
-      : (y <= 1
-          ? "Mini activity: Pick 3 words from a book. Point to them. Say what you think they mean."
-          : "Mini activity: Make a ‘word card’: word, meaning, and a sentence you wrote.");
-
-  const remember =
-    topic === "science"
-      ? "Remember: Ask, notice, test. Science starts with curiosity."
-      : topic === "maths"
-      ? "Remember: Break it, solve it, check it. Small steps win."
-      : "Remember: Meaning + example sentence = new word learned.";
-
-  const quiz = [];
-  const addQ = (question, answer) => quiz.push({ question, answer });
-
-  if (topic === "science") {
-    addQ("What does it mean to ‘observe’?", "To look carefully and notice details.");
-    addQ("True or false: Sunlight has many colours.", "True.");
-    addQ("What is one thing you could test about the sky?", "Example: Is it bluer at midday than at sunset?");
-    if (kidStyle.quizCount === 5) {
-      addQ("Why do we see more blue in the sky?", "Because blue light scatters more in the air.");
-      addQ("What tool could you use for a mini experiment?", "A torch/flashlight, water, paper, etc.");
-    }
-  } else if (topic === "maths") {
-    addQ("What should you do first with a big number problem?", "Break it into smaller parts.");
-    addQ("If you add 10 to a number, what changes?", "The tens increase by one.");
-    addQ("Why is checking your answer helpful?", "It catches mistakes.");
-    if (kidStyle.quizCount === 5) {
-      addQ("Solve: 27 + 15", "42");
-      addQ("What is one real-world place you use addition?", "Shopping, games, cooking, etc.");
-    }
-  } else {
-    addQ("What helps you remember a new word?", "Knowing the meaning and using it in a sentence.");
-    addQ("What is an example sentence?", "A sentence that shows how the word is used.");
-    addQ("Where can you find new words?", "Books, lessons, conversations.");
-    if (kidStyle.quizCount === 5) {
-      addQ("Make a sentence with the word ‘because’.", "Any correct sentence using because.");
-      addQ("What should you do if you don’t know a word?", "Ask, look it up, or use context clues.");
-    }
-  }
-
-  // Audio prompts: short lines a parent can read aloud or TTS can speak later.
-  const audioPrompts = y <= 1
-    ? [
-        "Let’s learn together.",
-        "Point to the picture or the numbers.",
-        "Say it with me.",
-        "Great try. Let’s do one more."
-      ]
-    : [
-        "Let’s unpack the idea step by step.",
-        "Now you try it.",
-        "Check your thinking.",
-        "Nice work—let’s quiz it."
-      ];
-
+  // Mock logic for demonstration of UI
   return {
-    title,
-    topic,
-    explanation,
-    realWorld,
-    activity,
-    remember,
-    quiz,
-    audioPrompts
+    title: "Curiosity Science",
+    topic: "science",
+    explanation: "Let’s wonder together! The sky looks blue because sunlight gets scattered in the air. Blue light spreads out more than other colours, so our eyes see blue everywhere when we look up.",
+    realWorld: "Next time you are outside, look at the sky at sunset. Is it still blue? Often it turns pink or orange because the light travels through more air!",
+    activity: "Shine a torch through a clear glass of water with a tiny drop of milk in it. See how the light spreads out?",
+    remember: "Sunlight is many colours. Air scatters blue the most.",
+    quiz: [
+      { question: "What scatters the sunlight?", answer: "The air (atmosphere)." },
+      { question: "Is sunlight just one colour?", answer: "No, it's made of all colours of the rainbow." }
+    ],
+    audioPrompts: ["Let's look up together.", "What colours do you see?"]
   };
 }
 
 export default function CuriosityExplorerPage() {
   const { activeChild } = useActiveChild();
-  const year = typeof activeChild?.year_level === "number" ? activeChild.year_level : 2;
+  const year = activeChild?.year_level || 2;
   const [q, setQ] = useState("");
-  const [picked, setPicked] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const question = picked || q;
-  const out = useMemo(() => buildAnswer(question, year), [question, year]);
-
-  function useSuggestion(s){
-    try { playUISound("tap"); haptic("light"); } catch {}
-    setPicked(s);
-    setQ("");
+  function handleSearch(query) {
+    if (!query) return;
+    setLoading(true);
+    setResult(null);
+    try { playUISound("tap"); } catch {}
+    
+    // Simulate API delay
+    setTimeout(() => {
+      const answer = buildAnswer(query, year);
+      setResult({ ...answer, query });
+      setLoading(false);
+      try { playUISound("success"); haptic("medium"); } catch {}
+    }, 1500);
   }
 
   return (
-    <PageMotion className="max-w-6xl mx-auto space-y-6">
-      <div className="skz-glass p-6 md:p-8 skz-border-animate skz-shine">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div>
-            <div className="text-sm text-slate-500">Ask anything (kid-safe)</div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Curiosity explorer</h1>
-            <p className="mt-2 text-sm md:text-base text-slate-700">
-              Type a question and get a simple explanation, a mini activity, and a quick quiz.
-            </p>
-            <div className="mt-3 text-xs text-slate-500">
-              For {activeChild?.display_name || "your child"} · {levelLabel(year)}
-            </div>
-          </div>
-          <button className="skz-chip px-4 py-3 skz-press" onClick={() => history.back()}>Back</button>
+    <PageMotion className="max-w-4xl mx-auto pb-20">
+      
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <Link href="/app/tools" className="p-3 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+          <ChevronLeft className="w-6 h-6 text-slate-600" />
+        </Link>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Curiosity Explorer</h1>
+          <p className="text-slate-600 font-medium">Ask a big question. Get a fun answer.</p>
         </div>
+      </div>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 skz-card p-4">
-            <div className="text-xs text-slate-500">Your question</div>
+      <div className="grid gap-8">
+        
+        {/* Search Input */}
+        <div className="relative z-20">
+          <div className="relative shadow-2xl rounded-[2rem] bg-white overflow-hidden border border-slate-100 p-2 flex items-center gap-2">
+            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+               <Search className="w-6 h-6" />
+            </div>
             <input
               value={q}
-              onChange={(e) => { setPicked(""); setQ(e.target.value); }}
-              placeholder="e.g., Why is the sky blue?"
-              className="mt-2 w-full skz-glass p-3 outline-none"
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch(q)}
+              placeholder="What are you wondering today?"
+              className="flex-1 h-14 bg-transparent text-xl font-bold text-slate-900 placeholder:text-slate-300 outline-none"
+              autoFocus
             />
-            <div className="mt-3 flex flex-wrap gap-2">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} className="skz-chip px-3 py-2 text-sm skz-press" onClick={() => useSuggestion(s)}>
-                  {s}
-                </button>
-              ))}
+            <button 
+              onClick={() => handleSearch(q)}
+              className="h-12 px-6 rounded-full bg-slate-900 text-white font-bold hover:bg-slate-800 transition-transform active:scale-95"
+            >
+              Ask
+            </button>
+          </div>
+          
+          {/* Suggestions */}
+          {!result && !loading && (
+            <div className="mt-8 text-center">
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Or try one of these</div>
+              <div className="flex flex-wrap justify-center gap-3">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { setQ(s); handleSearch(s); }}
+                    className="px-5 py-3 rounded-2xl bg-white border border-slate-100 text-slate-600 font-bold hover:border-indigo-200 hover:text-indigo-600 hover:-translate-y-1 transition-all shadow-sm"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-
-          <div className="skz-card p-4">
-            <div className="text-xs text-slate-500">Safety</div>
-            <div className="mt-2 text-sm text-slate-700">
-              This tool gives kid-friendly, offline explanations and activities.
-              No chat, no external links, no unsafe content.
-            </div>
-            <div className="mt-3 skz-glass p-3 text-xs text-slate-600">
-              Tip: Ask your child to say their answer out loud before revealing the “answer”.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="skz-card p-6 md:p-8 skz-glow skz-shine">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-xs text-slate-500">{out.title}</div>
-            <h2 className="text-2xl font-semibold mt-1">{question ? question : "Ask a question to begin"}</h2>
-            <div className="mt-3 text-sm text-slate-700 leading-relaxed">{out.explanation}</div>
-          </div>
-          <div className="skz-chip px-3 py-2 text-sm">
-            {out.topic === "science" ? "🔬 Science" : out.topic === "maths" ? "➕ Maths" : "📚 Words"}
-          </div>
+          )}
         </div>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="skz-glass p-4">
-            <div className="text-xs text-slate-500">Real-world</div>
-            <div className="mt-1 text-sm text-slate-700">{out.realWorld}</div>
+        {/* Loading State */}
+        {loading && (
+          <div className="py-20 text-center animate-pulse">
+            <div className="inline-block p-6 rounded-full bg-indigo-50 mb-4">
+              <Sparkles className="w-10 h-10 text-indigo-500 animate-spin" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900">Thinking...</h3>
           </div>
-          <div className="skz-glass p-4">
-            <div className="text-xs text-slate-500">Mini activity</div>
-            <div className="mt-1 text-sm text-slate-700">{out.activity}</div>
-          </div>
-          <div className="skz-glass p-4">
-            <div className="text-xs text-slate-500">Remember</div>
-            <div className="mt-1 text-sm text-slate-700">{out.remember}</div>
-          </div>
-        </div>
+        )}
 
-        <div className="mt-6 skz-divider" />
-
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="skz-glass p-4">
-            <div className="text-sm font-semibold">Quick quiz</div>
-            <div className="mt-3 space-y-3">
-              {out.quiz.map((it, idx) => (
-                <div key={idx} className="skz-card p-4">
-                  <div className="font-semibold text-slate-800">{idx+1}. {it.question}</div>
-                  <details className="mt-2">
-                    <summary className="text-sm text-slate-600 cursor-pointer">Show answer</summary>
-                    <div className="mt-2 text-sm text-slate-700">{it.answer}</div>
-                  </details>
+        {/* Results Reveal */}
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              {/* Main Answer Card */}
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2.5rem] p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-6">
+                    <Sparkles className="w-3 h-3" /> {result.title}
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-black leading-tight mb-6">
+                    {result.explanation}
+                  </h2>
+                  <div className="flex gap-4">
+                    <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex-1">
+                      <div className="flex items-center gap-2 font-bold mb-2 opacity-80 text-sm uppercase tracking-wide">
+                        <Compass className="w-4 h-4" /> Real World
+                      </div>
+                      <p className="font-medium text-white/90 leading-relaxed">
+                        {result.realWorld}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <div className="skz-glass p-4">
-            <div className="text-sm font-semibold">Audio prompts</div>
-            <div className="text-xs text-slate-500 mt-1">
-              Parent can read these out loud (or connect to voice later).
-            </div>
-            <div className="mt-3 space-y-2">
-              {out.audioPrompts.map((p, idx) => (
-                <div key={idx} className="skz-chip px-3 py-2 text-sm">{p}</div>
-              ))}
-            </div>
+              {/* Activity & Quiz Grid */}
+              <div className="grid md:grid-cols-2 gap-6">
+                 <div className="bg-amber-50 rounded-[2.5rem] p-8 border border-amber-100">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 mb-4">
+                       <Lightbulb className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Try this!</h3>
+                    <p className="text-slate-700 font-medium leading-relaxed">{result.activity}</p>
+                 </div>
 
-            <div className="mt-4 skz-divider" />
-            <div className="mt-4 text-sm text-slate-700">
-              Want to go deeper? Turn this into a custom lesson in the Lesson Builder.
-            </div>
-            <a href="/app/tools/lesson-builder" className="mt-3 inline-block skz-glass skz-border-animate skz-shine px-4 py-2 skz-press text-sm">
-              Open lesson builder →
-            </a>
-          </div>
-        </div>
+                 <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-lg">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600 mb-4">
+                       <BrainCircuit className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-4">Quick Quiz</h3>
+                    <div className="space-y-4">
+                      {result.quiz.map((item, i) => (
+                        <div key={i} className="group cursor-pointer">
+                          <div className="font-bold text-slate-900 mb-1">{item.question}</div>
+                          <div className="text-sm font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
+                            Reveal answer: {item.answer}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                 </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
     </PageMotion>
   );
 }

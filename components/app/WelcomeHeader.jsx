@@ -8,11 +8,15 @@ import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import Mascot from "@/components/ui/Mascot";
 import EconomyPill from "@/components/ui/EconomyPill";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, Eye, EyeOff } from "lucide-react";
+import { useFocusMode } from "@/components/ui/FocusModeProvider";
+import { cn } from "@/lib/utils";
+import { playUISound, haptic } from "@/components/ui/sound";
 
 export default function WelcomeHeader({ showParentBack = false }) {
   const { activeChild } = useActiveChild();
   const reduceMotion = useReducedMotion();
+  const { focus, toggle: toggleFocus } = useFocusMode();
 
   const name = activeChild?.display_name || "Player";
   const supabase = createClient();
@@ -22,12 +26,17 @@ export default function WelcomeHeader({ showParentBack = false }) {
     window.location.href = "/app/login";
   };
 
+  const onToggleFocus = () => {
+    try { playUISound("tap"); haptic("light"); } catch {}
+    toggleFocus();
+  };
+
   return (
     <motion.div
       initial={reduceMotion ? false : { opacity: 0, y: -10 }}
       animate={reduceMotion ? false : { opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-4xl bg-white/60 border border-white/60 shadow-sm backdrop-blur-md mb-6"
+      className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-4xl bg-white/60 border border-white/60 shadow-sm backdrop-blur-md mb-6 relative z-30"
     >
       <div className="flex items-center gap-4 w-full sm:w-auto">
         <Mascot className="hidden sm:block shrink-0" />
@@ -64,6 +73,21 @@ export default function WelcomeHeader({ showParentBack = false }) {
           )}
           
           <YearSelector className="shrink-0" />
+
+          {/* Focus Mode Toggle */}
+          <button
+            onClick={onToggleFocus}
+            className={cn(
+              "h-10 px-3 rounded-2xl border flex items-center justify-center gap-2 transition-all font-bold text-xs",
+              focus 
+                ? "bg-indigo-100 border-indigo-200 text-indigo-700 shadow-inner" 
+                : "bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:shadow-sm hover:-translate-y-0.5"
+            )}
+            title="Toggle Focus Mode"
+          >
+            {focus ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            <span className="hidden sm:inline">{focus ? "Focus On" : "Focus"}</span>
+          </button>
           
           <Link 
             href="/app/menu" 
