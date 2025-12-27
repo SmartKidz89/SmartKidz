@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowUp, Map as MapIcon, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { motion, useMotionValue, useSpring } from "framer-motion";
+import { Map as MapIcon, Loader2, Plus, Minus, RotateCcw } from "lucide-react";
 
 // Robust Fallback Data
 const FALLBACK_COUNTRIES = [
@@ -18,21 +18,30 @@ const FALLBACK_COUNTRIES = [
   { name: { common: "Canada" }, latlng: [60, -95], cca2: "CA", region: "Americas", flag: "🇨🇦" },
 ];
 
-// Simple Mercator-ish projection for display
+// Simple Equirectangular projection for map matching
+// x: -180 to 180 -> 0 to 100
+// y: 90 to -90 -> 0 to 100
 function project(lat, lng) {
-  const x = (lng + 180) * (100 / 360);
-  const latRad = lat * Math.PI / 180;
-  const mercN = Math.log(Math.tan((Math.PI / 4) + (latRad / 2)));
-  const y = (100 / 2) - (100 * mercN / (2 * Math.PI));
-  // Clamp y to avoid poles stretching infinitely
-  const clampedY = Math.max(5, Math.min(95, y));
-  return { x, y: clampedY };
+  const x = ((lng + 180) / 360) * 100;
+  const y = ((90 - lat) / 180) * 100;
+  return { x, y };
 }
+
+// Simplified World Map SVG Path (Mercator-ish)
+const WORLD_MAP_SVG = "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjAwMCAxMDAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGZpbGw9IiMzMzQxNTUiIGQ9Ik0xNjQ1IDg4NWMtMTEgMi0yNCAxLTMxLTkgNi0yOCAzNS0yOCA0OS0xNSAxMSA5IDEwIDE3LTIgMTktNiA0LTEwIDUtMTYgNXptMTY1LTYxYy0yMC04LTI1LTMyLTgtNDIgMTktMTEgNTktNiA1NCA2LTItNi01LTEzLTgtMTlDOCA3NjIgMCA3ODMgMCA4MDRzOCAzOSAyMyA1OGMzMCAzNSA1NyA0IDY2LTMxIDUtMTkgMi0zNy05LTU0LTQtNS04LTgtMTEtN3ptLTEzOTctMmMtNy0xMC0yNi0xNS0zNy05LTExIDYtMTcgMTktMTUgMzEgMSAxMiA4IDIzIDE4IDMxIDExIDggMjYgOCAzNiAwIDktNyAxMi0xNSAxMC0yNC0yLTktNi0yMC0xMi0yOXptMTQ3Ni00OWMtNi0yLTEyIDAtMTcgNS0xMCAxMC0xMSAzMC0xIDQyIDEwIDExIDMwIDEwIDQxLTMgMTAtMTEgOS0zMy01LTQyLTUtMy0xMS00LTE4LTJ6bS0xMzU4LTFjLTktNS0yMy0yLTMwIDYtNyA5LTcgMjIgMSAzMCA4IDcgMjIgOCAzMSAwIDktNyAxMS0yMiA1LTMwLTMtNC01LTYtNy02em0tMTEwLTFjLTktOC0yNy04LTM4IDEtMTAgOC0xNCAyMy05IDMyIDUgOSAxOSAxMSAzMCA1IDExLTYgMTYtMTkgMTQtMzFhNDUgNDUgMCAwIDAtMTktMjF6bTE2NjAtNTRjLTctMy0xNi0xLTIzIDUtMTAgOC0xMiAyNC01IDMzIDggMTEgMjYgMTEgMzUgMiA3LTggOC0yNCAxLTMzLTItMy01LTUtOC03em0tNTgtNTVjLTMtNi04LTEwLTE1LTEwLTktMS0xOSA0LTIyIDEyLTMgOSAyIDE5IDExIDIzIDkgNCAxOSAwIDIzLTkgMy01IDMtMTEgMy0xNnptLTEzMTAtMmMtNy01LTIxIDAtMjggMTEtNyAxMC02IDI1IDMgMzMgOSA3IDI1IDYgMzQtMiA4LTggOS0yMiAzLTMxLTItNS02LTktMTItMTF6bTEzNTUtNDJjLTE4LTItMjcgMjAtMTQgMzEgOSA5IDI3IDkgMzYgMCA5LTkgOC0yNy0zLTM0LTUtNC0xMS01LTE5IDN6bS0xNDUgMmMtNS01LTE0LTQtMjAgMi04IDgtOCAyMyAwIDMxIDggOSAyNCA5IDMyIDEgOC04IDgtMjMgMC0zMS00LTQtOC01LTEyLTN6bTExMS0zMWMtNS0xLTEyIDEtMTcgNy04IDktOCAyNCAxIDMyIDggOCAyNCA4IDMyLTIgOC05IDctMjQtMy0zMS0zLTItNy00LTEzLTZ6bS0xNzctMTNjLTktNS0yNC0yLTMxIDgtNyA5LTcgMjIgMSAzMCA5IDggMjUgOCAzMyAwIDktOCAxMC0yMyAzLTMxLTMtNC01LTYtNi03em0tMzAzLTE1Yy00IDAtOCAxLTEyIDItMjIgOC0yNiAzNS03IDQ5IDggNiAyMiA4IDM0IDQgMTctNiAyMy0yNSAxNC00MC02LTktMTctMTUtMjktMTV6bTIxOC01Yy0yMC0yLTMxIDIyLTE4IDMzIDggNyAyNCA3IDMyIDAgOC03IDgtMjItMi0zMC0zLTItNy0zLTEyLTN6bS01NTQtOGMtNy0xLTE1IDItMjEgOC05IDktOCAyNSAzIDMzIDExIDcgMzAgNSA0MS01IDExLTEwIDktMjktNS0zNS02LTMtMTItNC0xOC0xeiIgLz48L3N2Zz4=";
 
 export default function WorldMapClient({ onSelect }) {
   const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
   const [loading, setLoading] = useState(true);
   const [hovered, setHovered] = useState(null);
+  
+  // Transform State
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const containerRef = useRef(null);
+  const dragStart = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     let mounted = true;
@@ -73,65 +82,140 @@ export default function WorldMapClient({ onSelect }) {
       });
   }, [countries]);
 
-  return (
-    <div className="relative w-full h-full bg-slate-900 overflow-hidden flex flex-col items-center justify-center">
-      
-      {/* Decorative Grid */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none" 
-        style={{ 
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)", 
-          backgroundSize: "40px 40px" 
-        }} 
-      />
+  // -- Interaction Handlers --
 
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY * -0.001;
+    const newScale = Math.min(Math.max(1, scale + delta), 4);
+    setScale(newScale);
+  };
+
+  const handleZoom = (direction) => {
+    const newScale = Math.min(Math.max(1, scale + direction * 0.5), 4);
+    setScale(newScale);
+    // Recentering on zoom out if needed
+    if (newScale === 1) setPosition({ x: 0, y: 0 });
+  };
+
+  const startDrag = (e) => {
+    setIsDragging(true);
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragStart.current = { x: clientX - position.x, y: clientY - position.y };
+  };
+
+  const onDrag = (e) => {
+    if (!isDragging) return;
+    e.preventDefault(); // Prevent scroll on touch
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    // Bounds check could go here, but free pan is fine for MVP
+    setPosition({
+      x: clientX - dragStart.current.x,
+      y: clientY - dragStart.current.y
+    });
+  };
+
+  const stopDrag = () => setIsDragging(false);
+
+  return (
+    <div className="relative w-full h-full bg-slate-900 overflow-hidden flex flex-col items-center justify-center rounded-[2.5rem]">
+      
       {/* Loading State */}
       {loading && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-sm transition-opacity duration-500">
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity duration-500 rounded-[2.5rem]">
            <Loader2 className="w-10 h-10 text-indigo-400 animate-spin mb-4" />
-           <div className="text-white font-bold tracking-widest text-xs uppercase">Loading Map Data...</div>
+           <div className="text-white font-bold tracking-widest text-xs uppercase">Loading Map...</div>
         </div>
       )}
 
-      {/* Map Container */}
-      <div className="relative w-full max-w-5xl aspect-[2/1] bg-slate-800/30 rounded-3xl border border-white/5 shadow-2xl p-4 overflow-hidden">
-        {/* World Outline Placeholder (CSS Shapes could go here, for now using dots) */}
-        <div className="absolute inset-0 flex items-center justify-center text-slate-700 opacity-20 font-black text-9xl select-none pointer-events-none tracking-tighter">
-           WORLD
-        </div>
+      {/* Map Interactive Area */}
+      <div 
+        ref={containerRef}
+        className="relative w-full h-full cursor-move touch-none"
+        onWheel={handleWheel}
+        onMouseDown={startDrag}
+        onMouseMove={onDrag}
+        onMouseUp={stopDrag}
+        onMouseLeave={stopDrag}
+        onTouchStart={startDrag}
+        onTouchMove={onDrag}
+        onTouchEnd={stopDrag}
+      >
+        <motion.div
+          className="absolute left-1/2 top-1/2 w-[800px] h-[400px] origin-center"
+          animate={{ x: `calc(-50% + ${position.x}px)`, y: `calc(-50% + ${position.y}px)`, scale }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        >
+           {/* World Map SVG Background */}
+           <div 
+             className="absolute inset-0 bg-contain bg-no-repeat bg-center opacity-30"
+             style={{ backgroundImage: `url('${WORLD_MAP_SVG}')` }}
+           />
 
-        {points.map((p) => {
-          const isHovered = hovered === p.name.common;
-          return (
-            <motion.button
-              key={p.name.common}
-              className="absolute w-2 h-2 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 z-10"
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ 
-                scale: isHovered ? 2.5 : 1, 
-                opacity: 1,
-                backgroundColor: isHovered ? "#fbbf24" : "rgba(255,255,255,0.6)",
-                boxShadow: isHovered ? "0 0 15px #fbbf24" : "none",
-                zIndex: isHovered ? 50 : 10
-              }}
-              transition={{ duration: 0.5, delay: Math.random() * 1 }}
-              onMouseEnter={() => setHovered(p.name.common)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={() => onSelect(p)}
-            />
-          );
-        })}
-
-        {/* Hover Label */}
-        {hovered && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg z-30 pointer-events-none animate-in fade-in slide-in-from-bottom-2">
-            <div className="text-sm font-black text-slate-900">{hovered}</div>
-          </div>
-        )}
+           {/* Country Points */}
+           {points.map((p) => {
+              const isHovered = hovered === p.name.common;
+              return (
+                <div
+                  key={p.name.common}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
+                  style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                >
+                   {/* Tap target (invisible but larger) */}
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); onSelect(p); }}
+                     onMouseEnter={() => setHovered(p.name.common)}
+                     onMouseLeave={() => setHovered(null)}
+                     className="w-4 h-4 -m-2 rounded-full cursor-pointer absolute z-20"
+                     aria-label={p.name.common}
+                   />
+                   
+                   {/* Visible Dot */}
+                   <motion.div
+                     initial={false}
+                     animate={{ 
+                       scale: isHovered ? 2 : 1, 
+                       backgroundColor: isHovered ? "#fbbf24" : "rgba(255,255,255,0.6)",
+                       boxShadow: isHovered ? "0 0 8px 2px #fbbf24" : "none",
+                     }}
+                     className="w-1.5 h-1.5 rounded-full pointer-events-none transition-colors"
+                   />
+                </div>
+              );
+           })}
+        </motion.div>
       </div>
 
-      <div className="absolute bottom-6 flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest bg-slate-900/80 px-4 py-2 rounded-full border border-slate-700">
-         <MapIcon className="w-4 h-4" /> Interactive Map
+      {/* Controls Overlay */}
+      <div className="absolute right-6 bottom-6 flex flex-col gap-2 z-30">
+        <button onClick={() => handleZoom(1)} className="p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all shadow-lg">
+          <Plus className="w-6 h-6" />
+        </button>
+        <button onClick={() => handleZoom(-1)} className="p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all shadow-lg">
+          <Minus className="w-6 h-6" />
+        </button>
+        <button onClick={() => { setScale(1); setPosition({x:0,y:0}); }} className="p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:scale-95 transition-all shadow-lg mt-2">
+          <RotateCcw className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Hover Tooltip (Static Position) */}
+      {hovered && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-in fade-in slide-in-from-top-2">
+          <div className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full shadow-xl border border-white/50">
+            <div className="text-sm font-black text-slate-900 tracking-wide">{hovered}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="absolute bottom-6 left-6 z-20 pointer-events-none">
+        <div className="bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl border border-white/10 text-white/70 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+           <MapIcon className="w-4 h-4" /> Pan & Zoom to Explore
+        </div>
       </div>
 
     </div>

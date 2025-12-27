@@ -9,7 +9,7 @@ import RecommendationsPanel from "@/components/app/RecommendationsPanel";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Star, ArrowRight, Zap, Map, Sparkles, Heart, Paintbrush,
+  Wrench, Star, Zap, Map, Sparkles, Heart, Paintbrush,
   Book, Globe2, PenTool, Compass, ALargeSmall
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -145,8 +145,27 @@ function StatCard({ label, value, icon: Icon, colorClass, delay = 0 }) {
   );
 }
 
+function DashboardSkeleton() {
+  return (
+    <PageScaffold title={null} className="pb-20 animate-pulse">
+       <div className="h-16 w-64 bg-slate-200 rounded-3xl mb-8" />
+       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+          <div className="lg:col-span-8 h-80 bg-slate-200 rounded-[2.5rem]" />
+          <div className="lg:col-span-4 h-80 bg-slate-200 rounded-[2.5rem]" />
+       </div>
+       <div className="h-10 w-48 bg-slate-200 rounded-2xl mb-6" />
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1,2,3,4].map(i => <div key={i} className="h-56 bg-slate-200 rounded-[2.5rem]" />)}
+       </div>
+    </PageScaffold>
+  );
+}
+
 export default function DashboardClient() {
-  const { activeChild } = useActiveChild();
+  const { activeChild, loading } = useActiveChild();
+  
+  if (loading) return <DashboardSkeleton />;
+
   const name = activeChild?.display_name?.split(" ")[0] || "Explorer";
 
   return (
