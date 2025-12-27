@@ -127,13 +127,20 @@ export default function LessonClient({ lessonId }) {
     async function load() {
       setLoading(true);
       try {
-        const { data, error: e } = await supabase.from("lessons").select("*").eq("id", lessonId).maybeSingle();
+        // Decode ID in case it came from URL with special chars
+        const id = decodeURIComponent(lessonId);
+        
+        const { data, error: e } = await supabase
+          .from("lessons")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
         
         if (cancelled) return;
 
         if (!data || e) {
-           console.warn("Lesson not found in DB or blocked by RLS. Using fallback.");
-           setLesson({ id: lessonId, title: "Lesson Not Found" });
+           console.warn("Lesson not found:", id, e);
+           setLesson({ id, title: "Lesson Not Found" });
            setContent(FALLBACK_LESSON.content_json);
         } else {
            setLesson(data);
@@ -142,6 +149,7 @@ export default function LessonClient({ lessonId }) {
         }
       } catch (e) {
         if (!cancelled) {
+            console.error(e);
             setLesson({ id: lessonId, title: "Error Loading Lesson" });
             setContent(FALLBACK_LESSON.content_json);
         }
@@ -201,10 +209,11 @@ export default function LessonClient({ lessonId }) {
       sessionRef.current?.finalize({ accuracy });
 
       if (activeChildId) {
+        // 1. Record Progress
         try {
             await supabase.from("lesson_progress").upsert({
                 child_id: activeChildId,
-                lesson_id: lessonId,
+                lesson_id: decodeURIComponent(lessonId),
                 status: "completed",
                 attempts: 1,
                 mastery_score: Math.max(0, Math.min(1, accuracy)),
@@ -214,11 +223,11 @@ export default function LessonClient({ lessonId }) {
             console.warn("Failed to save progress:", err);
         }
 
-        // Optimistic rewards
+        // 2. Economy Rewards (Coins/XP)
         const COINS = 12;
         const XP = 18;
         try {
-            await economy?.award?.({ coins: COINS, xp: XP });
+            await economy?.award?.(COINS, XP);
             rewards?.push?.({
                title: "Lesson complete!",
                message: `+${COINS} coins • +${XP} XP`,
@@ -226,6 +235,7 @@ export default function LessonClient({ lessonId }) {
             });
         } catch {}
 
+        // 3. Stickers / Season Pass
         try {
             addSeasonXp(Math.round(12 * accuracy));
             unlockSticker(`lesson:${String(lesson?.id || lessonId)}`);
