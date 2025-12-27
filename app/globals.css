@@ -39,7 +39,7 @@ body {
 /* IMPORTANT: body is now neutral so marketing/app can own their own background */
 
 body {
-  @apply text-slate-900 antialiased h-full;
+  @apply text-slate-900 antialiased h-full overflow-x-hidden;
   /* Keep the document neutral; route wrappers (marketing-ui/app-ui) own background. */
   background: rgb(var(--skz-bg-0));
 }
@@ -606,4 +606,3 @@ html[data-skz-variant="parent"] .skz-ambient-canvas{
   place-items: center;
   box-shadow: 0 8px 18px rgba(2,6,23,.10);
 }
-

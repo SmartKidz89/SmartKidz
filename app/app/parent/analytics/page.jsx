@@ -21,6 +21,7 @@ export default function ParentAnalyticsPage() {
   const { kids, activeChildId, setActiveChild } = useActiveChild();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Load data when active child changes
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function ParentAnalyticsPage() {
       const { data: attempts } = await supabase
          .from("attempts")
          .select("*")
-         .eq("user_id", activeChildId) // Note: attempts uses user_id (child_id mismatch in some schemas, assuming mapped)
+         .eq("user_id", activeChildId) 
          .order("created_at", { ascending: false })
          .limit(10);
       
@@ -97,30 +98,38 @@ export default function ParentAnalyticsPage() {
         </div>
 
         {/* Custom Dropdown for Child */}
-        <div className="relative group z-20">
-          <button className="flex items-center gap-3 bg-white border border-slate-200 shadow-sm rounded-2xl p-2 pr-4 hover:shadow-md transition-all">
+        <div className="relative z-20">
+          <button 
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-3 bg-white border border-slate-200 shadow-sm rounded-2xl p-2 pr-4 hover:shadow-md transition-all active:scale-95"
+          >
             <AvatarBadge config={activeKid?.avatar_config} size={40} />
             <div className="text-left">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Viewing</div>
               <div className="text-sm font-black text-slate-900 leading-none">{activeKid?.display_name || "Select Child"}</div>
             </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 ml-2" />
+            <ChevronDown className={cn("w-4 h-4 text-slate-400 ml-2 transition-transform", dropdownOpen && "rotate-180")} />
           </button>
           
           {/* Dropdown Menu */}
-          <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block animate-in fade-in zoom-in-95 duration-200">
-             {kids.map(k => (
-               <button 
-                 key={k.id}
-                 onClick={() => setActiveChild(k.id)}
-                 className={`w-full flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors text-left ${k.id === activeChildId ? 'bg-indigo-50/50' : ''}`}
-               >
-                 <AvatarBadge config={k.avatar_config} size={32} />
-                 <span className="font-bold text-slate-700 text-sm">{k.display_name}</span>
-                 {k.id === activeChildId && <CheckCircle2 className="w-4 h-4 text-indigo-500 ml-auto" />}
-               </button>
-             ))}
-          </div>
+          {dropdownOpen && (
+             <>
+               <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
+               <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
+                  {kids.map(k => (
+                    <button 
+                      key={k.id}
+                      onClick={() => { setActiveChild(k.id); setDropdownOpen(false); }}
+                      className={`w-full flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors text-left ${k.id === activeChildId ? 'bg-indigo-50/50' : ''}`}
+                    >
+                      <AvatarBadge config={k.avatar_config} size={32} />
+                      <span className="font-bold text-slate-700 text-sm">{k.display_name}</span>
+                      {k.id === activeChildId && <CheckCircle2 className="w-4 h-4 text-indigo-500 ml-auto" />}
+                    </button>
+                  ))}
+               </div>
+             </>
+          )}
         </div>
       </div>
 
