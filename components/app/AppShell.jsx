@@ -10,77 +10,75 @@ import ParentTopBar from "./ParentTopBar";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
 import RouteBackdrop from "@/components/ui/RouteBackdrop";
+import { Home, Map, Trophy, UserCircle } from "lucide-react";
 
 const HIDE_SHELL_PATHS = ["/app/login","/app/signup","/app/auth","/login","/signup","/auth"];
 
 const TABS = [
-  { label: "Home", href: "/app", icon: "🏠" },
-  { label: "Worlds", href: "/app/worlds", icon: "🗺️" },
-  { label: "Rewards", href: "/app/rewards", icon: "🎁" },
-  { label: "Parent", href: "/app/parent", icon: "👨‍👩‍👧‍👦" },
+  { label: "Home", href: "/app", icon: Home, color: "text-sky-500" },
+  { label: "Worlds", href: "/app/worlds", icon: Map, color: "text-emerald-500" },
+  { label: "Rewards", href: "/app/rewards", icon: Trophy, color: "text-amber-500" },
+  { label: "Parent", href: "/app/parent", icon: UserCircle, color: "text-indigo-500" },
 ];
 
 function BottomNav() {
   const pathname = usePathname();
   const hideShell = !!pathname && HIDE_SHELL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const { play } = useSound();
-
   
-  if (hideShell) {
-    return null;
-  }
+  if (hideShell) return null;
+
   return (
-    <nav className="fixed bottom-4 left-0 right-0 z-40 px-4 pointer-events-none">
-      <div className="mx-auto max-w-lg pointer-events-auto">
-        <div className="skz-clay p-2">
-          <div className="relative grid grid-cols-4 gap-1">
-            {TABS.map((t) => {
-              const active = pathname === t.href || (pathname?.startsWith(t.href + "/") && t.href !== "/app");
-              return (
-                <Link
-                  key={t.href}
-                  href={t.href}
-                  onClick={() => play("click")}
-                  className={cn(
-                    "relative flex flex-col items-center justify-center py-2 rounded-3xl transition-colors duration-200 skz-pressable",
-                    active ? "text-slate-900" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {active && (
-                    <motion.div
-                      layoutId="skzDockActive"
-                      className="absolute inset-0 rounded-3xl bg-white/70 border border-white/70 shadow-e2"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                    />
-                  )}
-                  <motion.span
-                    whileHover={{ scale: 1.08, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 420, damping: 24 }}
-                    className="relative z-10 text-xl mb-0.5 filter drop-shadow-sm"
-                  >
-                    {t.icon}
-                  </motion.span>
-                  <span
-                    className={cn(
-                      "relative z-10 text-[10px] font-black uppercase tracking-wider",
-                      active ? "opacity-100" : "opacity-70"
-                    )}
-                  >
-                    {t.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+    <nav className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none flex justify-center px-4">
+      <div className="pointer-events-auto">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="flex items-center gap-2 p-2 bg-white/90 backdrop-blur-xl border border-white/40 shadow-2xl shadow-slate-900/10 rounded-[2rem] ring-1 ring-black/5"
+        >
+          {TABS.map((t) => {
+            const isActive = pathname === t.href || (pathname?.startsWith(t.href + "/") && t.href !== "/app");
+            const Icon = t.icon;
+            
+            return (
+              <Link
+                key={t.href}
+                href={t.href}
+                onClick={() => play("click")}
+                className="relative group"
+              >
+                <div className={cn(
+                  "relative flex flex-col items-center justify-center w-16 h-16 rounded-[1.5rem] transition-all duration-300",
+                  isActive ? "bg-slate-900 text-white shadow-lg transform -translate-y-2 scale-110" : "hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                )}>
+                   <Icon className={cn("w-6 h-6 transition-colors", isActive ? "text-white" : "group-hover:text-slate-900")} strokeWidth={isActive ? 3 : 2.5} />
+                   
+                   {/* Label (only visible when active or hovered, subtle) */}
+                   <span className={cn(
+                     "text-[9px] font-bold uppercase tracking-wider mt-1 transition-all duration-300 absolute -bottom-6 opacity-0 group-hover:opacity-100 bg-slate-900 text-white px-2 py-0.5 rounded-md shadow-sm pointer-events-none whitespace-nowrap z-20",
+                     isActive && "hidden"
+                   )}>
+                     {t.label}
+                   </span>
+                   
+                   {isActive && (
+                     <motion.div 
+                       layoutId="nav-dot"
+                       className="absolute -bottom-2 w-1 h-1 rounded-full bg-slate-900 opacity-20"
+                     />
+                   )}
+                </div>
+              </Link>
+            );
+          })}
+        </motion.div>
       </div>
     </nav>
   );
 }
 
 export default function AppShell({ children }) {
-  const { focus, toggle: toggleFocus } = useFocusMode();
+  const { focus } = useFocusMode();
   const pathname = usePathname();
   const reduce = useReducedMotion();
 
@@ -105,7 +103,7 @@ export default function AppShell({ children }) {
   };
 
   return (
-    <div className="app-ui min-h-screen pb-28">
+    <div className="app-ui min-h-screen pb-32 selection:bg-brand-primary/30">
       <RouteBackdrop />
       {inKid ? <WelcomeHeader /> : <ParentTopBar />}
 
@@ -124,7 +122,7 @@ export default function AppShell({ children }) {
         </AnimatePresence>
       </main>
 
-      {!inParent && <BottomNav />}
+      {!inParent && !focus && <BottomNav />}
     </div>
   );
 }
