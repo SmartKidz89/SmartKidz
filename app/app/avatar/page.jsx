@@ -1,170 +1,113 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import AvatarPicker from "@/components/avatar/AvatarPicker";
-import ChildAvatar from "@/components/avatar/ChildAvatar";
-import { supabase } from "@/lib/supabase/client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageMotion } from "@/components/ui/PremiumMotion";
-import { useEconomy } from "@/lib/economy/client";
 import { useActiveChild } from "@/hooks/useActiveChild";
-import { SHOP_ITEMS } from "@/lib/economy/items";
-import { useRewards } from "@/components/ui/RewardProvider";
+import { useEconomy } from "@/lib/economy/client";
+import { AVATARS } from "@/lib/avatars";
+import { playUISound, haptic } from "@/components/ui/sound";
+import { Check, Lock, ChevronLeft } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function AvatarPage() {
-  const sp = useSearchParams();
   const router = useRouter();
-  const { activeChild } = useActiveChild();
-  const childId = sp.get("child") || activeChild?.id || activeChild?.child_id;
-  const [loading, setLoading] = useState(true);
-  const [child, setChild] = useState(null);
-  const [value, setValue] = useState({ color: "indigo", face: "smile", hat: "none" });
+  const { activeChild, updateActiveChild } = useActiveChild();
+  const economy = useEconomy(activeChild?.id);
+  
+  const currentKey = activeChild?.avatar_key || "robot";
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  const econ = useEconomy(childId);
-  const { push } = useRewards();
 
-  useEffect(() => {
-    let mounted = true;
-    async function run() {
-      if (!childId) { setLoading(false); return; }
-      const { data, error } = await supabase
-        .from("children")
-        .select("id, display_name, avatar_config")
-        .eq("id", childId)
-        .single();
-      if (!mounted) return;
-      if (error) { setErr(error.message); setLoading(false); return; }
-      setChild(data);
-      const cfg = data?.avatar_config || {};
-      setValue({
-        color: cfg.color || "indigo",
-        face: cfg.face || "smile",
-        hat: cfg.hat || "none",
-      });
-      setLoading(false);
+  // Simple unlock logic: 
+  // First 10 free, next 10 cost 100 coins, last 10 cost 500 coins or Level 5
+  // For MVP, all free or basic level gating logic could go here.
+  // We'll keep it simple: all unlocked for now to let kids have fun immediately.
+
+  async function selectAvatar(key) {
+    if (saving || key === currentKey) return;
+    
+    try {
+      playUISound("tap");
+      haptic("light");
+      setSaving(true);
+      
+      await updateActiveChild({ avatar_key: key });
+      
+      playUISound("success");
+      haptic("success");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
-    run();
-    return () => { mounted = false; };
-  }, [childId]);
-
-  async function save() {
-    if (!childId) return;
-    setSaving(true); setErr("");
-    const { error } = await supabase
-      .from("children")
-      .update({ avatar_config: value })
-      .eq("id", childId);
-    setSaving(false);
-    if (error) { setErr(error.message); return; }
-    router.back();
   }
 
   return (
-    <PageMotion className="max-w-3xl mx-auto">
-      <div className="skz-glass skz-border-animate skz-shine p-6 md:p-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-sm text-slate-500">Personalise</div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Avatar</h1>
-            <div className="mt-1 text-slate-600 text-sm">
-              {child?.display_name ? `For ${child.display_name}` : "Choose a fun look for your journey."}
+    <PageMotion className="max-w-5xl mx-auto pb-24">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 px-4 md:px-0">
+         <div className="flex items-center gap-4 w-full md:w-auto">
+            <button 
+              onClick={() => router.back()}
+              className="h-12 w-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+               <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div>
+               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Pick Your Hero</h1>
+               <p className="text-slate-600 font-medium">Who do you want to be today?</p>
             </div>
-          </div>
-        <div className="flex items-center gap-2">
-          <div className="skz-chip px-3 py-2 text-xs font-black">🪙 {econ?.coins ?? 0}</div>
-          <ChildAvatar config={value} size={72} />
-        </div>
-        </div>
+         </div>
 
-        <div className="mt-6">
-          {loading ? (
-            <div className="skz-card p-6 text-slate-600">Loading…</div>
-          ) : !childId ? (
-            <div className="skz-card p-6 text-slate-600">
-              No child selected. Return and open this page from a child profile.
+         {/* Stats */}
+         <div className="flex items-center gap-3 bg-white p-2 pr-6 rounded-full border border-slate-200 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-amber-400 flex items-center justify-center text-xl shadow-inner">
+               🪙
             </div>
-          ) : (
-            <div className="space-y-6">
-              <AvatarPicker value={value} onChange={setValue} />
-
-              <div className="skz-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold">Avatar Shop</div>
-                    <div className="text-xs text-slate-600 mt-1">Spend coins to unlock special accessories.</div>
-                  </div>
-                  <div className="skz-chip px-3 py-2 text-xs font-black">🪙 {econ?.coins ?? 0}</div>
-                </div>
-
-                <div className="mt-4 grid sm:grid-cols-3 gap-3">
-                  {SHOP_ITEMS.map((item) => {
-                    const owned = (econ?.inventory || []).includes(item.id);
-                    return (
-                      <div key={item.id} className="rounded-2xl border border-white/60 bg-white/60 backdrop-blur p-4 shadow-[0_12px_30px_rgba(0,0,0,0.10)]">
-                        <div className="text-2xl">{item.preview}</div>
-                        <div className="mt-2 font-extrabold text-slate-900 leading-tight">{item.name}</div>
-                        <div className="text-xs text-slate-600 mt-1">{item.rarity.toUpperCase()} • {item.cost} coins</div>
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <button
-                            className={
-                              "skz-btn skz-btn-soft skz-pressable text-xs px-3 py-2 " +
-                              (owned ? "opacity-60 cursor-default" : "")
-                            }
-                            disabled={owned}
-                            data-testid={`shop-buy-${item.id}`}
-                            onClick={async () => {
-
-                              if (owned) return;
-                              const res = await econ.purchase(item.id);
-                              if (res?.error) {
-                                push({ tone: "warning", title: "Couldn’t buy that", message: res.error === "Not enough coins" ? "Complete quests or lessons to earn more coins." : res.error });
-                                return;
-                              }
-                              push({ tone: "levelup", title: "Unlocked!", message: `${item.name} added to your avatar closet.` });
-                            }}
-                          >
-                            {owned ? "Owned" : "Buy"}
-                          </button>
-                          <button
-                            className={
-                              "skz-btn skz-btn-primary skz-pressable text-xs px-3 py-2 " +
-                              (!owned ? "opacity-40 cursor-not-allowed" : "")
-                            }
-                            disabled={!owned}
-                            onClick={() => {
-                              // Apply cosmetic immediately
-                              setValue((v) => ({ ...v, ...item.configPatch }));
-                              push({ tone: "success", title: "Applied", message: `Now wearing: ${item.name}` });
-                            }}
-                          >
-                            Wear
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+            <div>
+               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance</div>
+               <div className="text-lg font-black text-slate-900 leading-none">{economy?.coins || 0}</div>
             </div>
-          )}
-        </div>
-
-        {err ? <div className="mt-4 text-sm text-rose-600">{err}</div> : null}
-
-        <div className="mt-6 flex gap-3 justify-end">
-          <button className="skz-chip px-4 py-3 skz-press" onClick={() => router.back()} data-testid="avatar-cancel">
-            Cancel
-          </button>
-          <button
-            className="skz-glass px-5 py-3 skz-press"
-            onClick={save} data-testid="avatar-save"
-            disabled={saving || !childId}
-          >
-            {saving ? "Saving…" : "Save Avatar"}
-          </button>
-        </div>
+         </div>
       </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 px-2 md:px-0">
+         {AVATARS.map((a, i) => {
+            const isSelected = currentKey === a.key;
+            
+            return (
+               <motion.button
+                 key={a.key}
+                 initial={{ opacity: 0, scale: 0.8 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 transition={{ delay: i * 0.02 }}
+                 onClick={() => selectAvatar(a.key)}
+                 className={`group relative aspect-[3/4] rounded-[2rem] flex flex-col items-center justify-center gap-2 border-2 transition-all duration-300 ${
+                   isSelected 
+                     ? "bg-slate-900 border-slate-900 scale-105 shadow-xl z-10" 
+                     : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1"
+                 }`}
+               >
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center text-5xl shadow-sm transition-transform group-hover:scale-110 ${a.bg || "bg-slate-50"}`}>
+                     {a.emoji}
+                  </div>
+                  
+                  <div className={`text-sm font-bold ${isSelected ? "text-white" : "text-slate-600 group-hover:text-slate-900"}`}>
+                     {a.name}
+                  </div>
+
+                  {isSelected && (
+                     <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-emerald-500 border-4 border-slate-100 flex items-center justify-center text-white shadow-md">
+                        <Check className="w-4 h-4 stroke-[4]" />
+                     </div>
+                  )}
+               </motion.button>
+            );
+         })}
+      </div>
+
     </PageMotion>
   );
 }
