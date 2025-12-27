@@ -1,3 +1,4 @@
+MATH) to ensure database queries work correctly">
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,9 +7,27 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold, BentoGrid, BentoCard } from "@/components/ui/PageScaffold";
 
+// Map URL slugs (from data/worlds.js) to Database Subject IDs
+const SUBJECT_MAP = {
+  math: "MATH",
+  maths: "MATH",
+  reading: "ENG",
+  english: "ENG",
+  science: "SCI",
+  hass: "HASS",
+  hpe: "HPE",
+  arts: "ARTS",
+  tech: "TECH",
+  technologies: "TECH",
+  lang: "LANG",
+  languages: "LANG"
+};
+
 export default function SubjectLessonsPage() {
   const params = useParams();
-  const worldId = decodeURIComponent(params?.worldId || "");
+  const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
+  // Use the mapped ID if available, otherwise fall back to the raw ID (e.g. for exact matches)
+  const worldId = SUBJECT_MAP[rawId] || (rawId.toUpperCase());
 
   const [subject, setSubject] = useState(null);
   const [lessons, setLessons] = useState([]);
@@ -22,30 +41,36 @@ export default function SubjectLessonsPage() {
       setLoading(true);
       setError("");
 
-      // Query lessons table with correct schema columns: year_level, topic, etc.
-      // Removed 'status' and 'order_index' filters/sorts as they don't exist in the current schema.
-      const [{ data: subjectData, error: subjectError }, { data: lessonData, error: lessonError }] =
-        await Promise.all([
-          supabase.from("subjects").select("id,name").eq("id", worldId).maybeSingle(),
-          supabase
-            .from("lessons")
-            .select("id,title,year_level,topic,subject_id")
-            .eq("subject_id", worldId)
-            .order("year_level", { ascending: true })
-            .order("title", { ascending: true }),
-        ]);
+      // 1. Fetch Subject Details
+      const { data: subjectData, error: subjectError } = await supabase
+        .from("subjects")
+        .select("id,name")
+        .eq("id", worldId)
+        .maybeSingle();
 
       if (!mounted) return;
 
       if (subjectError) {
-        setError(subjectError.message || "Failed to load subject.");
-        setSubject(null);
+        console.error("Subject load error:", subjectError);
+        setError("Could not load subject details.");
       } else {
-        setSubject(subjectData || null);
+        setSubject(subjectData || { name: rawId.charAt(0).toUpperCase() + rawId.slice(1) });
       }
 
+      // 2. Fetch Lessons
+      // We perform this even if subject lookup fails, in case the ID is valid for lessons but missing in subjects table
+      const { data: lessonData, error: lessonError } = await supabase
+        .from("lessons")
+        .select("id,title,year_level,topic,subject_id")
+        .eq("subject_id", worldId)
+        .order("year_level", { ascending: true })
+        .order("title", { ascending: true });
+
+      if (!mounted) return;
+
       if (lessonError) {
-        setError((prev) => prev || lessonError.message || "Failed to load lessons.");
+        console.error("Lesson load error:", lessonError);
+        setError("Could not load lessons.");
         setLessons([]);
       } else {
         setLessons(Array.isArray(lessonData) ? lessonData : []);
@@ -57,13 +82,13 @@ export default function SubjectLessonsPage() {
     if (worldId) load();
     else {
       setLoading(false);
-      setError("Missing subject id.");
+      setError("Missing subject ID.");
     }
 
     return () => {
       mounted = false;
     };
-  }, [worldId]);
+  }, [worldId, rawId]);
 
   return (
     <PageScaffold
@@ -82,7 +107,7 @@ export default function SubjectLessonsPage() {
         <div className="p-6 text-sm text-red-600">{error}</div>
       ) : lessons.length === 0 ? (
         <div className="p-6 text-sm text-muted-foreground">
-          No lessons found for this subject.
+          No lessons found for {subject?.name || worldId}.
         </div>
       ) : (
         <BentoGrid className="mt-2">
