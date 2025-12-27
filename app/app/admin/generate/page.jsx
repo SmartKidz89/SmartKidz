@@ -82,6 +82,7 @@ const SUBJECTS = {
 function escapeCsv(field) {
   if (field == null) return '';
   const s = String(field);
+  // CSV rules: if it contains quotes, commas, or newlines, wrap in quotes and double-escape internal quotes.
   if (s.includes('"') || s.includes(',') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }
@@ -153,11 +154,13 @@ export default function GeneratePage() {
     // Use setTimeout to allow UI to update
     setTimeout(async () => {
       const rows = [];
-      rows.push(['id', 'year_level', 'subject_id', 'title', 'topic', 'curriculum_tags', 'content_json'].join(','));
+      // CSV Header aligned with Supabase schema
+      rows.push(['id', 'year_level', 'subject_id', 'title', 'topic', 'curriculum_tags', 'content_json', 'created_at', 'updated_at'].join(','));
 
       const subjects = Object.keys(SUBJECTS);
       const totalSteps = subjects.length * YEARS.length * LEVELS.length;
       let currentStep = 0;
+      const now = new Date().toISOString();
 
       for (const subjId of subjects) {
         const subjectData = SUBJECTS[subjId];
@@ -186,16 +189,16 @@ export default function GeneratePage() {
                 subjId,
                 escapeCsv(title),
                 escapeCsv(topic),
-                `"{${tag}}"`, 
-                escapeCsv(JSON.stringify(content))
+                `"{${tag}}"`, // Postgres array literal format "{item1,item2}" quoted for CSV
+                escapeCsv(JSON.stringify(content)),
+                now, // created_at
+                now  // updated_at
               ].join(','));
             }
 
             currentStep++;
-            // Update progress every few steps to avoid too many re-renders
             if (currentStep % 5 === 0) setProgress(Math.round((currentStep / totalSteps) * 100));
             
-            // Yield to main thread briefly
             await new Promise(r => setTimeout(r, 0));
           }
         }
@@ -226,9 +229,8 @@ export default function GeneratePage() {
       <Card className="p-8 space-y-8">
         
         <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 text-sm text-slate-600 space-y-2">
-          <p><strong className="text-slate-900">What this does:</strong> Generates a CSV file containing ~14,400 lessons covering all subjects, years 1-6, and difficulty levels.</p>
-          <p><strong className="text-slate-900">Format:</strong> Includes title, topic, curriculum tags, and rich JSON content (15-min duration structure).</p>
-          <p><strong className="text-slate-900">Next Step:</strong> Upload the downloaded CSV to your Supabase <code>lessons</code> table.</p>
+          <p><strong className="text-slate-900">What this does:</strong> Generates a massive CSV matching your database schema (including `content_json` and timestamps).</p>
+          <p><strong className="text-slate-900">Format:</strong> Ready for direct import into Supabase `lessons` table.</p>
         </div>
 
         {loading && (
@@ -243,7 +245,7 @@ export default function GeneratePage() {
                  style={{ width: `${progress}%` }} 
                />
              </div>
-             <p className="text-center text-xs text-slate-400">This may take a minute. Please don't close the tab.</p>
+             <p className="text-center text-xs text-slate-400">This may take a minute. The browser is building a 30MB+ file.</p>
           </div>
         )}
 
@@ -268,7 +270,9 @@ export default function GeneratePage() {
              </a>
 
              <div className="text-xs text-slate-400">
-               Filename: smartkidz_comprehensive_lessons.csv
+               1. Go to Supabase Table Editor → 'lessons'<br/>
+               2. Insert → Import Data from CSV<br/>
+               3. Select this file
              </div>
           </div>
         )}
