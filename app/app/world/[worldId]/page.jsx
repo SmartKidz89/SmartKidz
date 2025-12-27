@@ -157,7 +157,7 @@ export default function SubjectLessonsPage() {
           .select("id,title,year_level,topic,subject_id,country")
           .in("subject_id", targetIds)
           .eq("year_level", selectedYear) 
-          .order("title", { ascending: true })
+          .order("id", { ascending: true }) // CHANGED: Order by ID to respect sequence
           .limit(400);
 
         if (debouncedSearch) {
@@ -180,13 +180,12 @@ export default function SubjectLessonsPage() {
            console.log("No country-specific lessons found. Trying global fallback...");
            
            // Re-build query without .eq('country')
-           // Note: We recreate the query object because Supabase query builders are mutable in some contexts or hard to 'undo'
            const fallbackQuery = supabase
              .from("lessons")
              .select("id,title,year_level,topic,subject_id,country")
              .in("subject_id", targetIds)
              .eq("year_level", selectedYear)
-             .order("title", { ascending: true })
+             .order("id", { ascending: true }) // CHANGED: Order by ID
              .limit(400);
 
             if (debouncedSearch) fallbackQuery.ilike("title", `%${debouncedSearch}%`);
@@ -197,7 +196,6 @@ export default function SubjectLessonsPage() {
            // Prefer INT or NULL if available
            if (fallbackData && fallbackData.length > 0) {
              finalLessons = fallbackData;
-             // Optional: warn the user they are seeing fallback content?
            }
         }
 
@@ -240,6 +238,8 @@ export default function SubjectLessonsPage() {
       if (!byTopic[t]) byTopic[t] = [];
       byTopic[t].push(l);
     }
+    
+    // Sort topics alphabetically, but lessons inside are already ID-sorted from fetch
     return Object.keys(byTopic).sort().map(t => ({
       id: t,
       title: t,

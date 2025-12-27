@@ -34,7 +34,7 @@ export default async function SubjectWorldPage({ params }) {
     .from("lessons")
     .select("id,title,topic,subject_id")
     .eq("subject_id", subjectId)
-    .order("title", { ascending: true });
+    .order("id", { ascending: true }); // CHANGED: Order by ID to respect sequence
 
   if (lessonsError) {
     return (
