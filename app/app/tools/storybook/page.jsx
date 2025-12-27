@@ -1,21 +1,39 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Loader2, BookOpen, Download, Wand2, ChevronLeft, ChevronRight, PenTool } from "lucide-react";
+import { Loader2, Download, Wand2, ChevronLeft, ChevronRight, PenTool, Sparkles, Book } from "lucide-react";
 import Link from "next/link";
 import jsPDF from "jspdf";
 
-const THEMES = [
-  "A shy dragon who opens a bakery for clouds",
-  "Two astronauts solving a mystery on a purple planet",
-  "A detective cat looking for the missing golden yarn",
-  "A tree that grows toys instead of fruit",
-  "The robot who wanted to learn how to paint",
-  "An underwater school for mermaids and dolphins",
-  "The day gravity stopped working at the playground"
+const STORY_TEMPLATES = [
+  {
+    title: "The Cloud Bakery",
+    prompt: "Write a story about a shy dragon named Puff who opens a bakery in the clouds. He bakes bread made of lightning and cakes made of rainbows. One day, the sun gets hungry...",
+    icon: "🐉"
+  },
+  {
+    title: "Purple Planet Mystery",
+    prompt: "Write a mystery story about two kid astronauts, Leo and Mia, who land on a purple planet. They find giant footprints but no people. Who lives there? And where did they go?",
+    icon: "🚀"
+  },
+  {
+    title: "The Golden Yarn",
+    prompt: "A detective cat named Whiskers is looking for the missing Golden Yarn. He asks a wise owl, a busy mouse, and a grumpy dog for clues. It turns out the yarn was...",
+    icon: "🧶"
+  },
+  {
+    title: "Toy Tree",
+    prompt: "Imagine a tree that grows toys instead of fruit. Write a story about a girl who finds the tree but realizes that the toys only ripen when she shares them with friends.",
+    icon: "🌳"
+  },
+  {
+    title: "Robot Artist",
+    prompt: "A robot named Artie wants to learn how to paint, but he only has grey paint. He goes on a journey to find colours in nature—red from a rose, blue from the sea...",
+    icon: "🎨"
+  }
 ];
 
 export default function StorybookGenerator() {
@@ -23,7 +41,7 @@ export default function StorybookGenerator() {
   const [pageCount, setPageCount] = useState(5);
   const [loading, setLoading] = useState(false);
   const [story, setStory] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(-1); // -1 = Cover
 
   async function handleGenerate(e) {
     e?.preventDefault();
@@ -31,7 +49,7 @@ export default function StorybookGenerator() {
 
     setLoading(true);
     setStory(null);
-    setCurrentPage(0);
+    setCurrentPage(-1);
 
     try {
       const res = await fetch("/api/story-generator", {
@@ -70,22 +88,12 @@ export default function StorybookGenerator() {
     // Story Pages
     story.pages.forEach((page, i) => {
       doc.addPage();
-      
-      // Page Number
       doc.setFontSize(10);
       doc.text(`Page ${i + 1}`, pageWidth / 2, pageHeight - 10, { align: "center" });
-
-      // Story Text
       doc.setFontSize(16);
       doc.setFont("helvetica", "normal");
-      
-      // Basic text wrapping
       const splitText = doc.splitTextToSize(page.text, pageWidth - (margin * 2));
-      
-      // Center text vertically-ish
       doc.text(splitText, margin, pageHeight / 2);
-      
-      // Optional: Add prompt note for illustration
       doc.setFontSize(10);
       doc.setTextColor(150);
       doc.text(`[Illustration idea: ${page.imagePrompt}]`, pageWidth / 2, pageHeight - 30, { align: "center" });
@@ -105,11 +113,11 @@ export default function StorybookGenerator() {
         </Link>
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Magic Storybook</h1>
-          <p className="text-slate-600 font-medium">Turn your ideas into a real book.</p>
+          <p className="text-slate-600 font-medium">Turn ideas into a real book.</p>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[400px_1fr] gap-8 items-start">
+      <div className="grid lg:grid-cols-[380px_1fr] gap-8 items-start">
         
         {/* Controls */}
         <div className="space-y-6">
@@ -117,33 +125,34 @@ export default function StorybookGenerator() {
             <form onSubmit={handleGenerate} className="space-y-6">
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  Story Idea
+                  Your Story Idea
                 </label>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="e.g. A cat who becomes a chef..."
-                  className="w-full h-32 rounded-2xl border-2 border-slate-200 p-4 text-lg font-medium focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 outline-none transition-all resize-none"
+                  className="w-full h-32 rounded-2xl border-2 border-slate-200 p-4 text-base font-medium focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 outline-none transition-all resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  Length: {pageCount} Pages
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Book Length
+                  </label>
+                  <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-md">
+                    {pageCount} Pages
+                  </span>
+                </div>
                 <input 
                   type="range" 
-                  min="5" 
-                  max="20" 
-                  step="5" 
+                  min="3" 
+                  max="10" 
+                  step="1" 
                   value={pageCount} 
                   onChange={(e) => setPageCount(Number(e.target.value))}
                   className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
                 />
-                <div className="flex justify-between text-xs font-bold text-slate-400 mt-2">
-                  <span>Short (5)</span>
-                  <span>Long (20)</span>
-                </div>
               </div>
 
               <Button 
@@ -160,15 +169,23 @@ export default function StorybookGenerator() {
             </form>
           </Card>
 
-          <div className="space-y-2">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2">Inspiration</div>
-            {THEMES.map((t) => (
+          <div className="space-y-3">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 flex items-center gap-2">
+              <Sparkles className="w-3 h-3" /> Inspiration Templates
+            </div>
+            {STORY_TEMPLATES.map((t) => (
               <button
-                key={t}
-                onClick={() => setPrompt(t)}
-                className="w-full text-left p-3 rounded-xl text-sm font-bold text-slate-600 bg-white border border-slate-100 hover:border-slate-300 hover:shadow-md transition-all"
+                key={t.title}
+                onClick={() => setPrompt(t.prompt)}
+                className="w-full text-left p-3 rounded-2xl bg-white border border-slate-100 hover:border-brand-primary/30 hover:shadow-md transition-all group"
               >
-                {t}
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl group-hover:scale-110 transition-transform">{t.icon}</div>
+                  <div>
+                    <div className="font-bold text-slate-800 text-sm">{t.title}</div>
+                    <div className="text-xs text-slate-500 line-clamp-1">{t.prompt}</div>
+                  </div>
+                </div>
               </button>
             ))}
           </div>
@@ -182,49 +199,61 @@ export default function StorybookGenerator() {
                 <PenTool className="w-10 h-10 text-slate-300" />
               </div>
               <h3 className="text-xl font-black text-slate-400">Waiting for inspiration...</h3>
+              <p className="text-slate-500 font-medium mt-2 max-w-xs">
+                Pick a template or write your own idea to start.
+              </p>
             </div>
           )}
 
           {loading && (
-            <div className="flex-1 rounded-[3rem] bg-white border border-slate-100 shadow-2xl p-12 flex flex-col items-center justify-center text-center animate-pulse">
-              <div className="w-20 h-20 rounded-full bg-indigo-100 mb-6" />
-              <div className="w-64 h-8 bg-slate-200 rounded-full mb-4" />
-              <div className="w-48 h-4 bg-slate-100 rounded-full" />
+            <div className="flex-1 rounded-[3rem] bg-white border border-slate-100 shadow-2xl p-12 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 rounded-full bg-indigo-50 mb-6 flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+              </div>
+              <div className="text-xl font-bold text-slate-800">Writing your book...</div>
+              <div className="text-slate-500 mt-2">Imagining characters and scenes.</div>
             </div>
           )}
 
           {story && (
             <div className="flex-1 flex flex-col">
               {/* Book View */}
-              <div className="flex-1 bg-white rounded-r-[3rem] rounded-l-md border-r-[12px] border-b-[12px] border-slate-200 shadow-2xl relative overflow-hidden flex flex-col">
-                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-slate-300 to-transparent opacity-20" />
+              <div className="flex-1 bg-white rounded-r-[2rem] rounded-l-lg border-r-[16px] border-b-[16px] border-slate-200 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px]">
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-300/50 to-transparent z-10 pointer-events-none" />
                 
-                <div className="flex-1 p-8 sm:p-16 flex flex-col justify-center text-center">
+                <div className="flex-1 p-8 sm:p-16 flex flex-col justify-center text-center relative z-0">
                   {currentPage === -1 ? (
                      // Cover
-                     <div className="space-y-6">
-                       <h2 className="text-4xl sm:text-5xl font-black text-slate-900 leading-tight">
-                         {story.title}
-                       </h2>
-                       <div className="w-32 h-1 bg-slate-900 mx-auto" />
-                       <p className="text-lg text-slate-500 font-bold uppercase tracking-widest">
-                         A Story by You
+                     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                       <div className="w-24 h-24 bg-slate-900 rounded-full mx-auto flex items-center justify-center text-5xl shadow-lg text-white">
+                         <Book />
+                       </div>
+                       <div>
+                         <h2 className="text-4xl sm:text-5xl font-black text-slate-900 leading-tight mb-4">
+                           {story.title}
+                         </h2>
+                         <div className="w-20 h-1.5 bg-brand-primary mx-auto rounded-full" />
+                       </div>
+                       <p className="text-sm font-bold uppercase tracking-widest text-slate-400">
+                         A SmartKidz Original
                        </p>
                      </div>
                   ) : (
                      // Page
-                     <div className="max-w-2xl mx-auto space-y-8">
-                        <div className="aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 text-sm font-medium p-4">
-                           {story.pages[currentPage].imagePrompt}
+                     <div className="max-w-2xl mx-auto space-y-8 animate-in slide-in-from-right-8 duration-300 key={currentPage}">
+                        <div className="aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 p-6 gap-2">
+                           <span className="text-2xl">🖼️</span>
+                           <span className="text-xs font-bold uppercase tracking-wide">Illustration Prompt</span>
+                           <span className="text-center text-sm italic opacity-70 px-4">{story.pages[currentPage].imagePrompt}</span>
                         </div>
-                        <p className="text-xl sm:text-2xl font-medium text-slate-800 leading-relaxed">
+                        <p className="text-xl sm:text-2xl font-medium text-slate-800 leading-relaxed font-serif">
                           {story.pages[currentPage].text}
                         </p>
                      </div>
                   )}
                 </div>
 
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between z-20">
                   <div className="text-xs font-bold text-slate-400 uppercase">
                     {currentPage === -1 ? "Cover" : `Page ${currentPage + 1} of ${story.pages.length}`}
                   </div>
@@ -233,16 +262,16 @@ export default function StorybookGenerator() {
                     <button
                       onClick={() => setCurrentPage(c => Math.max(-1, c - 1))}
                       disabled={currentPage === -1}
-                      className="p-2 rounded-full hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                      className="p-3 rounded-full hover:bg-slate-200 disabled:opacity-30 transition-colors bg-white shadow-sm border border-slate-200"
                     >
-                      <ChevronLeft className="w-6 h-6" />
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => setCurrentPage(c => Math.min(story.pages.length - 1, c + 1))}
                       disabled={currentPage === story.pages.length - 1}
-                      className="p-2 rounded-full hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                      className="p-3 rounded-full hover:bg-slate-200 disabled:opacity-30 transition-colors bg-white shadow-sm border border-slate-200"
                     >
-                      <ChevronRight className="w-6 h-6" />
+                      <ChevronRight className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -250,14 +279,9 @@ export default function StorybookGenerator() {
 
               {/* Actions */}
               <div className="mt-8 flex justify-center gap-4">
-                <Button onClick={downloadPDF} className="shadow-xl" size="lg">
-                  <Download className="w-5 h-5 mr-2" /> Download PDF
+                <Button onClick={downloadPDF} className="shadow-xl px-8" size="lg">
+                  <Download className="w-5 h-5 mr-2" /> Download Book (PDF)
                 </Button>
-                <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-xs font-bold text-slate-500">
-                  <span className="opacity-50">EPUB</span>
-                  <span className="opacity-50">MOBI</span>
-                  <span className="text-brand-primary">Coming Soon</span>
-                </div>
               </div>
             </div>
           )}

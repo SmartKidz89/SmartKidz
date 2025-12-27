@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { motion } from "framer-motion";
-import { Star, Trophy, Grid } from "lucide-react";
+import { Trophy } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +16,7 @@ const STICKER_META = {
   maths: { icon: "➗", bg: "bg-sky-100", ring: "ring-sky-300" },
   science: { icon: "🧪", bg: "bg-emerald-100", ring: "ring-emerald-300" },
   writing: { icon: "✍️", bg: "bg-amber-100", ring: "ring-amber-300" },
+  lesson: { icon: "🎓", bg: "bg-fuchsia-100", ring: "ring-fuchsia-300" },
 };
 
 function getStickerStyle(id) {
@@ -23,6 +24,7 @@ function getStickerStyle(id) {
   if (id.includes("math")) return STICKER_META.maths;
   if (id.includes("science")) return STICKER_META.science;
   if (id.includes("writing")) return STICKER_META.writing;
+  if (id.includes("lesson")) return STICKER_META.lesson;
   return STICKER_META.default;
 }
 
@@ -40,6 +42,20 @@ function loadLocalStickers() {
   } catch {
     return [];
   }
+}
+
+// Helper to seed data for testing
+function seedDemoStickers() {
+  if (typeof window === "undefined") return;
+  const demo = {
+    stickers: {
+      "math:lesson:1": { unlockedAt: Date.now() },
+      "reading:story:2": { unlockedAt: Date.now() - 86400000 },
+      "science:lab:1": { unlockedAt: Date.now() - 172800000 },
+    }
+  };
+  window.localStorage.setItem("skz_collection_v1", JSON.stringify(demo));
+  window.location.reload();
 }
 
 export default function CollectionPage() {
@@ -101,9 +117,14 @@ export default function CollectionPage() {
            <p className="text-slate-500 font-medium mb-6 max-w-sm mx-auto">
              Complete your first lesson to earn a sticker!
            </p>
-           <Link href="/app/worlds">
-             <Button size="lg" className="shadow-lg">Start a Lesson</Button>
-           </Link>
+           <div className="flex justify-center gap-3">
+             <Link href="/app/worlds">
+               <Button size="lg" className="shadow-lg">Start a Lesson</Button>
+             </Link>
+             <button onClick={seedDemoStickers} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600">
+               (Demo Data)
+             </button>
+           </div>
         </Card>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
@@ -130,7 +151,7 @@ export default function CollectionPage() {
                   <div className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">
                     {new Date(s.unlockedAt).toLocaleDateString()}
                   </div>
-                  <div className="font-bold text-slate-900 leading-tight capitalize">
+                  <div className="font-bold text-slate-900 leading-tight capitalize text-sm">
                     {label}
                   </div>
                 </div>
