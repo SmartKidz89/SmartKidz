@@ -21,7 +21,10 @@ const FALLBACK_DATA = {
       animal: "Kangaroo & Koala",
       sport: "Cricket and AFL (Footy)",
       currency: "Australian Dollar ($)",
-      climate: "Mostly sunny and warm, but it can get very hot in the middle!"
+      climate: "Mostly sunny and warm, but it can get very hot in the middle!",
+      history: "Australia is home to the oldest continuous living culture in the world, the Aboriginal and Torres Strait Islander peoples.",
+      festival: "Australia Day in summer.",
+      nature: "Giant red deserts in the middle and beautiful beaches on the coast."
     }
   },
   US: { 
@@ -41,7 +44,10 @@ const FALLBACK_DATA = {
       animal: "Bald Eagle",
       sport: "American Football and Baseball",
       currency: "US Dollar ($)",
-      climate: "Very mixed! Cold in the north, hot in the south."
+      climate: "Very mixed! Cold in the north, hot in the south.",
+      history: "In 1776, the US declared independence to become its own country.",
+      festival: "Fourth of July (Independence Day) with fireworks.",
+      nature: "Huge canyons like the Grand Canyon and tall redwood forests."
     }
   },
   GB: { 
@@ -61,7 +67,10 @@ const FALLBACK_DATA = {
       animal: "Lion (symbol) & Bulldog",
       sport: "Football (Soccer)",
       currency: "Pound Sterling (£)",
-      climate: "Often cloudy and rainy, but mild."
+      climate: "Often cloudy and rainy, but mild.",
+      history: "Kings and Queens have ruled here for over 1,000 years!",
+      festival: "Bonfire Night with fireworks in November.",
+      nature: "Green rolling hills and rocky coastlines."
     }
   },
   JP: { 
@@ -81,7 +90,10 @@ const FALLBACK_DATA = {
       animal: "Snow Monkey",
       sport: "Sumo Wrestling and Baseball",
       currency: "Yen (¥)",
-      climate: "Four seasons with beautiful cherry blossoms in spring."
+      climate: "Four seasons with beautiful cherry blossoms in spring.",
+      history: "Samurai warriors used to protect the land long ago.",
+      festival: "Cherry Blossom Festival (Hanami).",
+      nature: "Many islands with volcanoes and hot springs."
     }
   },
   FR: { 
@@ -101,7 +113,10 @@ const FALLBACK_DATA = {
       animal: "Rooster",
       sport: "Football (Soccer)",
       currency: "Euro (€)",
-      climate: "Mild summers and cool winters."
+      climate: "Mild summers and cool winters.",
+      history: "Famous for kings like Louis XIV who built huge palaces.",
+      festival: "Bastille Day in July.",
+      nature: "Snowy Alps mountains and sunny beaches in the south."
     }
   },
   BR: { 
@@ -121,7 +136,10 @@ const FALLBACK_DATA = {
       animal: "Jaguar",
       sport: "Football (Soccer)",
       currency: "Real (R$)",
-      climate: "Tropical and warm most of the year."
+      climate: "Tropical and warm most of the year.",
+      history: "Explorers arrived by ship 500 years ago.",
+      festival: "Carnival - a huge party with parades and dancing!",
+      nature: "Thick rainforests and the massive Amazon River."
     }
   },
   CN: { 
@@ -141,7 +159,10 @@ const FALLBACK_DATA = {
       animal: "Giant Panda",
       sport: "Table Tennis",
       currency: "Yuan Renminbi (¥)",
-      climate: "Very diverse - cold in the north, tropical in the south."
+      climate: "Very diverse - cold in the north, tropical in the south.",
+      history: "Invented paper, fireworks, and the compass long ago.",
+      festival: "Chinese New Year with dragon dances.",
+      nature: "Misty mountains and bamboo forests."
     }
   },
   IN: { 
@@ -161,7 +182,10 @@ const FALLBACK_DATA = {
       animal: "Bengal Tiger",
       sport: "Cricket",
       currency: "Indian Rupee (₹)",
-      climate: "Hot and tropical, with a big rainy season called Monsoon."
+      climate: "Hot and tropical, with a big rainy season called Monsoon.",
+      history: "One of the oldest civilizations in the world began here.",
+      festival: "Diwali - the festival of lights.",
+      nature: "Jungles with tigers and elephants!"
     }
   },
 };
@@ -174,7 +198,6 @@ export async function GET(req) {
   if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 });
 
   let country = null;
-  let isFallback = false;
 
   // 1. Try Fetching from REST Countries
   try {
@@ -198,7 +221,6 @@ export async function GET(req) {
   if (FALLBACK_DATA[code]) {
     if (!country) {
       country = FALLBACK_DATA[code];
-      isFallback = true;
     } else {
       // We have real API data, but let's augment it with our curated rich data if available
       // This ensures "Hello" and "Fun Fact" are high quality for popular countries
@@ -232,7 +254,10 @@ export async function GET(req) {
     animal: "Local wildlife",
     sport: "Football",
     currency: "Money",
-    climate: "Varies by season."
+    climate: "Varies by season.",
+    history: "This country has a long and interesting past.",
+    festival: "Local celebrations.",
+    nature: "Beautiful landscapes."
   };
 
   // Only use AI if we don't have curated rich data
@@ -249,6 +274,9 @@ export async function GET(req) {
       - "sport": most popular sport
       - "currency": currency name
       - "climate": simple description of weather
+      - "history": one sentence history fact for kids
+      - "festival": a famous celebration
+      - "nature": what the land looks like
       
       Keep it G-rated, fun, and educational.`;
 
@@ -262,7 +290,7 @@ export async function GET(req) {
           model: "gpt-3.5-turbo",
           messages: [{ role: "user", content: prompt }],
           temperature: 0.5,
-          max_tokens: 350
+          max_tokens: 450
         })
       });
 

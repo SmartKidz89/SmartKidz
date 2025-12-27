@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { 
   MapPin, Utensils, Landmark, Volume2, ArrowLeft, 
-  Trophy, Banknote, Sun, Sparkles 
+  Trophy, Banknote, Sun, Sparkles, BookOpen, PartyPopper, Mountain
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +16,8 @@ export default function CountryProfilePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [speaking, setSpeaking] = useState(false);
+  const speechRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -31,14 +33,45 @@ export default function CountryProfilePage() {
       }
     }
     load();
+    
+    // Cleanup speech on unmount
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
   }, [code]);
 
-  function speak(text) {
+  function speakWord(text) {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 0.9;
     window.speechSynthesis.speak(u);
+  }
+
+  function readPage() {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+
+    setSpeaking(true);
+    const text = `
+      Welcome to ${data.name}. 
+      The capital city is ${data.capital}.
+      Did you know? ${data.funFact}
+      Famous food includes ${data.food}.
+      A famous place is ${data.landmark}.
+      In ${data.name}, people say ${data.hello}.
+    `;
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9;
+    u.onend = () => setSpeaking(false);
+    window.speechSynthesis.speak(u);
+    speechRef.current = u;
   }
 
   if (loading) {
@@ -71,10 +104,23 @@ export default function CountryProfilePage() {
     <PageMotion className="max-w-5xl mx-auto pb-24">
       
       {/* Navigation */}
-      <div className="fixed top-6 left-6 z-50">
+      <div className="fixed top-6 left-6 z-50 flex gap-3">
         <Link href="/app/tools/world-explorer" className="inline-flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-md px-5 py-2.5 text-sm font-bold text-slate-700 shadow-lg hover:bg-white transition-all ring-1 ring-black/5 hover:scale-105 active:scale-95">
           <ArrowLeft className="w-4 h-4" /> Back to Map
         </Link>
+        
+        <button 
+          onClick={readPage}
+          className={`inline-flex items-center gap-2 rounded-full backdrop-blur-md px-5 py-2.5 text-sm font-bold shadow-lg transition-all ring-1 ring-black/5 active:scale-95 ${
+            speaking ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-white/90 text-slate-700 hover:bg-white"
+          }`}
+        >
+          {speaking ? (
+            <><Volume2 className="w-4 h-4 animate-bounce" /> Reading...</>
+          ) : (
+            <><Volume2 className="w-4 h-4" /> Read to Me</>
+          )}
+        </button>
       </div>
 
       {/* Hero Header */}
@@ -125,7 +171,7 @@ export default function CountryProfilePage() {
               Try saying hello! Tap the button to hear how it sounds.
             </p>
             <button 
-              onClick={() => speak(data.hello)}
+              onClick={() => speakWord(data.hello)}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-indigo-700 font-bold hover:bg-indigo-50 hover:scale-105 active:scale-95 transition-all shadow-lg"
             >
               <Volume2 className="w-5 h-5" /> Listen
@@ -170,6 +216,45 @@ export default function CountryProfilePage() {
             <div className="text-xl font-black text-slate-900 mb-1">{data.landmark}</div>
             <div className="text-sm text-slate-600 leading-relaxed font-medium">
               Iconic place to visit.
+            </div>
+          </div>
+        </div>
+
+        {/* History */}
+        <div className="skz-card p-6 bg-white border-slate-200 flex gap-4 items-start hover:shadow-lg transition-shadow">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+            <BookOpen className="w-7 h-7" />
+          </div>
+          <div>
+            <div className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">History</div>
+            <div className="text-sm font-bold text-slate-900 leading-relaxed">
+              {data.history}
+            </div>
+          </div>
+        </div>
+
+        {/* Nature */}
+        <div className="skz-card p-6 bg-white border-slate-200 flex gap-4 items-start hover:shadow-lg transition-shadow">
+          <div className="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <Mountain className="w-7 h-7" />
+          </div>
+          <div>
+            <div className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">Nature</div>
+            <div className="text-sm font-bold text-slate-900 leading-relaxed">
+              {data.nature}
+            </div>
+          </div>
+        </div>
+
+        {/* Festival */}
+        <div className="skz-card p-6 bg-white border-slate-200 flex gap-4 items-start hover:shadow-lg transition-shadow">
+          <div className="w-14 h-14 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center shrink-0">
+            <PartyPopper className="w-7 h-7" />
+          </div>
+          <div>
+            <div className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">Celebration</div>
+            <div className="text-sm font-bold text-slate-900 leading-relaxed">
+              {data.festival}
             </div>
           </div>
         </div>
