@@ -6,12 +6,12 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useEconomy } from "@/lib/economy/client";
 import { useFocusMode } from "@/components/ui/FocusModeProvider";
-import AvatarPicker from "./AvatarPicker";
+import AvatarBadge from "./AvatarBadge"; // Switched to Badge for header usage
 import { 
   LayoutGrid, Map, Trophy, Settings, LogOut, 
   Sparkles, Eye, EyeOff, Menu, X, ChevronDown
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,7 +23,7 @@ const NAV_ITEMS = [
 ];
 
 export default function WelcomeHeader() {
-  const { activeChild } = useActiveChild();
+  const { activeChild, loading: childLoading } = useActiveChild();
   const economy = useEconomy(activeChild?.id);
   const { focus, toggle: toggleFocus } = useFocusMode();
   const { scrollY } = useScroll();
@@ -41,6 +41,9 @@ export default function WelcomeHeader() {
     window.location.href = "/app/login";
   };
 
+  const displayName = activeChild?.display_name || "Explorer";
+  const displayYear = activeChild?.year_level ? `Year ${activeChild.year_level}` : "Student";
+
   return (
     <>
       <motion.header
@@ -56,18 +59,27 @@ export default function WelcomeHeader() {
           
           {/* LEFT: Branding & Profile */}
           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/50 border border-slate-200/60 transition-all hover:bg-white hover:shadow-md cursor-pointer">
-               <AvatarPicker size="md" />
+             <Link href="/app/parent" className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/50 border border-slate-200/60 transition-all hover:bg-white hover:shadow-md cursor-pointer group">
+               <AvatarBadge config={activeChild?.avatar_config} size={40} className="shadow-sm group-hover:scale-105 transition-transform" />
                <div className="flex flex-col">
-                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5">
-                   {activeChild?.year_level ? `Year ${activeChild.year_level}` : "Student"}
-                 </span>
-                 <span className="text-sm font-black text-slate-900 leading-none">
-                   {activeChild?.display_name || "Explorer"}
-                 </span>
+                 {childLoading ? (
+                   <>
+                     <div className="h-2 w-10 bg-slate-200 rounded animate-pulse mb-1" />
+                     <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
+                   </>
+                 ) : (
+                   <>
+                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5">
+                       {displayYear}
+                     </span>
+                     <span className="text-sm font-black text-slate-900 leading-none truncate max-w-[100px]">
+                       {displayName}
+                     </span>
+                   </>
+                 )}
                </div>
-               <ChevronDown className="w-4 h-4 text-slate-400" />
-             </div>
+               <ChevronDown className="w-4 h-4 text-slate-400 ml-1 group-hover:text-slate-600" />
+             </Link>
           </div>
 
           {/* CENTER: Navigation Pills */}
