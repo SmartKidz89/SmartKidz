@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PageMotion } from "@/components/ui/PremiumMotion";
-import { playUISound } from "@/components/ui/sound";
 import { 
   MapPin, Utensils, Landmark, Volume2, ArrowLeft, 
   Trophy, Banknote, Sun, Sparkles 
