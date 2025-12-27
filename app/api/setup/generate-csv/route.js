@@ -28,19 +28,30 @@ function escapeCsv(field, forceQuote = false) {
 }
 
 function generateContent(subject, topic, year, level) {
+  // Generate 10 varied questions
+  const quiz = Array.from({ length: 10 }).map((_, i) => {
+    return {
+      question: `${level} Question ${i + 1}: What is a key concept of ${topic}?`,
+      options: [
+        `The correct principle of ${topic}`, 
+        `A common mistake in ${topic}`, 
+        `Unrelated option A`,
+        `Unrelated option B`
+      ],
+      answer: `The correct principle of ${topic}`,
+      explanation: `This is the correct answer because it aligns with Year ${year} ${topic} standards.`
+    };
+  });
+
   return JSON.stringify({
     duration_minutes: 15,
     objective: `Learn ${topic} (${level})`,
-    explanation: `Detailed explanation of ${topic} for Year ${year}.`,
-    real_world_application: `See ${topic} in the world around you.`,
-    memory_strategies: [`Link ${topic} to daily habits.`],
-    worked_example: `Step-by-step guide to ${topic}.`,
+    explanation: `Detailed explanation of ${topic} for Year ${year}. Focus on key concepts and practice.`,
+    real_world_application: `See ${topic} in the world around you, like when shopping or planning.`,
+    memory_strategies: [`Link ${topic} to a daily habit to remember it better.`],
+    worked_example: `Step-by-step guide to ${topic}: 1. Identify. 2. Apply rule. 3. Check.`,
     scenarios: [{ context: `Scenario for ${topic}`, questions: [{ prompt: "What next?", answer: "Follow the steps." }] }],
-    quiz: [
-      { question: `What is key about ${topic}?`, options: ["Correct", "Wrong A", "Wrong B"], answer: "Correct", explanation: "Because it fits the rule." },
-      { question: `True or False: ${topic} is useful?`, options: ["True", "False"], answer: "True", explanation: "It is very useful." },
-      { question: `Find the mistake in ${topic}.`, options: ["Error", "Correct", "Okay"], answer: "Error", explanation: "This breaks the rule." }
-    ]
+    quiz: quiz
   });
 }
 
