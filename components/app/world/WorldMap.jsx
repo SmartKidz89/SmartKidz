@@ -1,47 +1,148 @@
 "use client";
 
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { WORLDS } from "@/data/worlds";
 import { cn } from "@/lib/utils";
-import StoryRibbon from "@/components/app/StoryRibbon";
 
-function WorldPin({ world }) {
+const TOOLS = [
+  {
+    id: "homework",
+    name: "Homework Helper",
+    icon: "📝",
+    description: "Get help with homework",
+    color: "bg-amber-100",
+    accent: "bg-amber-500",
+  },
+  {
+    id: "world-explorer",
+    name: "World Explorer",
+    icon: "🌍",
+    description: "Explore places worldwide",
+    color: "bg-blue-100",
+    accent: "bg-blue-500",
+  },
+  {
+    id: "dictionary",
+    name: "Dictionary",
+    icon: "📚",
+    description: "Look up word meanings",
+    color: "bg-purple-100",
+    accent: "bg-purple-500",
+  },
+  {
+    id: "storybook",
+    name: "Storybook",
+    icon: "📖",
+    description: "Create your own stories",
+    color: "bg-pink-100",
+    accent: "bg-pink-500",
+  },
+];
+
+function WorldTile({ world }) {
   const router = useRouter();
-  const tone = world.theme;
 
-  const chip =
-    tone === "mountain"
-      ? "bg-sky-500 text-white"
-      : tone === "river"
-      ? "bg-indigo-500 text-white"
-      : tone === "forest"
-      ? "bg-emerald-500 text-white"
-      : "bg-rose-500 text-white";
+  const colors = {
+    mountain: {
+      bg: "bg-sky-100",
+      accent: "bg-sky-500",
+      chip: "bg-sky-500 text-white",
+    },
+    river: {
+      bg: "bg-indigo-100",
+      accent: "bg-indigo-500",
+      chip: "bg-indigo-500 text-white",
+    },
+    forest: {
+      bg: "bg-emerald-100",
+      accent: "bg-emerald-500",
+      chip: "bg-emerald-500 text-white",
+    },
+    garden: {
+      bg: "bg-rose-100",
+      accent: "bg-rose-500",
+      chip: "bg-rose-500 text-white",
+    },
+  };
+
+  const themeColors = colors[world.theme] || colors.mountain;
 
   return (
     <motion.button
       className={cn(
-        "absolute -translate-x-1/2 -translate-y-1/2",
-        "rounded-[var(--radius-lg)] px-4 py-3 shadow-[var(--shadow-e1)]",
-        "backdrop-blur bg-white/85 border border-white/60",
-        "text-left"
+        "relative overflow-hidden rounded-2xl p-6 text-left",
+        "border border-white/40 shadow-md",
+        "transition-all duration-300",
+        "hover:shadow-lg hover:scale-105",
+        themeColors.bg
       )}
-      style={{ left: `${world.mapPos.x}%`, top: `${world.mapPos.y}%` }}
-      whileHover={{ scale: 1.04, y: -2 }}
+      whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => router.push(`/app/world/${world.id}`)}
-      aria-label={world.name}
     >
-      <div className="flex items-center gap-2">
-        <span className={cn("inline-flex rounded-full px-2 py-1 text-xs font-semibold", chip)}>
-          {world.name.split(" ")[0]}
-        </span>
-        <div className="text-sm font-extrabold text-slate-900">{world.name}</div>
+      {/* Background gradient */}
+      <div
+        className={cn(
+          "absolute inset-0 opacity-20 blur-2xl",
+          themeColors.accent
+        )}
+      />
+
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <span
+            className={cn(
+              "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+              themeColors.chip
+            )}
+          >
+            {world.name.split(" ")[0]}
+          </span>
+        </div>
+
+        <h3 className="text-xl font-bold text-slate-900 mb-1">{world.name}</h3>
+        <p className="text-sm font-medium text-slate-600 mb-4">{world.subtitle}</p>
+
+        {/* Progress bar */}
+        <div className="h-2.5 w-full rounded-full bg-white/60 overflow-hidden">
+          <motion.div
+            className={cn("h-full rounded-full", themeColors.accent)}
+            initial={{ width: "0%" }}
+            animate={{ width: "40%" }}
+            transition={{ delay: 0.3, duration: 1 }}
+          />
+        </div>
       </div>
-      <div className="mt-1 text-xs font-semibold text-slate-600">{world.subtitle}</div>
-      <div className="mt-2 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-        <div className="h-full w-2/5 rounded-full bg-sky-500" />
+    </motion.button>
+  );
+}
+
+function ToolTile({ tool }) {
+  const router = useRouter();
+
+  return (
+    <motion.button
+      className={cn(
+        "relative overflow-hidden rounded-2xl p-6 text-left",
+        "border border-white/40 shadow-md",
+        "transition-all duration-300",
+        "hover:shadow-lg hover:scale-105",
+        tool.color
+      )}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => router.push(`/app/tools/${tool.id}`)}
+    >
+      {/* Background gradient */}
+      <div className={cn("absolute inset-0 opacity-20 blur-2xl", tool.accent)} />
+
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="text-4xl mb-3">{tool.icon}</div>
+        <h3 className="text-lg font-bold text-slate-900 mb-1">{tool.name}</h3>
+        <p className="text-sm font-medium text-slate-600">{tool.description}</p>
       </div>
     </motion.button>
   );
