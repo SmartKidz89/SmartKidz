@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { 
   ArrowRight, Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Compass, PenTool, Sparkles, Clock, Globe2, Book
+  Wrench, Compass, PenTool, Sparkles, Clock, Globe2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -97,7 +97,6 @@ const SUBJECTS = [
 
 const TOOLS = [
   { href: "/app/tools/pixel-art", title: "Pixel Art", icon: Palette, color: "bg-pink-500", desc: "Draw in blocks" },
-  { href: "/app/tools/worksheet", title: "Worksheets", icon: Book, color: "bg-orange-500", desc: "Print & practice" },
   { href: "/app/tools/world-explorer", title: "Explorer", icon: Globe2, color: "bg-sky-500", desc: "Spin the globe" },
   { href: "/app/tools/dictionary", title: "Dictionary", icon: BookOpen, color: "bg-emerald-500", desc: "Look it up" },
   { href: "/app/tools/storybook", title: "Storybook", icon: PenTool, color: "bg-violet-500", desc: "Write stories" },
