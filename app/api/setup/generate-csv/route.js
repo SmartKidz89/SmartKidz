@@ -21,7 +21,6 @@ const LESSONS_PER_LEVEL = 100;
 function escapeCsv(field, forceQuote = false) {
   if (field == null) return '';
   const s = String(field);
-  // Quote if requested OR if it contains special CSV chars
   if (forceQuote || s.includes('"') || s.includes(',') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }
@@ -77,15 +76,15 @@ export async function GET() {
 
               const content = generateContent(subjectData.name, topic, year, level);
 
-              // Build row manually to control quoting
+              // Force quote complex columns to prevent CSV drift
               const rowParts = [
                 escapeCsv(id),
                 escapeCsv(year),
                 escapeCsv(subjId),
                 escapeCsv(title),
                 escapeCsv(topic),
-                escapeCsv(curriculumTags, true), // FORCE QUOTE the array column
-                escapeCsv(content),
+                escapeCsv(curriculumTags, true), // FORCE QUOTE ARRAY
+                escapeCsv(content, true),        // FORCE QUOTE JSON
                 escapeCsv(now),
                 escapeCsv(now)
               ];
