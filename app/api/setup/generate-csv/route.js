@@ -3,20 +3,47 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 60; 
 
-const SUBJECTS = {
-  MATH: { name: 'Mathematics', topics: ['Number', 'Algebra', 'Geometry', 'Statistics', 'Measurement'] },
-  ENG: { name: 'English', topics: ['Phonics', 'Spelling', 'Grammar', 'Reading', 'Writing'] },
-  SCI: { name: 'Science', topics: ['Biology', 'Chemistry', 'Earth', 'Physics', 'Inquiry'] },
-  HASS: { name: 'HASS', topics: ['History', 'Geography', 'Civics', 'Community'] },
-  HPE: { name: 'Health', topics: ['Health', 'Safety', 'Active Living', 'Movement'] },
-  ART: { name: 'Arts', topics: ['Visual Arts', 'Music', 'Drama', 'Dance'] },
-  TECH: { name: 'Tech', topics: ['Digital Systems', 'Data', 'Coding', 'Design'] },
-  LANG: { name: 'Languages', topics: ['Greetings', 'Culture', 'Vocabulary', 'Phrases'] }
-};
-
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const LESSONS_PER_LEVEL = 100; 
+
+// Dynamic topic generation based on Year Level for better alignment
+function getTopics(subjectId, year) {
+  const isEarly = year <= 2; // Year 1-2
+  
+  switch (subjectId) {
+    case 'MATH':
+      return isEarly 
+        ? ['Counting', 'Shapes', 'Patterns', 'Measurements', 'Simple Data'] 
+        : ['Number & Place Value', 'Algebra', 'Geometry', 'Statistics', 'Measurement'];
+    case 'ENG':
+      return isEarly
+        ? ['Phonics', 'Sight Words', 'Listening', 'Simple Sentences', 'Story Time']
+        : ['Spelling Rules', 'Grammar', 'Reading Comprehension', 'Persuasive Writing', 'Literature'];
+    case 'SCI':
+      return isEarly
+        ? ['Living Things', 'Weather', 'Materials', 'My Body', 'Senses']
+        : ['Biology', 'Chemistry', 'Earth & Space', 'Physics', 'Scientific Inquiry'];
+    case 'HASS':
+      return isEarly
+        ? ['My Family', 'My Place', 'Celebrations', 'Past & Present']
+        : ['History', 'Geography', 'Civics', 'Economics'];
+    default:
+      // Fallback generic topics
+      return ['Concepts', 'Skills', 'Practice', 'Review', 'Challenge'];
+  }
+}
+
+const SUBJECT_NAMES = {
+  MATH: 'Mathematics',
+  ENG: 'English',
+  SCI: 'Science',
+  HASS: 'HASS',
+  HPE: 'Health & PE',
+  ART: 'The Arts',
+  TECH: 'Technologies',
+  LANG: 'Languages'
+};
 
 function escapeCsv(field, forceQuote = false) {
   if (field == null) return '';
@@ -27,7 +54,7 @@ function escapeCsv(field, forceQuote = false) {
   return s;
 }
 
-function generateContent(subject, topic, year, level) {
+function generateContent(subjectName, topic, year, level) {
   // Generate 10 varied questions
   const quiz = Array.from({ length: 10 }).map((_, i) => {
     return {
@@ -69,23 +96,29 @@ export async function GET() {
       await writer.write(encoder.encode('id,year_level,subject_id,title,topic,curriculum_tags,content_json,created_at,updated_at\n'));
 
       const now = new Date().toISOString();
+      const subjectIds = Object.keys(SUBJECT_NAMES);
 
-      for (const subjId of Object.keys(SUBJECTS)) {
-        const subjectData = SUBJECTS[subjId];
+      for (const subjId of subjectIds) {
+        const subjectName = SUBJECT_NAMES[subjId];
+        
         for (const year of YEARS) {
+          const topics = getTopics(subjId, year);
+          
           for (const level of LEVELS) {
             for (let i = 1; i <= LESSONS_PER_LEVEL; i++) {
               const paddedI = i.toString().padStart(3, '0');
               const levelCode = level.substring(0, 3).toUpperCase();
               const id = `${subjId}_Y${year}_${levelCode}_${paddedI}`;
-              const topic = subjectData.topics[(i - 1) % subjectData.topics.length];
+              
+              // Rotate topics
+              const topic = topics[(i - 1) % topics.length];
               const title = `${topic}: ${level} Mission ${i}`;
               
               // Standard Postgres array literal format: {TAG}
               const tag = `AC9${subjId.charAt(0)}${year}${levelCode}${i}`; 
               const curriculumTags = `{${tag}}`;
 
-              const content = generateContent(subjectData.name, topic, year, level);
+              const content = generateContent(subjectName, topic, year, level);
 
               // Force quote complex columns to prevent CSV drift
               const rowParts = [

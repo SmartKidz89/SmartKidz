@@ -79,31 +79,27 @@ export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
   
-  // Direct language code check (e.g. /world/AUS)
   const isLangCode = LANGUAGE_TILES.some(l => l.id === rawId.toUpperCase());
   const canonicalId = isLangCode ? "LANG_SPECIFIC" : (SLUG_MAP[rawId] || rawId.toUpperCase());
   
-  // Build a query set that includes uppercase, lowercase, and exact match to be safe against data inconsistencies
   let targetIds = [];
-  
   if (canonicalId === "LANG_SPECIFIC") {
     const code = rawId.toUpperCase();
     targetIds = [code, code.toLowerCase()];
   } else if (SUBJECT_ALIASES[canonicalId]) {
-    // Add lowercase versions of all aliases
     targetIds = [...SUBJECT_ALIASES[canonicalId], ...SUBJECT_ALIASES[canonicalId].map(s => s.toLowerCase())];
   } else {
-    // Fallback for unknown codes (like ABL if not mapped)
     targetIds = [canonicalId, canonicalId.toLowerCase(), rawId];
   }
-
-  // Deduplicate
   targetIds = [...new Set(targetIds)];
 
   const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // New State for Difficulty Filter
+  const [filterLevel, setFilterLevel] = useState("All"); // All | Beginner | Intermediate | Advanced
 
   useEffect(() => {
     let mounted = true;
@@ -112,7 +108,6 @@ export default function SubjectLessonsPage() {
       setError("");
       try {
         if (canonicalId === "LANG") { 
-          // Handled by render logic below
           setLoading(false); 
           return; 
         }
@@ -137,12 +132,22 @@ export default function SubjectLessonsPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [canonicalId, targetIds.join(",")]); // Join IDs to ensure stable dependency
+  }, [canonicalId, targetIds.join(",")]);
+
+  // Filter lessons based on selected level
+  const filteredLessons = useMemo(() => {
+    if (filterLevel === "All") return lessons;
+    return lessons.filter(l => {
+      const diff = getDifficulty(l.title);
+      // Map label "Beginner" to filter "Beginner" etc.
+      return diff.label === filterLevel;
+    });
+  }, [lessons, filterLevel]);
 
   const groups = useMemo(() => {
-    if (!lessons.length) return [];
+    if (!filteredLessons.length) return [];
     const byYear = {};
-    for (const l of lessons) {
+    for (const l of filteredLessons) {
       const y = l.year_level || "General";
       if (!byYear[y]) byYear[y] = [];
       byYear[y].push(l);
@@ -152,7 +157,7 @@ export default function SubjectLessonsPage() {
       title: y === "General" ? "General" : `Year ${y}`,
       lessons: byYear[y]
     }));
-  }, [lessons]);
+  }, [filteredLessons]);
 
   const heroImage = SUBJECT_IMAGES[canonicalId] || SUBJECT_IMAGES.MATH;
 
@@ -226,7 +231,7 @@ export default function SubjectLessonsPage() {
         </Link>
       </div>
 
-      <div className="relative mb-12 overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-2xl">
+      <div className="relative mb-8 overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-2xl">
         <div className="absolute inset-0">
            <Image src={heroImage} alt={subjectName} fill className="object-cover opacity-60" priority />
            <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent" />
@@ -244,6 +249,32 @@ export default function SubjectLessonsPage() {
         </div>
       </div>
 
+      {/* DIFFICULTY TABS */}
+      <div className="mb-10 flex flex-wrap gap-2 justify-center sm:justify-start">
+        {["All", "Beginner", "Intermediate", "Advanced"].map((lvl) => {
+           const active = filterLevel === lvl;
+           const colors = {
+             "All": "bg-slate-100 text-slate-600 hover:bg-slate-200",
+             "Beginner": active ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+             "Intermediate": active ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30" : "bg-sky-50 text-sky-700 hover:bg-sky-100",
+             "Advanced": active ? "bg-purple-500 text-white shadow-lg shadow-purple-500/30" : "bg-purple-50 text-purple-700 hover:bg-purple-100"
+           };
+           
+           return (
+             <button
+               key={lvl}
+               onClick={() => setFilterLevel(lvl)}
+               className={cn(
+                 "px-5 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95",
+                 active && lvl === "All" ? "bg-slate-900 text-white shadow-lg" : colors[lvl]
+               )}
+             >
+               {lvl}
+             </button>
+           );
+        })}
+      </div>
+
       {loading ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1,2,3,4,5,6].map(i => <div key={i} className="h-48 rounded-[2rem] bg-slate-100 animate-pulse" />)}
@@ -252,11 +283,11 @@ export default function SubjectLessonsPage() {
         <div className="p-8 rounded-3xl bg-rose-50 border border-rose-100 text-rose-800 font-bold text-center">
           {error}
         </div>
-      ) : lessons.length === 0 ? (
+      ) : groups.length === 0 ? (
         <div className="p-16 rounded-[2.5rem] bg-white border-4 border-dashed border-slate-100 text-center">
           <div className="text-6xl mb-4 grayscale opacity-40">🗺️</div>
-          <div className="text-xl font-black text-slate-900">No lessons yet</div>
-          <p className="text-slate-500 mt-2">Check back soon for new adventures.</p>
+          <div className="text-xl font-black text-slate-900">No lessons found</div>
+          <p className="text-slate-500 mt-2">Try selecting a different difficulty level.</p>
         </div>
       ) : (
         <div className="space-y-16">
