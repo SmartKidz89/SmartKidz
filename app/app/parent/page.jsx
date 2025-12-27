@@ -23,7 +23,7 @@ export default function ParentHome() {
   }
 
   return (
-    <PageScaffold
+    <Page
       badge="Parent"
       title="Parent Dashboard"
       subtitle="Track progress, celebrate wins, and keep learning safe and structured."
@@ -123,6 +123,6 @@ export default function ParentHome() {
           <ParentInsightsDashboard />
         </BentoCard>
       </BentoGrid>
-    </PageScaffold>
+    </Page>
   );
 }
