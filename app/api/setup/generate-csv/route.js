@@ -23,6 +23,7 @@ const LESSONS_PER_LEVEL = 100;
 function escapeCsv(field) {
   if (field == null) return '';
   const s = String(field);
+  // If value contains quotes, commas, or newlines, wrap in quotes and escape internal quotes
   if (s.includes('"') || s.includes(',') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }
@@ -72,18 +73,27 @@ export async function GET() {
               const id = `${subjId}_Y${year}_${levelCode}_${paddedI}`;
               const topic = subjectData.topics[(i - 1) % subjectData.topics.length];
               const title = `${topic}: ${level} Mission ${i}`;
+              
+              // Standard Postgres array literal format: {TAG}
               const tag = `AC9${subjId.charAt(0)}${year}${levelCode}${i}`; 
+              const curriculumTags = `{${tag}}`;
+
               const content = generateContent(subjectData.name, topic, year, level);
 
-              const row = [
-                id, year, subjId,
-                escapeCsv(title), escapeCsv(topic),
-                `"{${tag}}"`, 
-                escapeCsv(content),
-                now, now
-              ].join(',') + '\n';
+              const rowData = [
+                id,
+                year,
+                subjId,
+                title,
+                topic,
+                curriculumTags, // Passed to escapeCsv below to handle safe formatting
+                content,
+                now,
+                now
+              ];
 
-              await writer.write(encoder.encode(row));
+              const rowString = rowData.map(escapeCsv).join(',') + '\n';
+              await writer.write(encoder.encode(rowString));
             }
           }
         }
