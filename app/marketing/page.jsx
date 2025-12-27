@@ -20,10 +20,36 @@ export default function MarketingHome() {
   ], [geo]);
 
   const faqs = useMemo(() => [
-    { id: "f1", q: `Is SmartKidz aligned to the ${geo.name} curriculum?`, a: `Yes. Lessons are mapped to key ${geo.curriculum} outcomes and designed to build mastery with short practice loops and quizzes.` },
-    { id: "f2", q: "Can multiple kids use the same account on different devices?", a: "Yes. One parent account can manage multiple child profiles, and each device can stay signed in at the same time." },
-    { id: "f3", q: "Can kids choose what they learn?", a: `Yes. Kids can explore ${geo.mathTerm}, Reading and Science worlds and pick lessons that interest them. Parents can still guide and monitor progress.` },
-    { id: "f4", q: "How do weekly email reports work?", a: "Parents receive a short weekly summary showing time spent, progress, and recommendations. You can disable or customise reports in the parent dashboard." },
+    { 
+      id: "f1", 
+      q: `Is SmartKidz aligned to the ${geo.name} curriculum?`, 
+      a: `Yes. Lessons are mapped to key ${geo.curriculum} outcomes. We cover ${geo.mathTerm}, English, Science, and more.` 
+    },
+    { 
+      id: "f2", 
+      q: "Is the AI safe for children?", 
+      a: "Absolutely. Our 'Curiosity Engine' and 'Storybook' tools use strictly guarded AI that only answers age-appropriate questions. It will never generate harmful content or allow open chatting." 
+    },
+    { 
+      id: "f3", 
+      q: "Can I print worksheets?", 
+      a: "Yes! The Homework Generator tool lets you create custom, printable PDF worksheets based on the exact lessons your child is working on." 
+    },
+    { 
+      id: "f4", 
+      q: "Can multiple kids use one account?", 
+      a: "Yes. One parent subscription covers the whole family. You can create separate profiles for each child to track their individual progress." 
+    },
+    { 
+      id: "f5", 
+      q: "Does it work offline?", 
+      a: "SmartKidz is a web app that works on any device (iPad, Laptop, Phone). While it needs an internet connection to track progress, many tools like the Worksheet Generator create offline resources." 
+    },
+    { 
+      id: "f6", 
+      q: "How do weekly email reports work?", 
+      a: "Parents receive a short weekly summary showing time spent, progress, and recommendations. You can disable or customise reports in the parent dashboard." 
+    },
   ], [geo]);
 
   return (

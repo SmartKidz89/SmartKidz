@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3 } from "lucide-react";
+import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3, Globe2, PenTool, Lightbulb, Zap } from "lucide-react";
 import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
 
 function Container({ children, className = "" }) {
@@ -40,11 +40,11 @@ export function Hero() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 leading-[1.1]"
+            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 leading-[1.05]"
           >
-            The screen time you’ll <br className="hidden sm:block" />
+            Turn screen time into <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">
-              actually feel good about.
+              real-world confidence.
             </span>
           </motion.h1>
 
@@ -54,8 +54,8 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
           >
-            SmartKidz transforms the {geo.curriculum} into a calm, confidence-building adventure. 
-            Full {geo.mathTerm}, English, and Science coverage—mastered without the pressure.
+            SmartKidz isn't just quizzes. It's a <strong>Curiosity Engine</strong>. 
+            We combine the {geo.curriculum} with creative tools—like 3D Globes, Story Writers, and Safe AI—to spark a love for learning.
           </motion.p>
 
           <motion.div
@@ -74,7 +74,7 @@ export function Hero() {
               href="#how-it-works"
               className="h-14 px-8 rounded-full bg-white border border-slate-200 text-slate-700 text-lg font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center"
             >
-              See how it works
+              Explore Features
             </Link>
           </motion.div>
 
@@ -84,7 +84,7 @@ export function Hero() {
             transition={{ duration: 1, delay: 0.5 }}
             className="mt-6 text-sm font-semibold text-slate-500"
           >
-            7-day free trial • Cancel anytime • Unlimited kids
+            7-day free trial • Cancel anytime • One price for the whole family
           </motion.div>
         </div>
 
@@ -187,10 +187,10 @@ export function LogoStrip() {
   return (
     <Container className="py-10 border-y border-slate-100 bg-slate-50/50">
       <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-wide mb-6">
-        Trusted by families across {geo.name}
+        The complete learning system
       </p>
       <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100">
-        {[geo.mathTerm + " Mastery", "English Confidence", "Science Discovery", "Exam Prep", "School Readiness"].map((label) => (
+        {[geo.mathTerm, "English", "Science", "World Explorer", "Creativity", "Safety"].map((label) => (
           <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
             <CheckCircle2 className="w-5 h-5 text-brand-mint" />
             <span className="font-extrabold text-slate-900">{label}</span>
@@ -207,82 +207,85 @@ export function FeatureGrid() {
     <Container id="how-it-works" className="py-20">
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
-          Everything they need to grow. <br />
-          <span className="text-slate-500">Nothing they don't.</span>
+          More than just lessons. <br />
+          <span className="text-slate-500">A toolkit for the imagination.</span>
         </h2>
         <p className="text-lg text-slate-600 font-medium">
-          We stripped away the ads, the addictive social hooks, and the clutter. 
-          What's left is a pure, premium learning experience.
+          We built the tools you <em>wish</em> existed when you were a kid. 
+          Safe, educational, and endlessly fun.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(280px,auto)]">
-        {/* Card 1: Adaptive */}
-        <div className="md:col-span-2 rounded-[2.5rem] bg-indigo-50 border border-indigo-100 p-8 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+        
+        {/* Card 1: Curiosity Engine */}
+        <div className="md:col-span-2 rounded-[2.5rem] bg-indigo-50 border border-indigo-100 p-8 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
           <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
-            <Map className="w-64 h-64 text-indigo-600" />
+            <Lightbulb className="w-64 h-64 text-indigo-600" />
           </div>
           <div className="relative z-10 h-full flex flex-col justify-between">
             <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg mb-6">
-              <Map className="w-7 h-7" />
+              <Sparkles className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">Adaptive Learning Paths</h3>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Curiosity Engine</h3>
               <p className="text-slate-700 font-medium leading-relaxed max-w-md">
-                SmartKidz adapts to your child's pace. Struggle with a topic? We'll offer a helpful hint and a different angle. Cruising along? We'll serve up a challenge to keep them engaged.
+                "Why is the sky blue?" "How do plants drink?" Kids ask big questions. 
+                Our <strong>safe, kid-friendly AI</strong> gives instant, age-appropriate answers—complete with mini-quizzes and real-world experiments.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Rewards */}
-        <div className="rounded-[2.5rem] bg-amber-50 border border-amber-100 p-8 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+        {/* Card 2: World Explorer */}
+        <div className="rounded-[2.5rem] bg-sky-50 border border-sky-100 p-8 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
           <div className="absolute -bottom-4 -right-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:rotate-12 duration-500">
-            <Trophy className="w-48 h-48 text-amber-600" />
+            <Globe2 className="w-48 h-48 text-sky-600" />
           </div>
           <div className="relative z-10">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg mb-6">
-              <Trophy className="w-7 h-7" />
+            <div className="w-14 h-14 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-lg mb-6">
+              <Globe2 className="w-7 h-7" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Rewards that Matter</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">World Explorer</h3>
             <p className="text-slate-700 font-medium">
-              Earn XP, unlock avatar gear, and build streaks. We use motivation to build habits, not addiction.
+              Spin the 3D globe. Discover countries, flags, foods, and greetings. It's geography class, but way cooler.
             </p>
           </div>
         </div>
 
-        {/* Card 3: Parent Insights */}
-        <div className="rounded-[2.5rem] bg-emerald-50 border border-emerald-100 p-8 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+        {/* Card 3: Creative Studio */}
+        <div className="rounded-[2.5rem] bg-pink-50 border border-pink-100 p-8 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
           <div className="absolute top-1/2 -translate-y-1/2 -right-6 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:translate-x-2 duration-500">
-            <BarChart3 className="w-48 h-48 text-emerald-600" />
+            <PenTool className="w-48 h-48 text-pink-600" />
           </div>
           <div className="relative z-10">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg mb-6">
-              <BarChart3 className="w-7 h-7" />
+            <div className="w-14 h-14 rounded-2xl bg-pink-500 text-white flex items-center justify-center shadow-lg mb-6">
+              <PenTool className="w-7 h-7" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Insights for You</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Creative Studio</h3>
             <p className="text-slate-700 font-medium">
-              Get a weekly summary of their progress. Know exactly where they are excelling and where they might need a hug or a high-five.
+              Write and illustrate stories with the <strong>Magic Storybook</strong>, or create retro masterpieces in <strong>Pixel Art</strong>.
             </p>
           </div>
         </div>
 
-        {/* Card 4: Safe */}
-        <div className="md:col-span-2 rounded-[2.5rem] bg-rose-50 border border-rose-100 p-8 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.1),transparent)]" />
+        {/* Card 4: Parent Peace of Mind */}
+        <div className="md:col-span-2 rounded-[2.5rem] bg-slate-900 border border-slate-800 p-8 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent)]" />
           <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start md:items-center h-full">
             <div className="flex-1">
-              <div className="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800 text-white flex items-center justify-center shadow-lg mb-6 border border-slate-700">
                 <Shield className="w-7 h-7" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">100% Kid-Safe Environment</h3>
-              <p className="text-slate-700 font-medium leading-relaxed">
-                We take safety seriously. SmartKidz has <strong>no ads</strong>, <strong>no external links</strong>, and <strong>no chat functionality</strong>. It is a walled garden designed purely for learning and confidence.
+              <h3 className="text-2xl font-black text-white mb-2">A Walled Garden</h3>
+              <p className="text-slate-300 font-medium leading-relaxed">
+                We take safety seriously. <strong>No ads. No external links. No chat.</strong>
+                <br/>
+                Plus, weekly parent reports sent right to your inbox, so you know exactly what they've mastered.
               </p>
             </div>
             <div className="shrink-0 relative">
-               {/* Visual filler for safety */}
-               <div className="w-40 h-40 bg-white rounded-3xl shadow-sm border border-rose-100 flex items-center justify-center rotate-3 group-hover:rotate-6 transition-transform">
+               <div className="w-40 h-40 bg-white/10 backdrop-blur-md rounded-3xl shadow-inner border border-white/10 flex items-center justify-center rotate-3 group-hover:rotate-6 transition-transform">
                   <span className="text-6xl">🔒</span>
                </div>
             </div>
@@ -307,9 +310,9 @@ export function SubjectTiles() {
   return (
     <Container className="py-20 bg-slate-50 rounded-[3rem] my-10">
       <div className="text-center mb-12">
-        <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Explore our Worlds</h2>
+        <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Plus, the Core Curriculum</h2>
         <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-          Every subject is a unique world to explore. Mapped to the {geo.curriculum} for {geo.gradeTerm}s 1–6.
+          Mapped to the {geo.curriculum} for {geo.gradeTerm}s 1–6. We make the "boring stuff" fun.
         </p>
       </div>
 
@@ -342,11 +345,11 @@ export function CTA() {
 
         <div className="relative z-10 max-w-3xl mx-auto">
           <h2 className="text-4xl sm:text-5xl font-black text-white mb-6 tracking-tight">
-            Ready to build their confidence?
+            Ready to give them a head start?
           </h2>
           <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10 leading-relaxed">
             Join thousands of families building confidence with SmartKidz.
-            Full curriculum access included in every plan.
+            Full access to every tool and subject.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
