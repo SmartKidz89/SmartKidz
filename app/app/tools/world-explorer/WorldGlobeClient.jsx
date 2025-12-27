@@ -1,8 +1,8 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowUp, Map as MapIcon, Loader2 } from "lucide-react";
 
 // Robust Fallback Data
 const FALLBACK_COUNTRIES = [
@@ -18,83 +18,21 @@ const FALLBACK_COUNTRIES = [
   { name: { common: "Canada" }, latlng: [60, -95], cca2: "CA", region: "Americas", flag: "🇨🇦" },
 ];
 
-function latLngToPos(lat, lng, radius = 1) {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lng + 180) * (Math.PI / 180);
-  const x = -(radius * Math.sin(phi) * Math.cos(theta));
-  const z = radius * Math.sin(phi) * Math.sin(theta);
-  const y = radius * Math.cos(phi);
-  return [x, y, z];
+// Simple Mercator-ish projection for display
+function project(lat, lng) {
+  const x = (lng + 180) * (100 / 360);
+  const latRad = lat * Math.PI / 180;
+  const mercN = Math.log(Math.tan((Math.PI / 4) + (latRad / 2)));
+  const y = (100 / 2) - (100 * mercN / (2 * Math.PI));
+  // Clamp y to avoid poles stretching infinitely
+  const clampedY = Math.max(5, Math.min(95, y));
+  return { x, y: clampedY };
 }
 
-function Earth() {
-  return (
-    <mesh>
-      <sphereGeometry args={[1, 64, 64]} />
-      <meshStandardMaterial 
-        color="#1e40af" 
-        roughness={0.8}
-        metalness={0.1}
-      />
-    </mesh>
-  );
-}
-
-function CountryMarkers({ countries, onSelect }) {
-  const [hovered, setHovered] = useState(null);
-
-  const markers = useMemo(() => {
-    return (countries || [])
-      .filter((c) => Array.isArray(c.latlng) && c.latlng.length === 2)
-      .map((c) => {
-        const [lat, lng] = c.latlng;
-        // Basic validation
-        if (isNaN(lat) || isNaN(lng)) return null;
-        return {
-          id: c.cca2 || c.cca3 || c.name?.common,
-          country: c,
-          position: latLngToPos(lat, lng, 1.02),
-        };
-      })
-      .filter(Boolean);
-  }, [countries]);
-
-  return (
-    <group>
-      {markers.map((m) => (
-        <mesh
-          key={m.id}
-          position={m.position}
-          onPointerOver={(e) => {
-            e.stopPropagation();
-            setHovered(m.id);
-            if (typeof document !== 'undefined') document.body.style.cursor = "pointer";
-          }}
-          onPointerOut={(e) => {
-            e.stopPropagation();
-            setHovered(null);
-            if (typeof document !== 'undefined') document.body.style.cursor = "default";
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect?.(m.country);
-          }}
-        >
-          <sphereGeometry args={[hovered === m.id ? 0.03 : 0.018, 16, 16]} />
-          <meshStandardMaterial
-            color={hovered === m.id ? "#fbbf24" : "#ffffff"} 
-            emissive={hovered === m.id ? "#d97706" : "#000000"}
-            emissiveIntensity={hovered === m.id ? 0.5 : 0}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-export default function WorldGlobeClient({ onSelect }) {
+export default function WorldMapClient({ onSelect }) {
   const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
-  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hovered, setHovered] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -117,46 +55,85 @@ export default function WorldGlobeClient({ onSelect }) {
         }
       } catch (e) {
         console.warn("World Explorer: Using fallback data due to fetch error:", e);
-        // Fallback is already set in initial state
       } finally {
-        if (mounted) setLoaded(true);
+        if (mounted) setLoading(false);
       }
     }
     load();
     return () => { mounted = false; };
   }, []);
 
+  // Filter and project points
+  const points = useMemo(() => {
+    return countries
+      .filter(c => c.latlng && c.latlng.length === 2)
+      .map(c => {
+        const p = project(c.latlng[0], c.latlng[1]);
+        return { ...c, x: p.x, y: p.y };
+      });
+  }, [countries]);
+
   return (
-    <div className="w-full h-full relative bg-slate-900 overflow-hidden">
-      <Canvas camera={{ position: [0, 0, 2.8], fov: 45 }}>
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 3, 5]} intensity={1.5} />
-        <pointLight position={[-5, -3, -5]} intensity={0.5} />
-        
-        <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
-        
-        <Earth />
-        <CountryMarkers countries={countries} onSelect={onSelect} />
-        
-        <OrbitControls 
-          enablePan={false} 
-          minDistance={1.6} 
-          maxDistance={5} 
-          rotateSpeed={0.5}
-          enableDamping={true}
-          dampingFactor={0.1}
-          autoRotate={!loaded}
-          autoRotateSpeed={0.5}
-        />
-      </Canvas>
+    <div className="relative w-full h-full bg-slate-900 overflow-hidden flex flex-col items-center justify-center">
       
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/60 px-4 py-2 rounded-full text-white text-xs font-bold backdrop-blur-md animate-pulse">
-            Loading Map...
-          </div>
+      {/* Decorative Grid */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none" 
+        style={{ 
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)", 
+          backgroundSize: "40px 40px" 
+        }} 
+      />
+
+      {/* Loading State */}
+      {loading && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-sm transition-opacity duration-500">
+           <Loader2 className="w-10 h-10 text-indigo-400 animate-spin mb-4" />
+           <div className="text-white font-bold tracking-widest text-xs uppercase">Loading Map Data...</div>
         </div>
       )}
+
+      {/* Map Container */}
+      <div className="relative w-full max-w-5xl aspect-[2/1] bg-slate-800/30 rounded-3xl border border-white/5 shadow-2xl p-4 overflow-hidden">
+        {/* World Outline Placeholder (CSS Shapes could go here, for now using dots) */}
+        <div className="absolute inset-0 flex items-center justify-center text-slate-700 opacity-20 font-black text-9xl select-none pointer-events-none tracking-tighter">
+           WORLD
+        </div>
+
+        {points.map((p) => {
+          const isHovered = hovered === p.name.common;
+          return (
+            <motion.button
+              key={p.name.common}
+              className="absolute w-2 h-2 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 z-10"
+              style={{ left: `${p.x}%`, top: `${p.y}%` }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ 
+                scale: isHovered ? 2.5 : 1, 
+                opacity: 1,
+                backgroundColor: isHovered ? "#fbbf24" : "rgba(255,255,255,0.6)",
+                boxShadow: isHovered ? "0 0 15px #fbbf24" : "none",
+                zIndex: isHovered ? 50 : 10
+              }}
+              transition={{ duration: 0.5, delay: Math.random() * 1 }}
+              onMouseEnter={() => setHovered(p.name.common)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => onSelect(p)}
+            />
+          );
+        })}
+
+        {/* Hover Label */}
+        {hovered && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg z-30 pointer-events-none animate-in fade-in slide-in-from-bottom-2">
+            <div className="text-sm font-black text-slate-900">{hovered}</div>
+          </div>
+        )}
+      </div>
+
+      <div className="absolute bottom-6 flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest bg-slate-900/80 px-4 py-2 rounded-full border border-slate-700">
+         <MapIcon className="w-4 h-4" /> Interactive Map
+      </div>
+
     </div>
   );
 }
