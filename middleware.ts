@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Public visitors should land on the Coming Soon page.
-// We also block signup routes until launch.
+// We block signup routes until launch, but allow login for admins/existing users.
 const BLOCKED_ROUTES = new Set([
   "/signup",
-  "/login",
   "/marketing/signup",
-  "/marketing/login",
   "/app/signup"
 ]);
 
@@ -27,7 +25,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Block signup/login routes (public)
+  // Block signup routes (public)
   if (BLOCKED_ROUTES.has(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = "/";
@@ -37,6 +35,11 @@ export function middleware(req: NextRequest) {
 
   // Allow the app for signed-in use (and internal testing).
   if (pathname.startsWith("/app")) {
+    return NextResponse.next();
+  }
+
+  // Allow login routes explicitly
+  if (pathname === "/login" || pathname === "/marketing/login") {
     return NextResponse.next();
   }
 
