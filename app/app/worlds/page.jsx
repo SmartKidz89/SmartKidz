@@ -48,7 +48,7 @@ function getSubjects(geo) {
     },
     { 
       id: "HASS", 
-      title: geo.code === "US" ? "Social Studies" : "HASS", 
+      title: geo.hassTerm, // Localized
       subtitle: "History & World",
       icon: Globe, 
       color: "text-amber-600",

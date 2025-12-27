@@ -7,9 +7,10 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter, Signal, SignalHigh, SignalMedium, SignalLow } from "lucide-react";
+import { ArrowLeft, Languages as LanguagesIcon, ChevronRight, Zap, Play, Search, Filter, Signal, SignalHigh, SignalMedium, SignalLow, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { getGeoConfig } from "@/lib/marketing/geoConfig";
 
 // --- Configuration ---
 
@@ -33,12 +34,6 @@ const SLUG_MAP = {
   arts: "ART", art: "ART", thearts: "ART",
   tech: "TECH", technologies: "TECH", technology: "TECH",
   lang: "LANG", languages: "LANG", lote: "LANG",
-};
-
-const SUBJECT_LABELS = {
-  MATH: "Mathematics", ENG: "English", SCI: "Science",
-  HASS: "HASS", HPE: "Health & PE", ART: "The Arts",
-  TECH: "Technologies", LANG: "Languages",
 };
 
 const SUBJECT_IMAGES = {
@@ -88,8 +83,8 @@ export default function SubjectLessonsPage() {
   const { activeChild, loading: childLoading } = useActiveChild();
   
   // Use child's country preference, default to AU
-  const country = activeChild?.country || "AU";
-  const childYear = activeChild?.year_level || 3;
+  const countryCode = activeChild?.country || "AU";
+  const geo = getGeoConfig(countryCode);
 
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
   
@@ -107,13 +102,25 @@ export default function SubjectLessonsPage() {
   }
   targetIds = [...new Set(targetIds)];
 
-  const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
+  // Determine localized name
+  const subjectName = useMemo(() => {
+    if (canonicalId === "MATH") return geo.mathTerm;
+    if (canonicalId === "HASS") return geo.hassTerm;
+    if (canonicalId === "ENG") return "English";
+    if (canonicalId === "SCI") return "Science";
+    if (canonicalId === "ART") return "The Arts";
+    if (canonicalId === "TECH") return "Technologies";
+    if (canonicalId === "HPE") return geo.code === "US" ? "Health & PE" : "HPE";
+    if (canonicalId === "LANG") return "Languages";
+    return canonicalId;
+  }, [canonicalId, geo]);
+
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
   // Filtering State
-  const [selectedYear, setSelectedYear] = useState(null); // Defaults to child year on load
+  const [selectedYear, setSelectedYear] = useState(null); 
   const [selectedLevel, setSelectedLevel] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -127,7 +134,6 @@ export default function SubjectLessonsPage() {
     }
   }, [activeChild, childLoading, selectedYear]);
 
-  // Debounce Search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
     return () => clearTimeout(t);
@@ -138,7 +144,7 @@ export default function SubjectLessonsPage() {
     let mounted = true;
     async function load() {
       if (canonicalId === "LANG") { setLoading(false); return; }
-      if (selectedYear === null) return; // Wait for year init
+      if (selectedYear === null) return; 
 
       setLoading(true);
       setError("");
@@ -148,14 +154,13 @@ export default function SubjectLessonsPage() {
           .from("lessons")
           .select("id,title,year_level,topic,subject_id,country")
           .in("subject_id", targetIds)
-          .eq("year_level", selectedYear) // Filter by year at DB level for speed
+          .eq("year_level", selectedYear) 
           .order("title", { ascending: true })
-          .limit(400); // Safety limit per year/subject
+          .limit(400);
 
-        // Apply country filter if possible (legacy data support)
-        // We'll filter strictly on country if column is populated
-        if (country) {
-           query = query.eq("country", country);
+        // Apply country filter
+        if (countryCode) {
+           query = query.eq("country", countryCode);
         }
 
         if (debouncedSearch) {
@@ -177,7 +182,7 @@ export default function SubjectLessonsPage() {
     }
     load();
     return () => { mounted = false; };
-  }, [canonicalId, targetIds.join(","), country, selectedYear, debouncedSearch]);
+  }, [canonicalId, targetIds.join(","), countryCode, selectedYear, debouncedSearch]);
 
   const groups = useMemo(() => {
     if (!lessons.length) return [];
@@ -194,7 +199,7 @@ export default function SubjectLessonsPage() {
       });
     }
 
-    // 2. Group by Topic for cleaner display
+    // 2. Group by Topic
     const byTopic = {};
     for (const l of filtered) {
       const t = l.topic || "General Practice";
@@ -257,7 +262,7 @@ export default function SubjectLessonsPage() {
           <ArrowLeft className="w-4 h-4" /> {canonicalId === "LANG_SPECIFIC" ? "Back to Languages" : "Back to Worlds"}
         </Link>
         <span className="text-xs font-bold bg-white px-3 py-1 rounded-full border border-slate-200 text-slate-500 flex items-center gap-2">
-           <Globe className="w-3 h-3" /> {country === "NZ" ? "NZ Curriculum" : "Australian Curriculum"}
+           <Globe className="w-3 h-3" /> {geo.curriculum}
         </span>
       </div>
 
@@ -271,7 +276,7 @@ export default function SubjectLessonsPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-4 border border-white/20">World</div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 drop-shadow-lg">{canonicalId === "LANG_SPECIFIC" ? rawId.toUpperCase() : subjectName}</h1>
           <p className="text-lg md:text-xl text-slate-200 font-medium max-w-2xl leading-relaxed">
-             Select your year level to find your path.
+             Select your {geo.gradeTerm} level to find your path.
           </p>
         </div>
       </div>
@@ -293,7 +298,7 @@ export default function SubjectLessonsPage() {
                       : "text-slate-500 hover:text-slate-900 hover:bg-white/50"
                   )}
                 >
-                  Year {y}
+                  {geo.gradeTerm} {y}
                 </button>
               ))}
            </div>
@@ -346,14 +351,14 @@ export default function SubjectLessonsPage() {
           <div className="text-6xl mb-4 grayscale opacity-40">🗺️</div>
           <div className="text-xl font-black text-slate-900">No lessons found</div>
           <p className="text-slate-500 mt-2">
-             We couldn't find {selectedLevel === "All" ? "" : selectedLevel} lessons for Year {selectedYear}.
+             We couldn't find {selectedLevel === "All" ? "" : selectedLevel} lessons for {geo.gradeTerm} {selectedYear}.
           </p>
           <div className="flex justify-center gap-4 mt-6">
              <button onClick={() => setSelectedLevel("All")} className="text-brand-primary font-bold hover:underline">
                 View All Levels
              </button>
              <button onClick={() => setSelectedYear(Math.max(1, selectedYear - 1))} className="text-slate-500 font-bold hover:underline">
-                Try Year {Math.max(1, selectedYear - 1)}
+                Try {geo.gradeTerm} {Math.max(1, selectedYear - 1)}
              </button>
           </div>
         </div>
@@ -377,15 +382,6 @@ export default function SubjectLessonsPage() {
         </div>
       )}
     </PageScaffold>
-  );
-}
-
-function Globe({ className }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
   );
 }
 

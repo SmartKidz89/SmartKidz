@@ -52,7 +52,7 @@ function getSubjects(geo) {
     },
     { 
       id: "HASS", 
-      title: geo.code === "US" ? "Social Studies" : "HASS", 
+      title: geo.hassTerm, // Uses localized term (e.g., Social Studies, HASS, Humanities)
       subtitle: "History & World",
       icon: Globe, 
       color: "text-amber-600",
@@ -192,7 +192,6 @@ export default function DashboardClient() {
     loading = res.loading;
     kids = res.kids;
   } catch (e) {
-    // Fallback if context missing
     return <EmptyState />;
   }
   
@@ -238,7 +237,6 @@ export default function DashboardClient() {
           className="lg:col-span-8 relative overflow-hidden rounded-[2.5rem] bg-white shadow-xl border border-slate-100 p-1"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-sky-50 opacity-50" />
-          {/* Wrapped to prevent crash if local storage is blocked */}
           <ErrorBoundary>
             <TodayModule /> 
           </ErrorBoundary>
