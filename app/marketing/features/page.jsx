@@ -11,6 +11,7 @@ import {
   CheckCircle2, ArrowRight, Layout, Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
 
 // --- Components ---
 
@@ -69,6 +70,8 @@ function FeatureCard({ icon: Icon, title, desc, delay = 0 }) {
 // --- Main Page ---
 
 export default function FeaturesPage() {
+  const geo = useMarketingGeo();
+
   return (
     <div className="bg-slate-50/50">
       
@@ -93,7 +96,7 @@ export default function FeaturesPage() {
             transition={{ delay: 0.1 }}
             className="mt-6 text-xl text-slate-600 font-medium max-w-2xl mx-auto"
           >
-            We combined the best of game design with the rigour of the Australian Curriculum.
+            We combined the best of game design with the rigour of the {geo.curriculum}.
             Kids get hooked on progress. You get peace of mind.
           </motion.p>
         </Container>
@@ -108,7 +111,7 @@ export default function FeaturesPage() {
               <SectionLabel>For Kids</SectionLabel>
               <h2 className="text-4xl font-black text-slate-900 mb-4">A world they want to explore.</h2>
               <p className="text-lg text-slate-600 font-medium leading-relaxed">
-                No boring lists. Kids choose a world—Maths, Reading, or Science—and travel through levels. 
+                No boring lists. Kids choose a world—{geo.mathTerm}, Reading, or Science—and travel through levels. 
                 Every lesson unlocks rewards, badges, and gear for their avatar.
               </p>
               
@@ -174,7 +177,7 @@ export default function FeaturesPage() {
             </div>
             <h2 className="text-4xl md:text-5xl font-black mb-6">Real learning. Zero fluff.</h2>
             <p className="text-xl text-slate-300 font-medium">
-              Under the hood, SmartKidz is a serious learning engine aligned to the Australian Curriculum (Prep–Year 6).
+              Under the hood, SmartKidz is a serious learning engine aligned to the {geo.curriculum}.
             </p>
           </div>
 
@@ -238,7 +241,7 @@ export default function FeaturesPage() {
                    <h3 className="text-xl font-bold mb-2">Read-Aloud Support</h3>
                    <p className="text-slate-400 leading-relaxed">
                      Every question and prompt can be read aloud. 
-                     Crucial for early readers (Prep–Year 2) to build independence.
+                     Crucial for early readers to build independence.
                    </p>
                  </div>
                </div>
