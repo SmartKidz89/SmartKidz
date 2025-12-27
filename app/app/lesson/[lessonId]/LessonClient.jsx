@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Lightbulb, BookOpen, Compass, BrainCircuit } from "lucide-react";
+import { Lightbulb, BookOpen, Compass, BrainCircuit, Sparkles } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useRewards } from "@/components/ui/RewardProvider";
 import { playUISound, haptic } from "@/components/ui/sound";
+import { cn } from "@/lib/utils";
 
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { ACTIVE_CHILD_COOKIE, getCookie } from "@/lib/childCookie";
@@ -132,8 +133,6 @@ export default function LessonClient({ lessonId }) {
 
         if (!data || e) {
            console.warn("Lesson not found in DB or blocked by RLS. Using fallback.");
-           // We keep the loading state true if strictly needed, but better to show something.
-           // For now, let's assume it failed and show fallback or empty.
            setLesson({ id: lessonId, title: "Lesson Not Found" });
            setContent(FALLBACK_LESSON.content_json);
         } else {
