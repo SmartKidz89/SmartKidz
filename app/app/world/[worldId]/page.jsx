@@ -9,56 +9,30 @@ import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
 import { ArrowLeft, BookOpen, Star, Play } from "lucide-react";
 
-// Map URL slugs to DB Subject IDs
-const SUBJECT_MAP = {
-  // Core
-  math: "MATH",
-  maths: "MATH",
-  mathematics: "MATH",
-  reading: "ENG",
-  english: "ENG",
-  literacy: "ENG",
-  science: "SCI",
-  
-  // HASS
-  hass: "HASS",
-  history: "HASS", 
-  geography: "HASS",
-  
-  // HPE
-  hpe: "HPE",
-  health: "HPE",
-  pe: "HPE",
-  
-  // Arts
-  arts: "ART",
-  art: "ART",
-  thearts: "ART",
-  
-  // Tech
-  tech: "TECH",
-  technologies: "TECH",
-  technology: "TECH",
-  
-  // Languages
-  lang: "LANG",
-  languages: "LANG",
-  lote: "LANG",
-  
-  // Specific Languages
-  auslan: "AUS",
-  indonesian: "IND",
-  japanese: "JPN",
-  chinese: "ZHO",
-  mandarin: "ZHO",
-  french: "FRA",
-  spanish: "SPA",
-  aboriginal: "ABL",
-  aboriginallanguages: "ABL"
+// Subject ID Aliases
+// We query for *all* of these to be safe against inconsistent DB seeding
+const SUBJECT_ALIASES = {
+  MATH: ["MATH", "MAT", "MATHS"],
+  ENG: ["ENG", "ENGLISH"],
+  SCI: ["SCI", "SCIENCE"],
+  HASS: ["HASS", "HUMANITIES", "HIST", "GEO"],
+  HPE: ["HPE", "HEALTH", "PE"],
+  ART: ["ART", "ARTS", "THEARTS", "MUS", "DRAMA"],
+  TECH: ["TECH", "TECHNOLOGIES", "CODE"],
+  LANG: ["LANG", "LOTE", "AUS", "IND", "JPN", "ZHO", "FRA", "SPA", "ABL"]
 };
 
-// Codes included in the "Languages" world view
-const LANGUAGE_CODES = ["LANG", "AUS", "IND", "JPN", "ZHO", "FRA", "SPA", "ABL"];
+// Map URL slugs to Canonical Category Keys
+const SLUG_MAP = {
+  math: "MATH", maths: "MATH", mathematics: "MATH",
+  reading: "ENG", english: "ENG", literacy: "ENG",
+  science: "SCI",
+  hass: "HASS", history: "HASS", geography: "HASS",
+  hpe: "HPE", health: "HPE", pe: "HPE",
+  arts: "ART", art: "ART", thearts: "ART",
+  tech: "TECH", technologies: "TECH", technology: "TECH",
+  lang: "LANG", languages: "LANG", lote: "LANG",
+};
 
 const SUBJECT_LABELS = {
   MATH: "Mathematics",
@@ -67,16 +41,8 @@ const SUBJECT_LABELS = {
   HASS: "HASS",
   HPE: "Health & PE",
   ART: "The Arts",
-  ARTS: "The Arts",
   TECH: "Technologies",
   LANG: "Languages",
-  AUS: "Auslan",
-  IND: "Indonesian",
-  JPN: "Japanese",
-  ZHO: "Chinese (Mandarin)",
-  FRA: "French",
-  SPA: "Spanish",
-  ABL: "Aboriginal Languages"
 };
 
 const SUBJECT_IMAGES = {
@@ -86,25 +52,23 @@ const SUBJECT_IMAGES = {
   HASS: "/illustrations/subjects/world-energy.webp",
   HPE: "/illustrations/subjects/world-health.webp",
   ART: "/illustrations/subjects/world-arts.webp",
-  ARTS: "/illustrations/subjects/world-arts.webp",
   TECH: "/illustrations/subjects/world-energy.webp",
   LANG: "/illustrations/subjects/world-languages.webp",
-  AUS: "/illustrations/subjects/world-languages.webp",
-  IND: "/illustrations/subjects/world-languages.webp",
-  JPN: "/illustrations/subjects/world-languages.webp",
-  ZHO: "/illustrations/subjects/world-languages.webp",
-  FRA: "/illustrations/subjects/world-languages.webp",
-  SPA: "/illustrations/subjects/world-languages.webp",
-  ABL: "/illustrations/subjects/world-languages.webp"
 };
 
 export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
-  const worldId = SUBJECT_MAP[rawId] || (rawId.toUpperCase());
-  const isLanguageWorld = worldId === "LANG";
+  
+  // 1. Resolve URL slug to a canonical key (e.g. "maths" -> "MATH")
+  // If not found in map, use uppercase raw slug as fallback key.
+  const canonicalId = SLUG_MAP[rawId] || rawId.toUpperCase();
+  
+  // 2. Resolve target DB IDs (e.g. "MATH" -> ["MATH", "MAT"])
+  // If no alias list exists, default to just the canonical ID.
+  const targetIds = SUBJECT_ALIASES[canonicalId] || [canonicalId];
 
-  const [subjectName, setSubjectName] = useState(null);
+  const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -117,28 +81,26 @@ export default function SubjectLessonsPage() {
       setError("");
 
       try {
-        if (mounted) {
-          if (isLanguageWorld) {
-            setSubjectName("Languages World");
-          } else {
-            const { data } = await supabase.from("subjects").select("name").eq("id", worldId).maybeSingle();
-            setSubjectName(data?.name || SUBJECT_LABELS[worldId] || worldId);
-          }
+        // Try to fetch real name from DB if possible, otherwise keep default
+        // We just grab the first matching subject row to get a nice name
+        const { data: subData } = await supabase
+          .from("subjects")
+          .select("name")
+          .in("id", targetIds)
+          .limit(1)
+          .maybeSingle();
+        
+        if (mounted && subData?.name) {
+          setSubjectName(subData.name);
         }
 
-        let query = supabase
+        // Fetch lessons matching ANY of the target IDs
+        const { data: lessonData, error: lessonError } = await supabase
           .from("lessons")
           .select("id,title,year_level,topic,subject_id,curriculum_tags")
+          .in("subject_id", targetIds)
           .order("year_level", { ascending: true })
           .order("title", { ascending: true });
-
-        if (isLanguageWorld) {
-          query = query.in("subject_id", LANGUAGE_CODES);
-        } else {
-          query = query.eq("subject_id", worldId);
-        }
-
-        const { data: lessonData, error: lessonError } = await query;
 
         if (mounted) {
           if (lessonError) throw lessonError;
@@ -154,42 +116,61 @@ export default function SubjectLessonsPage() {
       }
     }
 
-    if (worldId) load();
+    if (canonicalId) load();
     else {
       setLoading(false);
       setError("Unknown world.");
     }
 
     return () => { mounted = false; };
-  }, [worldId, isLanguageWorld]);
+  }, [canonicalId, targetIds]);
 
   const groups = useMemo(() => {
     if (!lessons.length) return [];
     
-    if (!isLanguageWorld) {
-      return [{ id: worldId, title: "Lessons", lessons }];
+    // For Languages, we might want to group by specific language code if mixed
+    if (canonicalId === "LANG") {
+      const grouped = {};
+      for (const l of lessons) {
+        const sid = l.subject_id;
+        if (!grouped[sid]) grouped[sid] = [];
+        grouped[sid].push(l);
+      }
+      return Object.keys(grouped)
+        .sort()
+        .map(sid => ({
+          id: sid,
+          title: sid === "LANG" ? "General Languages" : (SUBJECT_LABELS[sid] || sid),
+          lessons: grouped[sid]
+        }));
     }
 
-    const grouped = {};
+    // Default: Group by Topic or just flat list
+    // Let's group by Year Level for better navigation
+    const byYear = {};
     for (const l of lessons) {
-      const sid = l.subject_id || "LANG";
-      if (!grouped[sid]) grouped[sid] = [];
-      grouped[sid].push(l);
+      const y = l.year_level || "General";
+      if (!byYear[y]) byYear[y] = [];
+      byYear[y].push(l);
     }
 
-    return Object.keys(grouped)
-      .sort((a, b) => (SUBJECT_LABELS[a] || a).localeCompare(SUBJECT_LABELS[b] || b))
-      .map(sid => ({
-        id: sid,
-        title: SUBJECT_LABELS[sid] || sid,
-        lessons: grouped[sid]
+    return Object.keys(byYear)
+      .sort((a,b) => {
+        // numeric sort if possible
+        const na = Number(a), nb = Number(b);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a.localeCompare(b);
+      })
+      .map(y => ({
+        id: y,
+        title: y === "General" ? "General" : `Year ${y}`,
+        lessons: byYear[y]
       }));
-  }, [lessons, isLanguageWorld, worldId]);
 
-  const heroImage = SUBJECT_IMAGES[worldId] || SUBJECT_IMAGES.MATH;
-  const subtitle = isLanguageWorld 
-    ? "Explore languages, culture, and communication." 
-    : "Choose a mission to start learning.";
+  }, [lessons, canonicalId]);
+
+  const heroImage = SUBJECT_IMAGES[canonicalId] || SUBJECT_IMAGES.MATH;
+  const subtitle = "Choose a lesson to start your adventure.";
 
   return (
     <PageScaffold title={null}>
@@ -239,7 +220,11 @@ export default function SubjectLessonsPage() {
         <div className="p-12 rounded-3xl bg-white/60 border border-white/50 text-center">
           <div className="text-5xl mb-4 opacity-80">🗺️</div>
           <div className="text-slate-900 font-black text-xl">No lessons found</div>
-          <div className="text-slate-600 mt-2">Check back later for new content in this world.</div>
+          <div className="text-slate-600 mt-2 max-w-md mx-auto">
+            We couldn't find any lessons for <strong>{canonicalId}</strong> (IDs checked: {targetIds.join(", ")}).
+            <br/><br/>
+            <span className="text-xs opacity-75">Tip for developers: Check your database <code>lessons</code> table to ensure <code>subject_id</code> matches one of these codes.</span>
+          </div>
         </div>
       ) : (
         <div className="space-y-12">
@@ -247,26 +232,10 @@ export default function SubjectLessonsPage() {
             <section key={group.id} className="space-y-5">
               {/* Group Header */}
               <div className="flex items-center gap-3">
-                {isLanguageWorld && (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm text-xl border border-slate-100">
-                    {group.id === "AUS" ? "👐" : 
-                     group.id === "FRA" ? "🇫🇷" : 
-                     group.id === "JPN" ? "🇯🇵" : 
-                     group.id === "ZHO" ? "🇨🇳" : 
-                     group.id === "SPA" ? "🇪🇸" : 
-                     group.id === "IND" ? "🇮🇩" : 
-                     group.id === "ABL" ? "🖤" : "🗣️"}
-                  </div>
-                )}
                 <div>
                   <h2 className="text-xl font-black text-slate-900">{group.title}</h2>
-                  {!isLanguageWorld && <div className="h-1 w-12 bg-brand-primary rounded-full mt-1.5" />}
+                  <div className="h-1 w-12 bg-brand-primary rounded-full mt-1.5" />
                 </div>
-                {isLanguageWorld && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                    {group.lessons.length}
-                  </span>
-                )}
               </div>
               
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
