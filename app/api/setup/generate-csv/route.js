@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+// Allow longer timeout for large generation
+export const maxDuration = 60; 
 
 const SUBJECTS = {
   MATH: { name: 'Mathematics', topics: ['Number', 'Algebra', 'Geometry', 'Statistics', 'Measurement'] },
@@ -15,8 +17,8 @@ const SUBJECTS = {
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-// Reduced count for guaranteed success, still ~1500 lessons
-const LESSONS_PER_LEVEL = 10; 
+// Full dataset: 8 subj * 6 yr * 3 levels * 100 lessons = 14,400 rows
+const LESSONS_PER_LEVEL = 100; 
 
 function escapeCsv(field) {
   if (field == null) return '';
@@ -47,7 +49,7 @@ function generateContent(subject, topic, year, level) {
 export async function GET() {
   const headers = new Headers();
   headers.set('Content-Type', 'text/csv; charset=utf-8');
-  headers.set('Content-Disposition', 'attachment; filename="smartkidz_lessons.csv"');
+  headers.set('Content-Disposition', 'attachment; filename="smartkidz_lessons_full.csv"');
 
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -86,6 +88,8 @@ export async function GET() {
           }
         }
       }
+    } catch (err) {
+      console.error("CSV Generation Error", err);
     } finally {
       await writer.close();
     }

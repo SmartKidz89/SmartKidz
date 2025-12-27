@@ -18,8 +18,8 @@ export default function GeneratePage() {
           <FileSpreadsheet className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Lesson Generator</h1>
-          <p className="text-slate-600 font-medium">Download the bulk lesson CSV directly.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Lesson Generator (Full)</h1>
+          <p className="text-slate-600 font-medium">Download the comprehensive lesson CSV.</p>
         </div>
       </div>
 
@@ -28,17 +28,20 @@ export default function GeneratePage() {
           <div className="text-6xl mb-4">📦</div>
           <h2 className="text-xl font-bold text-indigo-900">Ready to Download</h2>
           <p className="text-indigo-700 mt-2 max-w-sm mx-auto">
-            This will download <strong>smartkidz_lessons.csv</strong> (~1,500 lessons).
-            Upload this file to your Supabase <code>lessons</code> table.
+            This will download <strong>smartkidz_lessons_full.csv</strong> (~14,400 lessons).
+            <br/><br/>
+            <span className="text-xs uppercase font-bold tracking-wider opacity-70">
+              File size: approx 15-20MB
+            </span>
           </p>
         </div>
 
         <Button onClick={downloadDirect} size="lg" className="w-full h-16 text-lg shadow-xl bg-emerald-500 hover:bg-emerald-600 text-white border-none">
-           <Download className="w-6 h-6 mr-3" /> Download CSV Now
+           <Download className="w-6 h-6 mr-3" /> Download Full CSV
         </Button>
 
         <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-          Server-side generation • Instant Download
+          Server-side streaming • 14,400 rows
         </div>
       </Card>
     </PageMotion>
