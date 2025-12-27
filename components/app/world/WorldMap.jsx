@@ -40,6 +40,45 @@ const TOOLS = [
   },
 ];
 
+const DASHBOARD_CARDS = [
+  {
+    id: "continue-learning",
+    title: "Continue Learning",
+    icon: "📚",
+    description: "Jump back into your lessons",
+    href: "/app/worlds",
+    color: "from-blue-50 to-indigo-50",
+    accent: "text-blue-600",
+  },
+  {
+    id: "daily-quests",
+    title: "Today's Quests",
+    icon: "⭐",
+    description: "Complete daily challenges",
+    href: "/app/today",
+    color: "from-amber-50 to-orange-50",
+    accent: "text-amber-600",
+  },
+  {
+    id: "rewards",
+    title: "My Rewards",
+    icon: "🏆",
+    description: "Check your achievements",
+    href: "/app/rewards",
+    color: "from-emerald-50 to-teal-50",
+    accent: "text-emerald-600",
+  },
+  {
+    id: "world-explorer",
+    title: "World Explorer",
+    icon: "🌍",
+    description: "Explore places worldwide",
+    href: "/app/tools/world-explorer",
+    color: "from-pink-50 to-rose-50",
+    accent: "text-pink-600",
+  },
+];
+
 function WorldTile({ world }) {
   const router = useRouter();
 
@@ -81,7 +120,6 @@ function WorldTile({ world }) {
       whileTap={{ scale: 0.98 }}
       onClick={() => router.push(`/app/world/${world.id}`)}
     >
-      {/* Background gradient */}
       <div
         className={cn(
           "absolute inset-0 opacity-20 blur-2xl",
@@ -89,7 +127,6 @@ function WorldTile({ world }) {
         )}
       />
 
-      {/* Content */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <span
@@ -105,7 +142,6 @@ function WorldTile({ world }) {
         <h3 className="text-xl font-bold text-slate-900 mb-1">{world.name}</h3>
         <p className="text-sm font-medium text-slate-600 mb-4">{world.subtitle}</p>
 
-        {/* Progress bar */}
         <div className="h-2.5 w-full rounded-full bg-white/60 overflow-hidden">
           <motion.div
             className={cn("h-full rounded-full", themeColors.accent)}
@@ -135,10 +171,8 @@ function ToolTile({ tool }) {
       whileTap={{ scale: 0.98 }}
       onClick={() => router.push(`/app/tools/${tool.id}`)}
     >
-      {/* Background gradient */}
       <div className={cn("absolute inset-0 opacity-20 blur-2xl", tool.accent)} />
 
-      {/* Content */}
       <div className="relative z-10">
         <div className="text-4xl mb-3">{tool.icon}</div>
         <h3 className="text-lg font-bold text-slate-900 mb-1">{tool.name}</h3>
@@ -148,51 +182,43 @@ function ToolTile({ tool }) {
   );
 }
 
-const DASHBOARD_CARDS = [
-  {
-    id: "continue-learning",
-    title: "Continue Learning",
-    icon: "📚",
-    description: "Jump back into your lessons",
-    href: "/app/worlds",
-    color: "from-blue-50 to-indigo-50",
-    accent: "text-blue-600",
-  },
-  {
-    id: "daily-quests",
-    title: "Today's Quests",
-    icon: "⭐",
-    description: "Complete daily challenges",
-    href: "/app/today",
-    color: "from-amber-50 to-orange-50",
-    accent: "text-amber-600",
-  },
-  {
-    id: "rewards",
-    title: "My Rewards",
-    icon: "🏆",
-    description: "Check your achievements",
-    href: "/app/rewards",
-    color: "from-emerald-50 to-teal-50",
-    accent: "text-emerald-600",
-  },
-  {
-    id: "world-explorer",
-    title: "World Explorer",
-    icon: "🌍",
-    description: "Explore places worldwide",
-    href: "/app/tools/world-explorer",
-    color: "from-pink-50 to-rose-50",
-    accent: "text-pink-600",
-  },
-];
-
-export function WorldMap() {
+function DashboardCard({ card }) {
   const router = useRouter();
 
   return (
+    <motion.button
+      onClick={() => router.push(card.href)}
+      className={cn(
+        "relative overflow-hidden rounded-2xl p-6 text-left",
+        "border border-slate-200 shadow-sm",
+        "transition-all duration-300",
+        "hover:shadow-md hover:border-slate-300",
+        `bg-gradient-to-br ${card.color}`
+      )}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="absolute top-3 right-3 text-3xl opacity-20">
+        {card.icon}
+      </div>
+
+      <div className="relative z-10">
+        <div className={cn("text-3xl mb-3", card.accent)}>
+          {card.icon}
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-1">
+          {card.title}
+        </h3>
+        <p className="text-sm text-slate-600">{card.description}</p>
+      </div>
+    </motion.button>
+  );
+}
+
+export function WorldMap() {
+  return (
     <div className="w-full bg-white">
-      {/* Hero / Welcome Section */}
+      {/* Hero Section */}
       <section className="mb-12">
         <div className="space-y-2">
           <h1 className="text-4xl md:text-5xl font-black text-slate-900">
@@ -204,7 +230,7 @@ export function WorldMap() {
         </div>
       </section>
 
-      {/* Quick Stats Section */}
+      {/* Quick Stats */}
       <section className="grid grid-cols-3 gap-4 mb-12">
         <motion.div
           className="rounded-2xl bg-gradient-to-br from-sky-50 to-blue-50 p-5 border border-blue-200/50"
@@ -237,7 +263,7 @@ export function WorldMap() {
         </motion.div>
       </section>
 
-      {/* Main Navigation Cards */}
+      {/* Quick Actions */}
       <section className="mb-16">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-900">Quick Actions</h2>
@@ -246,38 +272,12 @@ export function WorldMap() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {DASHBOARD_CARDS.map((card) => (
-            <motion.button
-              key={card.id}
-              onClick={() => router.push(card.href)}
-              className={cn(
-                "relative overflow-hidden rounded-2xl p-6 text-left",
-                "border border-slate-200 shadow-sm",
-                "transition-all duration-300",
-                "hover:shadow-md hover:border-slate-300",
-                `bg-gradient-to-br ${card.color}`
-              )}
-              whileHover={{ y: -4 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="absolute top-3 right-3 text-3xl opacity-20">
-                {card.icon}
-              </div>
-
-              <div className="relative z-10">
-                <div className={cn("text-3xl mb-3", card.accent)}>
-                  {card.icon}
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">
-                  {card.title}
-                </h3>
-                <p className="text-sm text-slate-600">{card.description}</p>
-              </div>
-            </motion.button>
+            <DashboardCard key={card.id} card={card} />
           ))}
         </div>
       </section>
 
-      {/* Learning Worlds Section */}
+      {/* Learning Worlds */}
       <section className="mb-16">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-900">Learning Worlds</h2>
@@ -293,7 +293,7 @@ export function WorldMap() {
         </div>
       </section>
 
-      {/* Tools & Resources Section */}
+      {/* Tools & Resources */}
       <section className="mb-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-900">Tools & Resources</h2>
