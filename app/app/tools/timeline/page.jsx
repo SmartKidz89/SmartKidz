@@ -1,55 +1,70 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { PageMotion } from "@/components/ui/PremiumMotion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { supabase } from "@/lib/supabase/client";
+import { Trophy, Star, BookOpen, Crown, Calendar, ArrowUp } from "lucide-react";
 import ChildAvatar from "@/components/avatar/ChildAvatar";
-import { playUISound, haptic } from "@/components/ui/sound";
 
-function formatDay(d) {
+function formatDate(d) {
   try {
-    return new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return new Date(d).toLocaleDateString(undefined, { 
+      weekday: "short", 
+      month: "long", 
+      day: "numeric" 
+    });
   } catch { return ""; }
 }
 
-function iconFor(type) {
-  const m = {
-    start: "🚀",
-    lesson: "✅",
-    streak: "🔥",
-    badge: "🏅",
-    reflection: "🌱",
-    subject: "🧭",
-  };
-  return m[type] || "✨";
-}
+function TimelineItem({ item, index, isLast }) {
+  const isLeft = index % 2 === 0;
+  
+  const icon = {
+    start: <Star className="w-5 h-5 text-amber-500" />,
+    lesson: <BookOpen className="w-5 h-5 text-indigo-500" />,
+    badge: <Trophy className="w-5 h-5 text-emerald-500" />,
+    streak: <Calendar className="w-5 h-5 text-rose-500" />,
+    milestone: <Crown className="w-5 h-5 text-amber-500" />,
+  }[item.type] || <Star className="w-5 h-5 text-slate-500" />;
 
-function subjectName(id) {
-  const m = { MAT:"Maths", ENG:"English", SCI:"Science", HASS:"HASS", HPE:"HPE", ARTS:"The Arts", TECH:"Technologies", LANG:"Languages" };
-  return m[id] || id || "Learning";
-}
+  return (
+    <div className={`flex gap-4 md:gap-0 ${isLeft ? 'md:flex-row' : 'md:flex-row-reverse'} relative`}>
+      {/* Center Line */}
+      <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-slate-200 -translate-x-1/2">
+        {!isLast && <div className="absolute top-0 bottom-0 w-full bg-gradient-to-b from-slate-200 to-slate-100" />}
+      </div>
 
-function computeStreak(datesUtc) {
-  // datesUtc: array of YYYY-MM-DD strings sorted desc
-  const set = new Set(datesUtc);
-  const today = new Date();
-  // use local date for streak, but based on completed days.
-  function toKey(dt){
-    const y = dt.getFullYear();
-    const m = String(dt.getMonth()+1).padStart(2,"0");
-    const d = String(dt.getDate()).padStart(2,"0");
-    return `${y}-${m}-${d}`;
-  }
-  let streak = 0;
-  let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  // allow streak to start from yesterday if no completion today
-  if (!set.has(toKey(cursor))) cursor.setDate(cursor.getDate()-1);
-  while (set.has(toKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate()-1);
-  }
-  return streak;
+      {/* Icon Node */}
+      <div className="absolute left-6 md:left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white border-4 border-slate-50 shadow-sm flex items-center justify-center z-10">
+        {icon}
+      </div>
+
+      {/* Content Card */}
+      <div className={`w-full md:w-1/2 pl-16 md:pl-0 ${isLeft ? 'md:pr-12 md:text-right' : 'md:pl-12'}`}>
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+          <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${
+            item.type === 'badge' ? 'text-emerald-500' : 'text-slate-400'
+          }`}>
+            {formatDate(item.at)}
+          </div>
+          <h3 className="text-lg font-black text-slate-900 leading-tight mb-2">{item.title}</h3>
+          <p className="text-slate-600 text-sm leading-relaxed">{item.body}</p>
+          
+          {item.meta && (
+            <div className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+              isLeft ? 'md:ml-auto' : ''
+            } bg-slate-50 text-slate-600`}>
+              {item.meta}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Empty space for the other side */}
+      <div className="hidden md:block w-1/2" />
+    </div>
+  );
 }
 
 export default function AchievementTimelinePage() {
@@ -58,142 +73,97 @@ export default function AchievementTimelinePage() {
 
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
-  const [err, setErr] = useState("");
 
   useEffect(() => {
     let mounted = true;
     async function load() {
-      setErr("");
       setLoading(true);
-      setItems([]);
-      if (!childId) { setLoading(false); return; }
+      if (!childId) { setItems([]); setLoading(false); return; }
 
-      // 1) Progress
-      const { data: progress, error: pErr } = await supabase
+      // 1. Fetch Lessons
+      const { data: progress } = await supabase
         .from("lesson_progress")
         .select("lesson_id, updated_at, status")
         .eq("child_id", childId)
-        .order("updated_at", { ascending: false })
-        .limit(400);
+        .eq("status", "completed")
+        .order("updated_at", { ascending: false });
 
-      if (!mounted) return;
-      if (pErr) { setErr(pErr.message); setLoading(false); return; }
+      // 2. Fetch Badges
+      const { data: badges } = await supabase
+        .from("child_badges")
+        .select("badge_id, awarded_at")
+        .eq("child_id", childId);
 
-      const completed = (progress || []).filter(p => (p.status || "").toLowerCase() === "completed");
-      const ids = completed.map(p => p.lesson_id).filter(Boolean);
-
-      // 2) Lessons details
-      let lessons = [];
-      if (ids.length) {
-        const { data: lData, error: lErr } = await supabase
-          .from("lessons")
-          .select("id, title, subject_id, year_level, topic")
-          .in("id", ids.slice(0, 300));
-        if (!mounted) return;
-        if (lErr) { setErr(lErr.message); setLoading(false); return; }
-        lessons = lData || [];
-      }
-
-      // 3) Reflections (optional table)
-      let reflections = [];
-      const { data: rData, error: rErr } = await supabase
+      // 3. Fetch Reflections
+      const { data: reflections } = await supabase
         .from("child_reflections")
         .select("id, mood, proud, created_at")
-        .eq("child_id", childId)
-        .order("created_at", { ascending: false })
-        .limit(60);
-      if (!mounted) return;
-      if (!rErr) reflections = rData || [];
+        .eq("child_id", childId);
 
-      const map = new Map(lessons.map(l => [l.id, l]));
+      if (!mounted) return;
+
       const timeline = [];
 
-      // Start event (best-effort: use first completion or now)
-      const firstCompletion = completed.length ? completed[completed.length - 1]?.updated_at : null;
-      timeline.push({
-        id: "start",
-        type: "start",
-        title: "Journey started",
-        body: "Every small step builds confidence.",
-        at: firstCompletion || new Date().toISOString(),
-      });
+      // Process Lessons
+      if (progress?.length) {
+        // Fetch lesson details
+        const ids = progress.map(p => p.lesson_id);
+        const { data: lessons } = await supabase
+          .from("lessons")
+          .select("id, title, topic")
+          .in("id", ids);
+        
+        const lessonMap = new Map(lessons?.map(l => [l.id, l]));
 
-      // Milestone: first lesson
-      if (completed.length) {
-        const first = completed[completed.length - 1];
-        const l = map.get(first.lesson_id);
-        timeline.push({
-          id: "first_lesson",
-          type: "lesson",
-          title: "First lesson completed",
-          body: l ? `${l.title} · ${subjectName(l.subject_id)}` : "First lesson completed",
-          at: first.updated_at,
-        });
-      }
-
-      // Milestones by counts
-      const counts = [5, 10, 25, 50, 100, 200];
-      for (const c of counts) {
-        if (completed.length >= c) {
-          const p = completed[completed.length - c];
+        progress.forEach(p => {
+          const l = lessonMap.get(p.lesson_id);
           timeline.push({
-            id: `milestone_${c}`,
-            type: "badge",
-            title: `${c} lessons completed`,
-            body: "Consistency is how learning sticks.",
+            id: `lesson_${p.lesson_id}`,
+            type: "lesson",
+            title: l?.title || "Lesson Completed",
+            body: l?.topic || "Great work completing this lesson!",
             at: p.updated_at,
+            meta: "Completed"
           });
-        }
-      }
+        });
 
-      // Subject milestones (first completion per subject)
-      const seenSub = new Set();
-      for (const p of completed.slice().reverse()) {
-        const l = map.get(p.lesson_id);
-        if (!l) continue;
-        if (seenSub.has(l.subject_id)) continue;
-        seenSub.add(l.subject_id);
+        // Add "Start" node
         timeline.push({
-          id: `subject_${l.subject_id}`,
-          type: "subject",
-          title: `First steps in ${subjectName(l.subject_id)}`,
-          body: l.topic || l.title,
-          at: p.updated_at,
+          id: "start",
+          type: "start",
+          title: "Journey Started",
+          body: "The first step of a big adventure.",
+          at: progress[progress.length - 1].updated_at
         });
       }
 
-      // Streak milestone
-      const dayKeys = completed.map(p => {
-        const d = new Date(p.updated_at);
-        const y=d.getUTCFullYear(), m=String(d.getUTCMonth()+1).padStart(2,"0"), da=String(d.getUTCDate()).padStart(2,"0");
-        return `${y}-${m}-${da}`;
+      // Process Badges
+      badges?.forEach(b => {
+        timeline.push({
+          id: `badge_${b.badge_id}`,
+          type: "badge",
+          title: "Badge Earned!",
+          body: `You unlocked the ${b.badge_id.replace(/_/g, ' ')} badge.`,
+          at: b.awarded_at,
+          meta: "Achievement"
+        });
       });
-      const uniqDays = Array.from(new Set(dayKeys));
-      const currentStreak = computeStreak(uniqDays);
-      if (currentStreak >= 3) {
-        timeline.push({
-          id: "streak_now",
-          type: "streak",
-          title: `${currentStreak}-day learning streak`,
-          body: "Momentum feels good — keep it calm and steady.",
-          at: new Date().toISOString(),
-        });
-      }
 
-      // Reflections become timeline events
-      for (const r of reflections) {
+      // Process Reflections
+      reflections?.forEach(r => {
+        if (!r.proud) return; // Only show proud moments on public timeline
         timeline.push({
           id: `ref_${r.id}`,
-          type: "reflection",
-          title: "Reflection saved",
-          body: r.proud ? `Proud: ${r.proud}` : `Mood: ${r.mood}`,
+          type: "milestone",
+          title: "A Proud Moment",
+          body: `"${r.proud}"`,
           at: r.created_at,
+          meta: "Reflection"
         });
-      }
+      });
 
-      // Sort desc by time
+      // Sort & Set
       timeline.sort((a,b) => new Date(b.at) - new Date(a.at));
-
       setItems(timeline);
       setLoading(false);
     }
@@ -201,77 +171,45 @@ export default function AchievementTimelinePage() {
     return () => { mounted = false; };
   }, [childId]);
 
-  function printNow() {
-    try { playUISound("tap"); haptic("light"); } catch {}
-    window.print();
-  }
-
   return (
-    <PageMotion className="max-w-6xl mx-auto space-y-6">
-      <div className="skz-glass p-6 md:p-8 skz-border-animate skz-shine">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <ChildAvatar config={activeChild?.avatar_config || {}} size={64} />
-            <div>
-              <div className="text-sm text-slate-500">Premium journey</div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Achievement timeline</h1>
-              <p className="mt-2 text-sm md:text-base text-slate-700">
-                A calm, beautiful timeline of milestones and growth. Parents can print this anytime.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button className="skz-chip px-4 py-3 skz-press" onClick={() => history.back()}>Back</button>
-            <button className="skz-glass skz-border-animate skz-shine px-5 py-3 skz-press" onClick={printNow}>
-              Print
-            </button>
-            <a className="skz-glass skz-border-animate skz-shine px-4 py-3 skz-press text-sm" href="/app/parent/timeline">
-              Parent view →
-            </a>
-          </div>
+    <PageMotion className="max-w-4xl mx-auto space-y-12 pb-24">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="inline-block relative">
+          <div className="absolute -inset-4 bg-gradient-to-r from-amber-200 to-yellow-200 rounded-full blur-xl opacity-50" />
+          <ChildAvatar config={activeChild?.avatar_config} size={80} className="relative shadow-xl" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            {activeChild?.display_name ? `${activeChild.display_name}'s Journey` : "Your Journey"}
+          </h1>
+          <p className="text-slate-600 font-medium mt-2">Every step counts. Look how far you've come!</p>
         </div>
       </div>
 
-      {err ? <div className="skz-card p-5 text-rose-700">{err}</div> : null}
-
       {loading ? (
-        <div className="skz-card p-6 text-slate-600">Loading timeline…</div>
-      ) : items.length ? (
-        <div className="skz-card p-6 md:p-8">
-          <div className="relative">
-            <div className="absolute left-5 top-2 bottom-2 w-px bg-slate-200" />
-            <div className="space-y-5">
-              {items.map((it) => (
-                <div key={it.id} className="relative pl-14">
-                  <div className="absolute left-2 top-1 w-8 h-8 skz-chip flex items-center justify-center">
-                    <span className="text-lg">{iconFor(it.type)}</span>
-                  </div>
-                  <div className="skz-glass p-5 skz-glow skz-shine">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-lg font-semibold">{it.title}</div>
-                        <div className="mt-1 text-sm text-slate-700">{it.body}</div>
-                      </div>
-                      <div className="skz-chip px-3 py-2 text-xs">{formatDay(it.at)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="text-center py-20 text-slate-400 font-bold animate-pulse">
+          Loading history...
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-12 px-6 rounded-3xl bg-slate-50 border border-slate-100">
+          <div className="text-4xl mb-4">🗺️</div>
+          <h3 className="text-lg font-bold text-slate-900">Map is empty</h3>
+          <p className="text-slate-600 mt-2">Complete your first lesson to start your timeline.</p>
         </div>
       ) : (
-        <div className="skz-card p-6 text-slate-600">No timeline yet. Complete a lesson to start your journey.</div>
+        <div className="space-y-8 relative">
+           {items.map((item, i) => (
+             <TimelineItem key={item.id} item={item} index={i} isLast={i === items.length - 1} />
+           ))}
+           
+           <div className="text-center pt-8">
+             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+               <ArrowUp className="w-4 h-4" /> Start of Adventure
+             </div>
+           </div>
+        </div>
       )}
-
-      <style jsx global>{`
-        @media print {
-          header, nav, .no-print { display: none !important; }
-          body { background: white !important; }
-          .skz-glass, .skz-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-          .skz-border-animate::after, .skz-glow::before, .skz-shine::after { display: none !important; }
-        }
-      `}</style>
     </PageMotion>
   );
 }
