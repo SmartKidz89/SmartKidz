@@ -3,151 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3, Star, Zap } from "lucide-react";
+import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3 } from "lucide-react";
 
 function Container({ children, className = "" }) {
   return <div className={"container-pad " + className}>{children}</div>;
 }
 
-// --- NEW HERO VISUAL COMPONENT ---
-function HeroVisual() {
-  return (
-    <div className="relative mx-auto w-full max-w-[1000px] perspective-[2000px]">
-      {/* Glow / Aura behind */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-sky-400/20 via-fuchsia-400/20 to-amber-400/20 blur-[100px] rounded-full" />
-
-      {/* Main Interface Container - Tilted 3D Effect */}
-      <motion.div
-        initial={{ rotateX: 20, rotateY: -12, y: 100, opacity: 0 }}
-        animate={{ rotateX: 5, rotateY: -5, y: 0, opacity: 1 }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
-        className="relative z-10 bg-white/90 backdrop-blur-xl border border-white/60 rounded-[2.5rem] shadow-[0_50px_100px_-20px_rgba(50,50,93,0.25),0_30px_60px_-30px_rgba(0,0,0,0.3)] overflow-hidden aspect-[16/10]"
-      >
-        {/* Fake Browser/App Chrome */}
-        <div className="h-12 border-b border-slate-100 flex items-center px-6 gap-2 bg-white/50">
-          <div className="w-3 h-3 rounded-full bg-rose-400/80" />
-          <div className="w-3 h-3 rounded-full bg-amber-400/80" />
-          <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
-        </div>
-
-        {/* Dashboard Content Mockup */}
-        <div className="p-6 md:p-8 h-full bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col relative">
-          
-          {/* Header Row */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-600 flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/20">
-                🦁
-              </div>
-              <div>
-                <div className="h-2 w-24 bg-slate-200 rounded-full mb-2" />
-                <div className="h-4 w-40 bg-slate-900 rounded-full" />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <div className="px-4 py-2 rounded-full bg-white border border-slate-100 shadow-sm flex items-center gap-2">
-                <span className="text-amber-400">🪙</span>
-                <span className="font-bold text-slate-700">450</span>
-              </div>
-              <div className="px-4 py-2 rounded-full bg-white border border-slate-100 shadow-sm flex items-center gap-2">
-                <span className="text-rose-500">🔥</span>
-                <span className="font-bold text-slate-700">12 Days</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Cards Grid */}
-          <div className="grid grid-cols-12 gap-6 h-full">
-            {/* Main Featured Lesson - Left */}
-            <div className="col-span-8 rounded-3xl bg-white border border-slate-100 shadow-lg p-6 relative overflow-hidden group cursor-default">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-sky-100 to-transparent rounded-bl-full opacity-50" />
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold uppercase tracking-wide mb-4">
-                  <Map className="w-3 h-3" /> Up Next
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Maths Adventure</h3>
-                <p className="text-slate-500 font-medium mb-6">Mastering Fractions & Decimals</p>
-                
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-6">
-                  <motion.div 
-                    initial={{ width: 0 }} 
-                    animate={{ width: "65%" }} 
-                    transition={{ duration: 1.5, delay: 0.5, ease: "circOut" }}
-                    className="h-full bg-sky-500 rounded-full" 
-                  />
-                </div>
-
-                <div className="inline-flex items-center justify-center h-12 px-6 rounded-xl bg-slate-900 text-white font-bold shadow-lg shadow-slate-900/20 group-hover:scale-105 transition-transform">
-                  Continue Lesson <ArrowRight className="ml-2 w-4 h-4" />
-                </div>
-              </div>
-            </div>
-
-            {/* Side Quest - Right */}
-            <div className="col-span-4 flex flex-col gap-4">
-              <div className="flex-1 rounded-3xl bg-gradient-to-br from-amber-100 to-orange-50 p-5 relative overflow-hidden flex flex-col justify-center items-center text-center">
-                <div className="text-4xl mb-2 animate-bounce">🏆</div>
-                <div className="font-bold text-amber-900">Weekly Challenge</div>
-                <div className="text-xs text-amber-700 font-semibold mt-1">3/5 Complete</div>
-              </div>
-              <div className="flex-1 rounded-3xl bg-white border border-slate-100 p-5 shadow-sm flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400 font-bold uppercase">Finished</div>
-                  <div className="font-bold text-slate-900">Reading</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </motion.div>
-
-      {/* Floating Elements (Orbiting) */}
-      <motion.div
-        animate={{ y: [0, -15, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-8 -right-8 z-20"
-      >
-        <div className="bg-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/50 flex items-center gap-3 rotate-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-rose-500 flex items-center justify-center text-2xl shadow-inner text-white">
-            <Star className="w-6 h-6 fill-current" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-slate-400 uppercase">Unlocked</div>
-            <div className="font-black text-slate-800 text-lg">Super Star</div>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ y: [0, 20, 0] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute -bottom-10 -left-10 z-20"
-      >
-        <div className="bg-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/50 flex items-center gap-3 -rotate-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-2xl shadow-inner text-white">
-            <Shield className="w-6 h-6 fill-current" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-slate-400 uppercase">Skill</div>
-            <div className="font-black text-slate-800 text-lg">Mastered</div>
-          </div>
-        </div>
-      </motion.div>
-
-    </div>
-  );
-}
-
 // --- HERO SECTION ---
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-32">
+    <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-24">
+      {/* Background Blobs */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-sky-100/50 to-transparent rounded-full blur-3xl opacity-60" />
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-indigo-200/30 blur-3xl" />
+        <div className="absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-emerald-200/30 blur-3xl" />
+      </div>
+
       <Container className="relative">
-        <div className="text-center max-w-4xl mx-auto mb-20">
+        <div className="text-center max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -210,9 +84,53 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* 3D Dashboard Visual */}
-        <HeroVisual />
+        {/* Hero Visual */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
+          className="mt-16 relative mx-auto max-w-5xl"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 rounded-[2.5rem] blur opacity-30" />
+          <div className="relative rounded-[2rem] border border-white/50 bg-white/80 shadow-2xl backdrop-blur-xl overflow-hidden aspect-[16/10] sm:aspect-[2/1]">
+            <Image
+              src="/illustrations/app/kids-dashboard-header.webp"
+              alt="SmartKidz App Interface"
+              fill
+              className="object-cover"
+              priority
+            />
+            
+            {/* Floating Elements for Depth */}
+            <motion.div 
+              animate={{ y: [0, -10, 0] }} 
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-8 left-8 p-3 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50 hidden sm:block"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-xl">🏆</div>
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase">Streak</div>
+                  <div className="text-sm font-black text-slate-900">7 Days Fire!</div>
+                </div>
+              </div>
+            </motion.div>
 
+            <motion.div 
+              animate={{ y: [0, 10, 0] }} 
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute bottom-8 right-8 p-3 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50 hidden sm:block"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">🧠</div>
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase">Skill Mastered</div>
+                  <div className="text-sm font-black text-slate-900">Fractions</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </Container>
     </section>
   );
