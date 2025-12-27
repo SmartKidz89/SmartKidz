@@ -11,7 +11,7 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
   Wrench, Star, Zap, Map, Sparkles, Heart,
-  Book, Globe2, PenTool, Compass, ALargeSmall, Plus, Palette as PaletteIcon
+  Book, Globe2, PenTool, Compass, ALargeSmall, Plus, Palette as PaletteIcon, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGeoConfig } from "@/lib/marketing/geoConfig";
