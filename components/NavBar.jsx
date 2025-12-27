@@ -2,128 +2,169 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ArrowRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import BrandMark from "./BrandMark";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 import { useSession } from "./auth/useSession";
 
 export default function NavBar() {
+  const { scrollY } = useScroll();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   const { session, loading } = useSession();
 
-  // Keep the marketing site and the in-app product on separate origins.
-  // In production, set NEXT_PUBLIC_APP_ORIGIN=https://app.smartkidz.app
+  // Dynamic header styles based on scroll position
+  const headerHeight = useTransform(scrollY, [0, 60], ["5.5rem", "4.25rem"]);
+  const headerBg = useTransform(scrollY, [0, 60], ["rgba(255,255,255,0)", "rgba(255,255,255,0.85)"]);
+  const headerBackdrop = useTransform(scrollY, [0, 60], ["blur(0px)", "blur(16px)"]);
+  const headerBorder = useTransform(scrollY, [0, 60], ["rgba(0,0,0,0)", "rgba(0,0,0,0.06)"]);
+  const headerShadow = useTransform(scrollY, [0, 60], ["none", "0 4px 30px rgba(0,0,0,0.04)"]);
+
   const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "https://app.smartkidz.app";
 
-  const items = useMemo(() => ([
-    { href: "/", label: "Home" },
-    { href: "/features", label: "Features" },
-    { href: "/curriculum", label: "Curriculum" },
-    { href: "/pricing", label: "Pricing" }
-  ]), []);
-
-  const isActive = (href) => pathname === href;
+  const navLinks = [
+    { name: "Home", href: "/" },
+    { name: "Features", href: "/marketing/features" },
+    { name: "Curriculum", href: "/marketing/curriculum" },
+    { name: "Pricing", href: "/marketing/pricing" },
+  ];
 
   return (
-    <header className={clsx("sticky top-0 z-50", scrolled ? "shadow-sm" : "", "skz-glassbar")}>
-      <div className="container-pad h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
+    <motion.header
+      style={{
+        height: headerHeight,
+        backgroundColor: headerBg,
+        backdropFilter: headerBackdrop,
+        borderBottomWidth: 1,
+        borderBottomColor: headerBorder,
+        boxShadow: headerShadow,
+      }}
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent"
+    >
+      <div className="container-pad h-full flex items-center justify-between">
+        {/* Brand */}
+        <Link href="/" className="flex items-center gap-2 group relative z-20">
           <BrandMark />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
-          {items.map((it) => (
-            <Link
-              key={it.href}
-              href={it.href}
-              className={clsx(
-                "px-4 py-2 rounded-2xl text-sm font-semibold transition",
-                isActive(it.href) ? "bg-brand-primary text-white" : "text-slate-700 hover:bg-slate-100"
-              )}
-            >
-              {it.label}
-            </Link>
-          ))}
+        {/* Desktop Navigation (Floating Pill) */}
+        <nav className="hidden md:flex items-center gap-1 bg-slate-100/60 p-1.5 rounded-full border border-white/50 shadow-inner backdrop-blur-md">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={cn(
+                  "px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 relative",
+                  isActive
+                    ? "text-slate-900 bg-white shadow-sm ring-1 ring-slate-200/50"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40"
+                )}
+              >
+                {link.name}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="hidden md:flex items-center gap-2">
+        {/* Desktop CTA */}
+        <div className="hidden md:flex items-center gap-3 relative z-20">
           {!loading && session ? (
             <Link
               href={appOrigin}
-              className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary text-white px-4 py-2 text-sm font-semibold shadow-soft hover:opacity-95 transition"
+              className="group relative inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800 hover:scale-105 active:scale-95 shadow-lg shadow-slate-900/20"
             >
-              Open App <ArrowRight className="h-4 w-4" />
+              <span>Dashboard</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
           ) : (
             <>
-              <Link href={`${appOrigin}/login`} className="px-4 py-2 rounded-2xl text-sm font-semibold text-slate-700 hover:bg-slate-100">
+              <Link
+                href={`${appOrigin}/login`}
+                className="text-sm font-bold text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors"
+              >
                 Log in
               </Link>
               <Link
                 href={`${appOrigin}/signup`}
-                className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary text-white px-4 py-2 text-sm font-semibold shadow-soft hover:opacity-95 transition"
+                className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/25 transition-all hover:shadow-brand-primary/40 hover:scale-105 active:scale-95"
               >
-                Start Free Trial <ArrowRight className="h-4 w-4" />
+                <span>Start Free Trial</span>
+                <Sparkles className="w-4 h-4 text-white/90 animate-pulse" />
               </Link>
             </>
           )}
         </div>
 
+        {/* Mobile Toggle */}
         <button
-          className="md:hidden h-10 w-10 grid place-items-center rounded-2xl hover:bg-slate-100"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Open menu"
+          className="md:hidden relative z-20 p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
         >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {open && (
-        <div className="md:hidden border-t border-slate-200 bg-white">
-          <div className="container-pad py-3 space-y-1">
-            {items.map((it) => (
-              <Link
-                key={it.href}
-                href={it.href}
-                onClick={() => setOpen(false)}
-                className={clsx(
-                  "block px-4 py-3 rounded-2xl font-semibold",
-                  isActive(it.href) ? "bg-brand-primary text-white" : "text-slate-800 hover:bg-slate-100"
-                )}
-              >
-                {it.label}
-              </Link>
-            ))}
-            <div className="pt-2 flex gap-2">
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="md:hidden absolute top-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-2xl pt-24 pb-8 px-6 z-10"
+          >
+            <nav className="flex flex-col gap-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "p-4 rounded-2xl text-lg font-bold transition-colors",
+                    pathname === link.href ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  {link.name}
+                </Link>
+              ))}
+              
+              <div className="h-px bg-slate-100 my-4" />
+              
               {!loading && session ? (
-                <Link href={appOrigin} onClick={() => setOpen(false)} className="flex-1 text-center rounded-2xl bg-brand-primary text-white px-4 py-3 font-semibold">
-                  Open App
+                <Link
+                  href={appOrigin}
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full bg-slate-900 text-white p-4 rounded-2xl text-center font-bold text-lg shadow-lg"
+                >
+                  Go to Dashboard
                 </Link>
               ) : (
-                <>
-                  <Link href={`${appOrigin}/login`} onClick={() => setOpen(false)} className="flex-1 text-center rounded-2xl bg-slate-100 px-4 py-3 font-semibold">
+                <div className="grid gap-3">
+                  <Link
+                    href={`${appOrigin}/login`}
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full bg-slate-100 text-slate-900 p-4 rounded-2xl text-center font-bold text-lg"
+                  >
                     Log in
                   </Link>
-                  <Link href={`${appOrigin}/signup`} onClick={() => setOpen(false)} className="flex-1 text-center rounded-2xl bg-brand-primary text-white px-4 py-3 font-semibold">
-                    Start Trial
+                  <Link
+                    href={`${appOrigin}/signup`}
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-4 rounded-2xl text-center font-bold text-lg shadow-lg"
+                  >
+                    Start Free Trial
                   </Link>
-                </>
+                </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-    </header>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.header>
   );
 }

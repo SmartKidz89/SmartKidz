@@ -4,11 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSupabaseUser } from "@/lib/useSupabaseUser";
 import { createClient } from "@/lib/supabase/client";
+import { LogOut, LayoutGrid, UserCircle, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function ParentTopBar() {
   const pathname = usePathname();
   const { user } = useSupabaseUser();
   const supabase = createClient();
+  
   const handleLogout = async () => {
     try {
       await supabase?.auth.signOut();
@@ -18,50 +21,77 @@ export default function ParentTopBar() {
     }
   };
 
+  const isProfile = pathname?.startsWith("/app/parent/profile");
+
   return (
     <div className="sticky top-0 z-30">
-      <div className="bg-white/80 backdrop-blur border-b border-slate-200">
-        <div className="container-pad flex items-center justify-between py-3">
-          <div>
-            <div className="text-xs font-extrabold tracking-wide text-slate-500">PARENT</div>
-            <div className="text-base font-black text-slate-900">Dashboard</div>
+      <div className="bg-slate-900 text-white shadow-md">
+        <div className="container-pad flex flex-col sm:flex-row items-center justify-between py-3 gap-3 sm:gap-0">
+          
+          {/* Brand / Context */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="h-8 w-8 rounded-xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+               <span className="font-black text-xs">P</span>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">Parent Dashboard</div>
+              {user?.email && <div className="text-xs font-semibold text-slate-300">{user.email}</div>}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Actions */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Link
               href="/app"
-              className="rounded-2xl px-3 py-2 text-sm font-extrabold bg-slate-900 text-white hover:bg-slate-800"
-              title="Go to Kids mode"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/20 transition-all active:scale-95"
+              title="Switch to Kids Mode"
             >
-              Kids View
+              <span>Kid View</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-70" />
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
-              aria-label="Log out"
+
+            <div className="h-6 w-px bg-white/10 mx-1" />
+
+            <Link
+              href="/app/parent"
+              className={cn(
+                "h-9 w-9 flex items-center justify-center rounded-xl transition-colors",
+                pathname === "/app/parent" 
+                  ? "bg-indigo-600 text-white shadow-inner" 
+                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+              )}
+              title="Dashboard Home"
             >
-              Log out
-            </button>
+              <LayoutGrid className="w-4 h-4" />
+            </Link>
 
             <Link
               href="/app/parent/profile"
-              className={"rounded-2xl px-3 py-2 text-sm font-extrabold border border-slate-200 bg-white hover:bg-slate-50 " +
-                (pathname?.startsWith("/app/parent/profile") ? "text-slate-900" : "text-slate-700")}
+              className={cn(
+                "h-9 w-9 flex items-center justify-center rounded-xl transition-colors",
+                isProfile 
+                  ? "bg-indigo-600 text-white shadow-inner" 
+                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+              )}
+              title="Profile Settings"
             >
-              Profile & Kids
+              <UserCircle className="w-5 h-5" />
             </Link>
+            
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="h-9 w-9 flex items-center justify-center rounded-xl text-slate-400 hover:bg-rose-900/30 hover:text-rose-400 transition-colors"
+              title="Log out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
-
-      {user?.email && (
-        <div className="bg-slate-50/80 border-b border-slate-200">
-          <div className="container-pad py-2 text-xs font-semibold text-slate-600">
-            Signed in as <span className="font-extrabold text-slate-800">{user.email}</span>
-          </div>
-        </div>
-      )}
+      
+      {/* Subtle bottom accent line */}
+      <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500" />
     </div>
   );
 }
