@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "audit:content": "node scripts/content-audit.mjs",
     "audit:perf": "node scripts/perf-budget.mjs",
-    "audit:all": "npm run links:audit && npm run audit:content && npm run audit:perf && npm run test:smoke && npm run test:journey && npm run test:journey:full"
+    "audit:all": "npm run links:audit && npm run audit:content && npm run audit:perf && npm run test:smoke && npm run test:journey && npm run test:journey:full",
+    "generate:lessons": "node scripts/generate_comprehensive_lessons.js"
   },
   "dependencies": {
     "@react-three/drei": "9.109.2",
