@@ -72,6 +72,7 @@ const CURRICULUM = {
 const LEVELS = ['Beginning', 'Intermediate', 'Advanced'];
 const LESSONS_PER_LEVEL = 75; 
 const YEARS = [1, 2, 3, 4, 5, 6];
+const QUESTIONS_PER_LESSON = 15;
 
 function escapeCsv(field) {
     if (field == null) return '';
@@ -118,15 +119,16 @@ function generateContent(subject, topic, year, level, index) {
         Next time you are out, look for examples of ${topic} around you!
     `.trim();
 
-    // Generate 5 questions per lesson
-    const quiz = Array.from({ length: 5 }).map((_, qIdx) => ({
+    // Generate 15 questions per lesson
+    const quiz = Array.from({ length: QUESTIONS_PER_LESSON }).map((_, qIdx) => ({
         q: `[${level}] Question ${qIdx + 1} about ${topic}: What is the key rule?`,
         options: [
             `The correct rule for ${topic} (${level})`,
             `A common mistake for ${topic}`,
-            `An unrelated fact`
+            `An unrelated fact`,
+            `Another random option`
         ],
-        answer: 0, // First option is correct for this generator
+        answer: 0, 
         hint: `Think about what we learned in the ${level} explanation.`
     }));
 
