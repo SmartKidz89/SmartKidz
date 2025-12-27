@@ -6,8 +6,8 @@ export const maxDuration = 60;
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-// Reduced from 100 to 25 to ensure the 43k row file generates successfully within HTTP limits.
-const LESSONS_PER_LEVEL = 25; 
+// 50 lessons per level = 150 per year/subject/country (~86k total rows)
+const LESSONS_PER_LEVEL = 50; 
 
 // --- Country Configuration ---
 const COUNTRIES = {
