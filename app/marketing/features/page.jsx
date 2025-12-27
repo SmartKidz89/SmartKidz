@@ -1,284 +1,355 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import SectionReveal from "@/components/marketing/SectionReveal";
-import FAQAccordion from "@/components/marketing/FAQAccordion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { 
+  Map, Trophy, Shield, Sparkles, Zap, Brain, 
+  BarChart3, Globe, Lock, BookOpen,
+  Palette, Calculator, FlaskConical, Smile,
+  CheckCircle2, ArrowRight, Layout, Star
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
+// --- Components ---
+
 function Container({ children, className = "" }) {
-  return <div className={"container-pad " + className}>{children}</div>;
+  return <div className={cn("container-pad px-6", className)}>{children}</div>;
 }
 
-function Chip({ children }) {
+function SectionLabel({ children }) {
   return (
-    
-    <PageScaffold title="Features">
-<span className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm backdrop-blur">
+    <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/50 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-indigo-600 mb-4 backdrop-blur-md">
+      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
       {children}
-    </span>
-  
-    </PageScaffold>
-  );
-}
-
-function MockVisual({ icon, title, subtitle }) {
-  return (
-    <div data-scene className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/60 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
-      <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
-      <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-rose-400/20 blur-3xl" />
-      <div className="relative p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
-              <span className="text-xl">{icon}</span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-slate-900">{title}</div>
-              <div className="mt-1 text-xs text-slate-600">{subtitle}</div>
-            </div>
-          </div>
-          <Chip>Preview</Chip>
-        </div>
-
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <div className="h-2 w-16 rounded-full bg-slate-200" />
-            <div className="mt-2 h-2 w-10 rounded-full bg-slate-200" />
-            <div className="mt-4 h-16 rounded-2xl bg-white shadow-sm" />
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <div className="h-2 w-14 rounded-full bg-slate-200" />
-            <div className="mt-2 h-2 w-12 rounded-full bg-slate-200" />
-            <div className="mt-4 h-16 rounded-2xl bg-white shadow-sm" />
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <div className="h-2 w-12 rounded-full bg-slate-200" />
-            <div className="mt-2 h-2 w-16 rounded-full bg-slate-200" />
-            <div className="mt-4 h-16 rounded-2xl bg-white shadow-sm" />
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="rounded-full bg-indigo-600/10 px-3 py-1 text-xs font-medium text-indigo-700">Calm</span>
-          <span className="rounded-full bg-emerald-600/10 px-3 py-1 text-xs font-medium text-emerald-700">Premium</span>
-          <span className="rounded-full bg-rose-600/10 px-3 py-1 text-xs font-medium text-rose-700">Kid-safe</span>
-        </div>
-      </div>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, desc, who, badge }) {
+// Parallax Image Component
+function ParallaxImage({ src, alt, className }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [1.05, 1, 1.05]);
+
+  return (
+    <div ref={ref} className={cn("relative overflow-hidden rounded-[2.5rem] shadow-2xl border border-slate-900/5 bg-slate-100", className)}>
+      <motion.div style={{ y, scale }} className="absolute inset-0 w-full h-[120%] -top-[10%]">
+        <Image src={src} alt={alt} fill className="object-cover" />
+      </motion.div>
+      {/* Gloss overlay */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none mix-blend-overlay" />
+    </div>
+  );
+}
+
+function FeatureCard({ icon: Icon, title, desc, delay = 0 }) {
   return (
     <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20 }}
-      className="group relative overflow-hidden rounded-3xl border border-white/60 bg-white/60 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, delay }}
+      className="group p-6 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
     >
-      <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-indigo-400/15 blur-3xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-rose-400/15 blur-3xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
-              <span className="text-xl">{icon}</span>
-            </div>
-            <div>
-              <div className="text-base font-semibold text-slate-900">{title}</div>
-              <div className="mt-1 text-xs text-slate-600">{who}</div>
-            </div>
-          </div>
-          {badge ? <Chip>{badge}</Chip> : null}
-        </div>
-        <p className="mt-4 text-sm leading-relaxed text-slate-700">{desc}</p>
+      <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 mb-4 group-hover:scale-110 group-hover:bg-brand-primary group-hover:text-white transition-all duration-300">
+        <Icon className="w-6 h-6" />
       </div>
+      <h3 className="text-lg font-black text-slate-900 mb-2">{title}</h3>
+      <p className="text-sm font-medium text-slate-600 leading-relaxed">{desc}</p>
     </motion.div>
   );
 }
 
-const GRID = [
-  // Kids + Parents blend
-  { icon: "🗺️", title: "World map journey", who: "Kids", badge: "Signature", desc: "Pick a learning world and follow a guided journey that feels like a premium game — calm, playful, and motivating." },
-  { icon: "🏅", title: "Rewards, streaks & badges", who: "Kids", badge: "Motivation", desc: "Earn rewards for effort and consistency. Designed to encourage progress without pressure or overstimulation." },
-  { icon: "🧾", title: "Interactive worksheet builder", who: "Kids + Parents", badge: "Printable", desc: "Generate practice sheets aligned to learning. Complete on-screen or print for offline practise with an answer key." },
-  { icon: "📖", title: "Kid-friendly dictionary", who: "Kids", badge: "Clarity", desc: "Fast definitions with examples. Perfect for early readers and building vocabulary confidence." },
-  { icon: "🧠", title: "Lesson builder", who: "Kids + Parents", badge: "Create", desc: "Prompt-based lesson creation with year-level examples, structured practice, quizzes, and recall tips." },
-
-  { icon: "📘", title: "Learning storybook", who: "Parents + Kids", badge: "Keepsake", desc: "A beautiful journal that turns completed lessons into story pages. Print weekly or at the end of term." },
-  { icon: "🔎", title: "Curiosity explorer", who: "Kids", badge: "Kid‑safe", desc: "Ask questions and get a simple explanation, mini activity, and quiz — designed for safe, offline-style learning." },
-  { icon: "🧘", title: "Calm focus mode", who: "Kids", badge: "Distraction‑free", desc: "One tap hides extra UI and keeps the screen calm, so kids can focus on one lesson at a time." },
-  { icon: "🌱", title: "Reflection & confidence journal", who: "Kids + Parents", badge: "Wellbeing", desc: "Kids capture what felt easy, tricky, and proud. Parents can view reflections to support confidence at home." },
-  { icon: "🧾", title: "Achievement timeline", who: "Parents + Kids", badge: "Shareable", desc: "A premium timeline of milestones (first lesson, streaks, subject firsts). Printable for parents." },
-
-  { icon: "🔊", title: "Voice narration mode", who: "Kids", badge: "Accessibility", desc: "Read-aloud support for prompts and lesson guidance. Especially valuable for early readers and neurodiverse learners." },
-  { icon: "🧑‍🎨", title: "Avatar editor", who: "Kids", badge: "Personal", desc: "A premium avatar experience that makes the app feel uniquely theirs, increasing engagement and ownership." },
-  { icon: "🛡️", title: "Parent insight feed", who: "Parents", badge: "Trust", desc: "Narrative insights (not noisy analytics) that show momentum and next best steps in a calm, supportive tone." },
-  { icon: "🔒", title: "Kid-safe app experience", who: "Parents", badge: "Safety", desc: "Designed to keep learning safe, calm, and age-appropriate. Clear boundaries and parent-controlled access." },
-  { icon: "✨", title: "Signature motion system", who: "Everyone", badge: "Premium UX", desc: "Micro-interactions, smooth transitions, and calm animations that make SmartKidz feel expensive and delightful." },
-];
+// --- Main Page ---
 
 export default function FeaturesPage() {
   return (
-    <div data-scene className="min-h-screen">
-      <Container data-scene className="pt-16 pb-10">
-        <SectionReveal>
-          <div className="mx-auto max-w-5xl text-center">
-            <div className="flex justify-center gap-2 flex-wrap">
-              <Chip>For kids</Chip>
-              <Chip>For parents</Chip>
-              <Chip>Premium UX</Chip>
-              <Chip>Australian curriculum aligned</Chip>
-            </div>
+    <div className="bg-slate-50/50">
+      
+      {/* 1. HERO */}
+      <section className="relative pt-24 pb-20 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-indigo-100/40 via-purple-100/20 to-transparent rounded-full blur-[80px] -z-10" />
+        
+        <Container className="text-center max-w-4xl">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.05]"
+          >
+            Features that feel <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-indigo-500 to-purple-600">
+              like a superpower.
+            </span>
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mt-6 text-xl text-slate-600 font-medium max-w-2xl mx-auto"
+          >
+            We combined the best of game design with the rigour of the Australian Curriculum.
+            Kids get hooked on progress. You get peace of mind.
+          </motion.p>
+        </Container>
+      </section>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-slate-900"
-            >
-              Features that feel premium — and actually help kids learn
-            </motion.h1>
 
-            <p className="mt-5 text-base md:text-lg text-slate-700">
-              SmartKidz combines calm, premium design with purposeful learning tools. Kids get an experience they love.
-              Parents get clarity, trust, and real progress.
-            </p>
-
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/app" className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20">
-                Open the app
-              </Link>
-              <Link href="/pricing" className="rounded-2xl border border-slate-200 bg-white/70 px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm backdrop-blur">
-                View pricing
-              </Link>
-            </div>
-          </div>
-        </SectionReveal>
-      </Container>
-
-      <Container className="pb-12">
-        <SectionReveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <MockVisual icon="🗺️" title="World map journey" subtitle="Pick a world · choose your next step" />
-            <MockVisual icon="📘" title="Learning storybook" subtitle="A beautiful keepsake for parents and kids" />
-          </div>
-        </SectionReveal>
-      </Container>
-
-      <Container className="pb-16">
-        <SectionReveal>
-          <div className="flex items-end justify-between gap-4 flex-wrap">
-            <div>
-              <div className="text-sm text-slate-500">Everything included</div>
-              <h2 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
-                A premium learning toolkit
-              </h2>
-              <p className="mt-2 text-sm md:text-base text-slate-700 max-w-3xl">
-                Built for a calm, high-end experience. Designed for kids. Trusted by parents.
+      {/* 2. THE KID EXPERIENCE (Bento) */}
+      <section className="py-16">
+        <Container>
+          <div className="grid lg:grid-cols-12 gap-8 items-center mb-12">
+            <div className="lg:col-span-5">
+              <SectionLabel>For Kids</SectionLabel>
+              <h2 className="text-4xl font-black text-slate-900 mb-4">A world they want to explore.</h2>
+              <p className="text-lg text-slate-600 font-medium leading-relaxed">
+                No boring lists. Kids choose a world—Maths, Reading, or Science—and travel through levels. 
+                Every lesson unlocks rewards, badges, and gear for their avatar.
               </p>
+              
+              <ul className="mt-8 space-y-4">
+                {[
+                  "Choose their own path",
+                  "Earn coins & upgrade avatars",
+                  "Streaks that build daily habits"
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-3 text-slate-800 font-bold">
+                    <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Chip>Journeys</Chip>
-              <Chip>Practice</Chip>
-              <Chip>Motivation</Chip>
-              <Chip>Parent tools</Chip>
-              <Chip>Accessibility</Chip>
+            <div className="lg:col-span-7">
+              <ParallaxImage 
+                src="/illustrations/app/kids-dashboard-header.webp" 
+                alt="Kids Dashboard"
+                className="aspect-[4/3]" 
+              />
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {GRID.map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="rounded-3xl border border-white/60 bg-white/60 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
-              <div className="text-sm font-semibold text-slate-900">Made for younger learners</div>
-              <p className="mt-2 text-sm text-slate-700">
-                Prep–Year 2 experiences are designed for limited reading: short prompts, clear UI, and read-aloud support.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Chip>Short sessions</Chip>
-                <Chip>Large touch targets</Chip>
-                <Chip>Audio prompts</Chip>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-white/60 bg-white/60 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
-              <div className="text-sm font-semibold text-slate-900">Parent trust, built in</div>
-              <p className="mt-2 text-sm text-slate-700">
-                Insight feed, reflections, and printable storybooks help parents support learning at home without guesswork.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Chip>Insights</Chip>
-                <Chip>Reflections</Chip>
-                <Chip>Printable</Chip>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-white/60 bg-white/60 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
-              <div className="text-sm font-semibold text-slate-900">Premium look and feel</div>
-              <p className="mt-2 text-sm text-slate-700">
-                Signature motion, glass surfaces, and calm design cues make SmartKidz feel modern and worth paying for.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Chip>Motion</Chip>
-                <Chip>Glass</Chip>
-                <Chip>Delight</Chip>
-              </div>
-            </div>
-          </div>
-        </SectionReveal>
-      </Container>
-
-      <Container className="pb-20">
-        <SectionReveal>
-          <div className="rounded-3xl border border-white/60 bg-white/60 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <div className="text-sm text-slate-500">Ready to explore?</div>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                  Let your child pick their journey
-                </h3>
-                <p className="mt-2 text-sm md:text-base text-slate-700 max-w-2xl">
-                  SmartKidz is designed for short, consistent sessions that compound into confidence.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Link href="/app" className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20">
-                  Open the app
-                </Link>
-                <Link href="/curriculum" className="rounded-2xl border border-slate-200 bg-white/70 px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm backdrop-blur">
-                  View curriculum
-                </Link>
-              </div>
-            </div>
-          </div>
-        </SectionReveal>
-      </Container>
-
-      <Container className="pb-20">
-        <SectionReveal>
-          <div className="mx-auto max-w-4xl">
-            <FAQAccordion
-              items={[
-                {
-                  q: "Do kids need to read well to use SmartKidz?",
-                  a: "No. Prep–Year 2 experiences are designed for early readers with simple prompts and read-aloud support. Parents can also assist."
-                },
-                {
-                  q: "Is everything locked behind login?",
-                  a: "Parents can explore the website and features without logging in. Lessons and child progress are accessed inside the app after login."
-                },
-                {
-                  q: "Can parents print activities?",
-                  a: "Yes. The worksheet builder, storybook, and timeline all support printing for offline learning and keepsakes."
-                }
-              ]}
+          {/* Feature Strip */}
+          <div className="grid sm:grid-cols-3 gap-6">
+            <FeatureCard 
+              icon={Map} 
+              title="World Journeys" 
+              desc="Visual maps that make progress visible and exciting. No endless lists of links." 
+              delay={0.1}
+            />
+            <FeatureCard 
+              icon={Smile} 
+              title="Avatars" 
+              desc="Fully customizable characters. Spend earned coins on hats, outfits, and rare items." 
+              delay={0.2}
+            />
+            <FeatureCard 
+              icon={Trophy} 
+              title="Smart Rewards" 
+              desc="Badges and streaks designed to motivate consistency, not addiction." 
+              delay={0.3}
             />
           </div>
-        </SectionReveal>
-      </Container>
+        </Container>
+      </section>
+
+
+      {/* 3. THE LEARNING ENGINE (Dark/Contrast Section) */}
+      <section className="py-24 bg-slate-900 text-white relative overflow-hidden my-10 rounded-[3rem] mx-4 sm:mx-8 shadow-2xl">
+        <div className="absolute inset-0 bg-[url('/textures/noise.png')] opacity-20 mix-blend-overlay" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/30 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+
+        <Container className="relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-indigo-200 mb-4 backdrop-blur-md">
+              The Engine
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black mb-6">Real learning. Zero fluff.</h2>
+            <p className="text-xl text-slate-300 font-medium">
+              Under the hood, SmartKidz is a serious learning engine aligned to the Australian Curriculum (Prep–Year 6).
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Visual */}
+            <div className="relative order-2 lg:order-1">
+              <ParallaxImage 
+                src="/illustrations/app/lesson-quiz.webp" 
+                alt="Lesson Interface"
+                className="aspect-square border-white/10 shadow-indigo-900/50" 
+              />
+              {/* Floating element */}
+              <motion.div 
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -right-8 bottom-12 bg-white text-slate-900 p-4 rounded-2xl shadow-xl max-w-[200px] hidden md:block"
+              >
+                <div className="flex gap-2 mb-2 text-emerald-500">
+                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-4 h-4 fill-current" />
+                </div>
+                <div className="text-xs font-bold text-slate-500 uppercase">Instant Feedback</div>
+                <div className="font-black text-sm">"Great job! That's correct."</div>
+              </motion.div>
+            </div>
+
+            {/* Content */}
+            <div className="order-1 lg:order-2 space-y-8">
+               <div className="flex gap-4">
+                 <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                   <Brain className="w-6 h-6 text-indigo-300" />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-bold mb-2">Adaptive Practice</h3>
+                   <p className="text-slate-400 leading-relaxed">
+                     Our engine adjusts to your child. Struggling? We offer hints and simpler examples. 
+                     Excelling? We serve tougher challenges to keep them growing.
+                   </p>
+                 </div>
+               </div>
+
+               <div className="flex gap-4">
+                 <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                   <Zap className="w-6 h-6 text-amber-300" />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-bold mb-2">Short, Focused Bursts</h3>
+                   <p className="text-slate-400 leading-relaxed">
+                     Lessons are designed to be completed in 10–15 minutes. 
+                     Perfect for building a daily habit without burnout.
+                   </p>
+                 </div>
+               </div>
+
+               <div className="flex gap-4">
+                 <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                   <Layout className="w-6 h-6 text-emerald-300" />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-bold mb-2">Read-Aloud Support</h3>
+                   <p className="text-slate-400 leading-relaxed">
+                     Every question and prompt can be read aloud. 
+                     Crucial for early readers (Prep–Year 2) to build independence.
+                   </p>
+                 </div>
+               </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+
+      {/* 4. PARENT SUPERPOWERS */}
+      <section className="py-20">
+        <Container>
+           <div className="grid lg:grid-cols-12 gap-12 items-center">
+             <div className="lg:col-span-5 order-2 lg:order-1">
+               <SectionLabel>For Parents</SectionLabel>
+               <h2 className="text-4xl font-black text-slate-900 mb-6">Total clarity.<br/>Zero nagging.</h2>
+               <p className="text-lg text-slate-600 font-medium mb-8">
+                 Stop asking "did you do your homework?" and start celebrating wins. 
+                 Our parent dashboard gives you the highlights without the noise.
+               </p>
+
+               <div className="grid gap-4">
+                 <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex gap-4">
+                    <BarChart3 className="w-6 h-6 text-indigo-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Weekly Insight Email</div>
+                      <div className="text-sm text-slate-600">Get a summary every Monday morning: effort, mastery, and focus areas.</div>
+                    </div>
+                 </div>
+                 <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex gap-4">
+                    <Lock className="w-6 h-6 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Safe & Ad-Free</div>
+                      <div className="text-sm text-slate-600">No external links. No chat. No ads. A walled garden for peace of mind.</div>
+                    </div>
+                 </div>
+               </div>
+             </div>
+
+             <div className="lg:col-span-7 order-1 lg:order-2">
+                <ParallaxImage 
+                  src="/illustrations/app/parent-analytics.webp" 
+                  alt="Parent Dashboard"
+                  className="aspect-[4/3] shadow-emerald-100" 
+                />
+             </div>
+           </div>
+        </Container>
+      </section>
+
+
+      {/* 5. TOOLKIT GRID */}
+      <section className="py-20 border-t border-slate-200 bg-white">
+        <Container>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-black text-slate-900">The Complete Toolkit</h2>
+            <p className="text-slate-600 mt-2">More than just lessons. A suite of tools to help them thrive.</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+             <ToolTile icon="🔎" title="Curiosity Explorer" desc="Safe answers to big questions" color="bg-indigo-50 text-indigo-700" />
+             <ToolTile icon="🧾" title="Worksheet Generator" desc="Printable practice sheets" color="bg-amber-50 text-amber-700" />
+             <ToolTile icon="📖" title="Visual Dictionary" desc="Kid-friendly definitions" color="bg-emerald-50 text-emerald-700" />
+             <ToolTile icon="🌍" title="World Explorer" desc="3D globe & culture facts" color="bg-sky-50 text-sky-700" />
+             <ToolTile icon="🧘" title="Focus Mode" desc="Distraction-free interface" color="bg-rose-50 text-rose-700" />
+             <ToolTile icon="📘" title="Storybook" desc="Turn progress into a book" color="bg-violet-50 text-violet-700" />
+             <ToolTile icon="⏳" title="Timeline" desc="Visual history of wins" color="bg-slate-50 text-slate-700" />
+             <ToolTile icon="🧠" title="Lesson Builder" desc="Create custom lessons" color="bg-fuchsia-50 text-fuchsia-700" />
+          </div>
+        </Container>
+      </section>
+
+      {/* 6. CTA */}
+      <section className="py-24">
+        <Container>
+          <div className="relative rounded-[3rem] bg-slate-900 overflow-hidden px-8 py-20 text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-slate-900 z-0" />
+            <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+            <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+            
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
+                Start their adventure today.
+              </h2>
+              <p className="text-lg text-slate-300 font-medium mb-10">
+                Join thousands of families building confidence with SmartKidz.
+                Try it free for 7 days.
+              </p>
+              <Link 
+                href="https://app.smartkidz.app/app/signup"
+                className="inline-flex h-14 items-center justify-center rounded-full bg-white px-8 text-lg font-bold text-slate-900 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105 hover:bg-indigo-50 transition-all"
+              >
+                Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+              <p className="mt-6 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                No credit card required for preview
+              </p>
+            </div>
+          </div>
+        </Container>
+      </section>
+    </div>
+  );
+}
+
+function ToolTile({ icon, title, desc, color }) {
+  return (
+    <div className={cn("p-6 rounded-3xl transition-all hover:-translate-y-1 hover:shadow-lg border border-transparent hover:border-slate-100", color)}>
+      <div className="text-3xl mb-3">{icon}</div>
+      <div className="font-black text-lg leading-tight">{title}</div>
+      <div className="text-xs font-bold opacity-70 mt-1 uppercase tracking-wide">{desc}</div>
     </div>
   );
 }
