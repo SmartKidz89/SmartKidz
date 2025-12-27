@@ -50,16 +50,16 @@ export function ActiveChildProvider({ children }) {
       const session = sessionData?.session;
 
       if (!session?.user?.id) {
-        // Not logged in -> clear everything but stop loading
         setKids([]);
         setActiveChildId(null);
         setLoading(false);
         return;
       }
 
+      // FETCHING COUNTRY HERE
       const { data, error: kidsErr } = await supabase
         .from("children")
-        .select("id,display_name,year_level,avatar_key,avatar_config")
+        .select("id,display_name,year_level,country,avatar_key,avatar_config")
         .eq("parent_id", session.user.id)
         .order("created_at", { ascending: true });
 
@@ -102,11 +102,9 @@ export function ActiveChildProvider({ children }) {
     []
   );
 
-  // Update a child's local state immediately (optimistic UI)
   const updateActiveChild = useCallback(async (patch) => {
       if (!activeChildId) return { ok: false };
       
-      // Optimistic update
       setKids(prev => prev.map(k => k.id === activeChildId ? { ...k, ...patch } : k));
 
       try {
@@ -115,12 +113,10 @@ export function ActiveChildProvider({ children }) {
           return { ok: true };
       } catch (e) {
           console.error("Update failed", e);
-          // Revert on failure (could implement full rollback here, but refresh is simpler)
           refreshKids();
           return { ok: false, error: e.message };
       }
   }, [activeChildId, supabase, refreshKids]);
-
 
   const activeChild = useMemo(() => kids.find((k) => k.id === activeChildId) || null, [kids, activeChildId]);
 

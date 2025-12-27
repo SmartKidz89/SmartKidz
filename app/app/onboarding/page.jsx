@@ -68,12 +68,17 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-// --- Steps Data ---
+// --- Data ---
+
+const COUNTRIES = [
+  { value: "AU", label: "Australia (AU Curriculum)" },
+  { value: "NZ", label: "New Zealand (NZ Curriculum)" },
+];
 
 const REFERRAL_SOURCES = [
   { value: "", label: "Select an option..." },
   { value: "google", label: "Google Search" },
-  { value: "social", label: "Social Media (FB/Insta/TikTok)" },
+  { value: "social", label: "Social Media" },
   { value: "friend", label: "Friend or Family" },
   { value: "school", label: "School / Teacher" },
   { value: "other", label: "Other" },
@@ -88,8 +93,6 @@ const YEAR_LEVELS = [
   { value: 6, label: "Year 6" },
 ];
 
-// --- Main Page ---
-
 export default function OnboardingPage() {
   const { session, supabase } = useSession();
   const router = useRouter();
@@ -101,13 +104,13 @@ export default function OnboardingPage() {
   // Form State
   const [formData, setFormData] = useState({
     full_name: "",
+    country: "AU", // Default to AU
     address_line1: "",
     city: "",
     state: "",
     postcode: "",
-    country: "Australia",
     referral_source: "",
-    children: [{ display_name: "", year_level: 3 }] // Default one child slot
+    children: [{ display_name: "", year_level: 3 }] 
   });
 
   useEffect(() => {
@@ -140,18 +143,14 @@ export default function OnboardingPage() {
   };
 
   const handleNext = () => {
-    // Basic validation
     if (step === 0 && !formData.full_name.trim()) return alert("Please enter your name.");
-    if (step === 1 && (!formData.address_line1.trim() || !formData.city.trim())) return alert("Please fill in your address.");
+    if (step === 1 && (!formData.city.trim())) return alert("Please fill in your location.");
     if (step === 2 && !formData.referral_source) return alert("Please tell us how you found us.");
-    
     setStep(s => s + 1);
   };
 
   const handleSubmit = async () => {
     if (!session?.user?.id) return;
-    
-    // Validate children
     const validKids = formData.children.filter(c => c.display_name.trim().length > 0);
     if (validKids.length === 0) return alert("Please add at least one child profile.");
 
@@ -159,33 +158,31 @@ export default function OnboardingPage() {
     try {
       const uid = session.user.id;
 
-      // 1. Update Profile
+      // 1. Update Profile (including Country)
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
           id: uid,
           full_name: formData.full_name,
+          country: formData.country, // Save selected country
           address_line1: formData.address_line1,
           city: formData.city,
           state: formData.state,
           postcode: formData.postcode,
-          country: formData.country,
           referral_source: formData.referral_source,
           updated_at: new Date().toISOString(),
         });
       
       if (profileError) throw profileError;
 
-      // 2. Update/Insert Children
-      // For simplicity in this flow, we'll wipe existing and re-insert to sync list state exactly
-      // (In a prod edit flow, we'd be more careful, but this is onboarding)
+      // 2. Insert Children (inheriting country for filtering)
       await supabase.from("children").delete().eq("parent_id", uid);
-      
       const { error: kidsError } = await supabase.from("children").insert(
         validKids.map(k => ({
           parent_id: uid,
           display_name: k.display_name,
           year_level: Number(k.year_level),
+          country: formData.country, // Child inherits country
           avatar_config: {},
           accessibility_settings: { readAloud: true },
           learning_style_defaults: { preferred: "visual" }
@@ -225,8 +222,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6">
-      
-      {/* Progress Header */}
       <div className="w-full max-w-xl mb-6 flex justify-between items-center">
         <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
            <Sparkles className="w-4 h-4 text-brand-primary" /> SmartKidz
@@ -259,7 +254,6 @@ export default function OnboardingPage() {
                   <h2 className="text-3xl font-black text-slate-900">Let's meet the parent</h2>
                   <p className="text-slate-600 mt-2">We'll use this for your account settings.</p>
                 </div>
-
                 <InputField 
                   label="Full Name" 
                   placeholder="e.g. Sarah Smith" 
@@ -271,7 +265,7 @@ export default function OnboardingPage() {
               </motion.div>
             )}
 
-            {/* STEP 2: ADDRESS */}
+            {/* STEP 2: LOCATION & COUNTRY */}
             {step === 1 && (
               <motion.div
                 key="step2"
@@ -285,48 +279,39 @@ export default function OnboardingPage() {
                     <Home className="w-8 h-8" />
                   </div>
                   <h2 className="text-3xl font-black text-slate-900">Where are you based?</h2>
-                  <p className="text-slate-600 mt-2">This helps with billing and localized content.</p>
+                  <p className="text-slate-600 mt-2">This sets your curriculum (e.g. AU or NZ).</p>
                 </div>
 
-                <InputField 
-                  label="Address Line 1" 
-                  placeholder="123 Example St" 
-                  value={formData.address_line1} 
-                  onChange={(v) => updateForm("address_line1", v)}
-                  required
-                  autoFocus
+                <SelectField 
+                  label="Country / Curriculum" 
+                  value={formData.country} 
+                  onChange={(v) => updateForm("country", v)}
+                  options={COUNTRIES}
                 />
                 
                 <div className="grid grid-cols-2 gap-4">
                   <InputField 
                     label="City" 
-                    placeholder="Sydney" 
+                    placeholder="e.g. Auckland" 
                     value={formData.city} 
                     onChange={(v) => updateForm("city", v)}
                     required
                   />
                   <InputField 
                     label="Postcode" 
-                    placeholder="2000" 
+                    placeholder="e.g. 1010" 
                     value={formData.postcode} 
                     onChange={(v) => updateForm("postcode", v)}
                     required
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                   <InputField 
-                    label="State" 
-                    placeholder="NSW" 
-                    value={formData.state} 
-                    onChange={(v) => updateForm("state", v)}
-                  />
-                  <InputField 
-                    label="Country" 
-                    value={formData.country} 
-                    onChange={(v) => updateForm("country", v)}
-                  />
-                </div>
+                <InputField 
+                  label="Address (Optional)" 
+                  placeholder="Street Address" 
+                  value={formData.address_line1} 
+                  onChange={(v) => updateForm("address_line1", v)}
+                />
               </motion.div>
             )}
 
@@ -346,7 +331,6 @@ export default function OnboardingPage() {
                   <h2 className="text-3xl font-black text-slate-900">One quick question...</h2>
                   <p className="text-slate-600 mt-2">How did you find your way to SmartKidz?</p>
                 </div>
-
                 <SelectField 
                    label="I heard about you from..."
                    options={REFERRAL_SOURCES}
@@ -413,7 +397,6 @@ export default function OnboardingPage() {
 
           </AnimatePresence>
 
-          {/* Footer Actions */}
           <div className="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
             {step > 0 ? (
               <button 
@@ -423,9 +406,7 @@ export default function OnboardingPage() {
               >
                 Back
               </button>
-            ) : (
-              <div /> 
-            )}
+            ) : <div />}
 
             <button
               onClick={step === 3 ? handleSubmit : handleNext}
@@ -435,16 +416,9 @@ export default function OnboardingPage() {
                 busy ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-800"
               )}
             >
-              {busy ? (
-                "Saving..." 
-              ) : step === 3 ? (
-                <>Finish <Check className="w-4 h-4" /></>
-              ) : (
-                <>Next <ArrowRight className="w-4 h-4" /></>
-              )}
+              {busy ? "Saving..." : step === 3 ? <><Check className="w-4 h-4" /> Finish</> : <><ArrowRight className="w-4 h-4" /> Next</>}
             </button>
           </div>
-
         </div>
       </motion.div>
     </div>
