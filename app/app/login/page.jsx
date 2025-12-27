@@ -63,10 +63,6 @@ export default function Login() {
                 <Link href="/marketing/pricing" className="text-sm font-extrabold text-sky-700 hover:text-sky-800">
                   View pricing
                 </Link>
-                <span className="text-slate-300">•</span>
-                <Link href="/setup/generate" className="text-sm font-extrabold text-amber-600 hover:text-amber-700">
-                  Setup Tools
-                </Link>
               </div>
             </div>
 
