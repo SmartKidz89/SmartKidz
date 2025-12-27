@@ -12,16 +12,16 @@ function Container({ children, className = "" }) {
 // --- HERO SECTION ---
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-24">
+    <section className="relative overflow-visible pt-20 pb-16 sm:pt-24 sm:pb-32">
       {/* Background Blobs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-sky-100/50 to-transparent rounded-full blur-3xl opacity-60" />
         <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-indigo-200/30 blur-3xl" />
         <div className="absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-emerald-200/30 blur-3xl" />
       </div>
 
       <Container className="relative">
-        <div className="text-center max-w-4xl mx-auto">
+        <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -84,53 +84,94 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Hero Visual */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
-          className="mt-16 relative mx-auto max-w-5xl"
-        >
-          <div className="absolute -inset-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 rounded-[2.5rem] blur opacity-30" />
-          <div className="relative rounded-[2rem] border border-white/50 bg-white/80 shadow-2xl backdrop-blur-xl overflow-hidden aspect-[16/10] sm:aspect-[2/1]">
-            <Image
-              src="/illustrations/app/kids-dashboard-header.webp"
-              alt="SmartKidz App Interface"
-              fill
-              className="object-cover"
-              priority
-            />
-            
-            {/* Floating Elements for Depth */}
-            <motion.div 
-              animate={{ y: [0, -10, 0] }} 
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-8 left-8 p-3 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50 hidden sm:block"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-xl">🏆</div>
-                <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase">Streak</div>
-                  <div className="text-sm font-black text-slate-900">7 Days Fire!</div>
-                </div>
-              </div>
-            </motion.div>
+        {/* Hero Visual - Premium 3D Style */}
+        <div className="relative mx-auto max-w-5xl perspective-1000">
+          
+          {/* Glow Effect */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-gradient-to-r from-sky-300/30 via-purple-300/30 to-emerald-300/30 blur-[80px] -z-10 rounded-full" />
 
-            <motion.div 
-              animate={{ y: [0, 10, 0] }} 
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute bottom-8 right-8 p-3 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50 hidden sm:block"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">🧠</div>
-                <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase">Skill Mastered</div>
-                  <div className="text-sm font-black text-slate-900">Fractions</div>
+          {/* Main Interface Card */}
+          <motion.div
+            initial={{ opacity: 0, rotateX: 15, y: 60 }}
+            animate={{ opacity: 1, rotateX: 0, y: 0 }}
+            transition={{ duration: 1, type: "spring", bounce: 0.2, delay: 0.2 }}
+            className="relative rounded-[2.5rem] border-[6px] border-white/40 bg-slate-900 shadow-2xl overflow-hidden ring-1 ring-black/5"
+          >
+            <div className="relative rounded-[2.2rem] overflow-hidden aspect-[16/10] bg-slate-50 border-[6px] border-slate-900">
+               <Image
+                src="/illustrations/app/kids-dashboard-header.webp"
+                alt="SmartKidz Dashboard"
+                fill
+                className="object-cover scale-[1.01]"
+                priority
+              />
+              {/* Glossy Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-50 pointer-events-none mix-blend-overlay" />
+            </div>
+          </motion.div>
+
+          {/* Floating Element 1: Coins (Top Right) */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
+            className="absolute -top-8 -right-4 sm:-right-12 z-20"
+          >
+             <motion.div 
+               animate={{ y: [0, -8, 0] }}
+               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+               className="relative"
+             >
+                <div className="absolute inset-0 bg-amber-400 blur-xl opacity-30" />
+                <div className="bg-white p-3 sm:p-4 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center gap-0.5 rotate-6 hover:rotate-0 transition-transform cursor-default">
+                   <span className="text-3xl sm:text-4xl filter drop-shadow-md">🪙</span>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Earned</span>
+                   <span className="text-lg sm:text-xl font-black text-slate-900">+500</span>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
+             </motion.div>
+          </motion.div>
+
+          {/* Floating Element 2: Level Up (Bottom Left) */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0, x: -20 }}
+            animate={{ scale: 1, opacity: 1, x: 0 }}
+            transition={{ delay: 1.0, type: "spring", stiffness: 200 }}
+            className="absolute -bottom-6 -left-4 sm:-left-10 z-20"
+          >
+             <motion.div
+               animate={{ y: [0, 8, 0] }}
+               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+               className="bg-white p-3 sm:p-4 pr-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 flex items-center gap-3 -rotate-3 hover:rotate-0 transition-transform cursor-default"
+             >
+                <div className="h-12 w-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-2xl shadow-inner">🦊</div>
+                <div>
+                   <div className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full inline-block mb-1 border border-emerald-100">Level Up!</div>
+                   <div className="text-base sm:text-lg font-black text-slate-900 leading-none">Explorer</div>
+                </div>
+             </motion.div>
+          </motion.div>
+
+           {/* Floating Element 3: Streak (Bottom Right) */}
+           <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
+            className="absolute bottom-16 -right-2 sm:-right-6 z-10 hidden sm:block"
+          >
+             <motion.div
+               animate={{ y: [0, -6, 0] }}
+               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+               className="bg-white/90 backdrop-blur p-2.5 pr-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 rotate-3 hover:rotate-0 transition-transform"
+             >
+                <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-xl shadow-sm">🔥</div>
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Streak</div>
+                  <div className="text-sm font-black text-slate-900">7 Days</div>
+                </div>
+             </motion.div>
+          </motion.div>
+
+        </div>
       </Container>
     </section>
   );
