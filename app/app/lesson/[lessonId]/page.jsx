@@ -3,10 +3,10 @@ import LessonClient from "./LessonClient";
 export const dynamic = "force-dynamic";
 
 // IMPORTANT:
-// Do NOT fetch lessons on the server with the anon key.
-// The lessons table is protected by RLS (authenticated + entitlement),
-// so we fetch client-side using the user's session.
+// We fetch client-side using the user's session (LessonClient) to respect RLS.
+// In Next.js 15+, params is a Promise that must be awaited.
 
-export default function LessonPage({ params }) {
-  return <LessonClient lessonId={params.lessonId} />;
+export default async function LessonPage({ params }) {
+  const { lessonId } = await params;
+  return <LessonClient lessonId={lessonId} />;
 }

@@ -6,7 +6,8 @@ import { Page as PageScaffold, BentoGrid, BentoCard } from "@/components/ui/Page
 export const dynamic = "force-dynamic";
 
 export default async function SubjectWorldPage({ params }) {
-  const subjectId = decodeURIComponent(params.subjectId);
+  const { subjectId: rawId } = await params;
+  const subjectId = decodeURIComponent(rawId);
   const supabase = await createClient();
 
   const { data: subject, error: subjectError } = await supabase
