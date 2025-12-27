@@ -9,7 +9,7 @@ import RecommendationsPanel from "@/components/app/RecommendationsPanel";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Star, ArrowRight, Zap, Map, Trophy, Sparkles
+  Wrench, Star, ArrowRight, Zap, Map, Trophy, Sparkles, Cat
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +99,7 @@ const SUBJECTS = [
 ];
 
 const TOOLS = [
+  { href: "/app/pet", title: "My Pet", icon: "🐾", color: "bg-rose-100 text-rose-700" },
   { href: "/app/tools/lesson-builder", title: "Lesson Builder", icon: "🧠", color: "bg-fuchsia-100 text-fuchsia-700" },
   { href: "/app/tools/worksheet", title: "Worksheets", icon: "🧾", color: "bg-orange-100 text-orange-700" },
   { href: "/app/tools/world-explorer", title: "Explorer", icon: "🌍", color: "bg-sky-100 text-sky-700" },
@@ -106,7 +107,6 @@ const TOOLS = [
   { href: "/app/tools/storybook", title: "Storybook", icon: "📘", color: "bg-blue-100 text-blue-700" },
   { href: "/app/tools/curiosity", title: "Curiosity", icon: "🔎", color: "bg-purple-100 text-purple-700" },
   { href: "/app/tools/focus", title: "Focus Mode", icon: "🧘", color: "bg-teal-100 text-teal-700" },
-  { href: "/app/tools/timeline", title: "Timeline", icon: "⏳", color: "bg-amber-100 text-amber-700" },
 ];
 
 // --- Components ---
@@ -175,6 +175,29 @@ export default function DashboardClient() {
 
         {/* Side: Quick Actions / Recommendations */}
         <div className="lg:col-span-4 flex flex-col gap-4">
+          
+          {/* Pet Module (New!) */}
+          <Link href="/app/pet" className="block">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="rounded-[2.5rem] bg-gradient-to-r from-rose-50 to-white border border-rose-100 p-6 shadow-lg flex items-center justify-between group hover:shadow-xl transition-all"
+            >
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
+                     🐾
+                  </div>
+                  <div>
+                    <div className="font-black text-slate-900 text-lg">My Pet</div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">Take care of them!</div>
+                  </div>
+               </div>
+               <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-slate-300 group-hover:text-rose-500 transition-colors">
+                  <ArrowRight className="w-5 h-5" />
+               </div>
+            </motion.div>
+          </Link>
+
           {/* Recommendations */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -189,29 +212,6 @@ export default function DashboardClient() {
             <RecommendationsPanel />
           </motion.div>
 
-          {/* Rewards Link */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Link href="/app/rewards" className="group block rounded-[2.5rem] bg-gradient-to-r from-amber-300 to-orange-400 p-[2px] shadow-lg transition-transform hover:-translate-y-1">
-              <div className="flex items-center justify-between rounded-[2.4rem] bg-white px-6 py-4 h-full">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                    <Trophy className="w-5 h-5 fill-current" />
-                  </div>
-                  <div>
-                    <div className="font-black text-slate-900 text-lg">Rewards</div>
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">View Progress</div>
-                  </div>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </Link>
-          </motion.div>
         </div>
       </div>
 
