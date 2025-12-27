@@ -25,9 +25,9 @@ function project(lat, lng) {
   return { x, y };
 }
 
-// Simplified World Map SVG Path (Mercator-ish)
-const WORLD_MAP_SVG = "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjAwMCAxMDAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGZpbGw9IiMzMzQxNTUiIGQ9Ik0xNjQ1IDg4NWMtMTEgMi0yNCAxLTMxLTkgNi0yOCAzNS0yOCA0OS0xNSAxMSA5IDEwIDE3LTIgMTktNiA0LTEwIDUtMTYgNXptMTY1LTYxYy0yMC04LTI1LTMyLTgtNDIgMTktMTEgNTktNiA1NCA2LTItNi01LTEzLTgtMTlDOCA3NjIgMCA3ODMgMCA4MDRzOCAzOSAyMyA1OGMzMCAzNSA1NyA0IDY2LTMxIDUtMTkgMi0zNy05LTU0LTQtNS04LTgtMTEtN3ptLTEzOTctMmMtNy0xMC0yNi0xNS0zNy05LTExIDYtMTcgMTktMTUgMzEgMSAxMiA4IDIzIDE4IDMxIDExIDggMjYgOCAzNiAwIDktNyAxMi0xNSAxMC0yNC0yLTktNi0yMC0xMi0yOXptLTE0NzNi00OWMtNi0yLTEyIDAtMTcgNS0xMCAxMC0xMSAzMC0xIDQyIDEwIDExIDMwIDEwIDQxLTMgMTAtMTEgOS0zMy01LTQyLTUtMy0xMS00LTE4LTJ6bS0xMzU4LTFjLTktNS0yMy0yLTMwIDYtNyA5LTcgMjIgMSAzMCA4IDcgMjIgOCAzMSAwIDktNyAxMS0yMiA1LTMwLTMtNC01LTYtNy02em0tMTEwLTFjLTktOC0yNy04LTM4IDEtMTAgOC0xNCAyMy05IDMyIDUgOSAxOSAxMSAzMCA1IDExLTYgMTYtMTkgMTQtMzFhNDUgNDUgMCAwIDAtMTktMjF6bTE2NjAtNTRjLTctMy0xNi0xLTIzIDUtMTAgOC0xMiAyNC01IDMzIDggMTEgMjYgMTEgMzUgMiA3LTggOC0yNCAxLTMzLTItMy01LTUtOC03em0tNTgtNTVjLTMtNi04LTEwLTE1LTEwLTktMS0xOSA0LTIyIDEyLTMgOSAyIDE5IDExIDIzIDkgNCAxOSAwIDIzLTkgMy01IDMtMTEgMy0xNnptLTEzMTAtMmMtNy01LTIxIDAtMjggMTEtNyAxMC02IDI1IDMgMzMgOSA3IDI1IDYgMzQtMiA4LTggOS0yMiAzLTMxLTItNS02LTktMTItMTF6bTEzNTUtNDJjLTE4LTItMjcgMjAtMTQgMzEgOSA5IDI3IDkgMzYgMCA5LTkgOC0yNy0zLTM0LTUtNC0xMS01LTE5IDN6bS0xNDUgMmMtNS01LTE0LTQtMjAgMi04IDgtOCAyMyAwIDMxIDggOSAyNCA5IDMyIDEgOC04IDgtMjMgMC0zMS00LTQtOC01LTEyLTN6bTExMS0zMWMtNS0xLTEyIDEtMTcgNy04IDktOCAyNCAxIDMyIDggOCAyNCA4IDMyLTIgOC05IDctMjQtMy0zMS0zLTItNy00LTEzLTZ6bS0xNzctMTNjLTktNS0yNC0yLTMxIDgtNyA5LTcgMjIgMSAzMCA5IDggMjUgOCAzMyAwIDktOCAxMC0yMyAzLTMxLTMtNC01LTYtNi03em0tMzAzLTE1Yy00IDAtOCAxLTEyIDItMjIgOC0yNiAzNS03IDQ5IDggNiAyMiA4IDM0IDQgMTctNiAyMy0yNSAxNC00MC02LTktMTctMTUtMjktMTV6bTIxOC01Yy0yMC0yLTMxIDIyLTE4IDMzIDggNyAyNCA3IDMyIDAgOC03IDgtMjItMi0zMC0zLTItNy0zLTEyLTN6bS01NTQtOGMtNy0xLTE1IDItMjEgOC05IDktOCAyNSAzIDMzIDExIDcgMzAgNSA0MS01IDExLTEwIDktMjktNS0zNS02LTMtMTItNC0xOC0xeiIgLz48L3N2Zz4=";
-const RELIABLE_MAP_BG = `url('${WORLD_MAP_SVG}')`;
+// Reliable External Source (Wikimedia Commons - Equirectangular Projection)
+// Using a high-contrast simplified map that works well on dark backgrounds.
+const RELIABLE_MAP_BG = "url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')";
 
 export default function WorldMapClient({ onSelect }) {
   const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
@@ -115,7 +115,7 @@ export default function WorldMapClient({ onSelect }) {
   const stopDrag = () => setIsDragging(false);
 
   return (
-    <div className="relative w-full h-full bg-slate-900 overflow-hidden flex flex-col items-center justify-center rounded-[2rem] md:rounded-[2.5rem] cursor-move select-none touch-none">
+    <div className="relative w-full h-full bg-slate-900 overflow-hidden flex flex-col items-center justify-center rounded-[2rem] md:rounded-[2.5rem] cursor-move select-none touch-none border border-slate-800">
       
       {/* Loading State */}
       {loading && (
@@ -128,7 +128,7 @@ export default function WorldMapClient({ onSelect }) {
       {/* Map Interactive Area */}
       <div 
         ref={containerRef}
-        className="relative w-full h-full touch-none"
+        className="relative w-full h-full touch-none bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]"
         onWheel={handleWheel}
         onMouseDown={startDrag}
         onMouseMove={onDrag}
@@ -145,14 +145,17 @@ export default function WorldMapClient({ onSelect }) {
         >
            {/* Background Map Image */}
            <div 
-             className="absolute inset-0 opacity-40"
+             className="absolute inset-0 opacity-40 invert filter sepia-[0.3] hue-rotate-180 brightness-75"
              style={{ 
                backgroundImage: RELIABLE_MAP_BG,
-               backgroundSize: "cover",
+               backgroundSize: "100% 100%", // Force stretch to fit the box exactly
                backgroundPosition: "center",
                backgroundRepeat: "no-repeat"
              }}
            />
+           
+           {/* Fallback Grid lines if image fails */}
+           <div className="absolute inset-0 border border-slate-700/30 rounded-lg pointer-events-none" />
 
            {/* Country Points */}
            {points.map((p) => {
