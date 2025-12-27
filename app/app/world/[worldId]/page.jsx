@@ -7,10 +7,9 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Star, Play } from "lucide-react";
+import { ArrowLeft, BookOpen, Star, Play, Globe, Languages as LanguagesIcon, ChevronRight } from "lucide-react";
 
 // Subject ID Aliases
-// We query for *all* of these to be safe against inconsistent DB seeding
 const SUBJECT_ALIASES = {
   MATH: ["MATH", "MAT", "MATHS"],
   ENG: ["ENG", "ENGLISH"],
@@ -19,6 +18,7 @@ const SUBJECT_ALIASES = {
   HPE: ["HPE", "HEALTH", "PE"],
   ART: ["ART", "ARTS", "THEARTS", "MUS", "DRAMA"],
   TECH: ["TECH", "TECHNOLOGIES", "CODE"],
+  // LANG is the parent category; individual codes are handled as separate worlds when drilled down
   LANG: ["LANG", "LOTE", "AUS", "IND", "JPN", "ZHO", "FRA", "SPA", "ABL"]
 };
 
@@ -32,6 +32,14 @@ const SLUG_MAP = {
   arts: "ART", art: "ART", thearts: "ART",
   tech: "TECH", technologies: "TECH", technology: "TECH",
   lang: "LANG", languages: "LANG", lote: "LANG",
+  // Direct language mapping
+  auslan: "AUS", aus: "AUS",
+  french: "FRA", fra: "FRA",
+  spanish: "SPA", spa: "SPA",
+  japanese: "JPN", jpn: "JPN",
+  chinese: "ZHO", zho: "ZHO", mandarin: "ZHO",
+  indonesian: "IND", ind: "IND",
+  aboriginal: "ABL", abl: "ABL"
 };
 
 const SUBJECT_LABELS = {
@@ -43,6 +51,14 @@ const SUBJECT_LABELS = {
   ART: "The Arts",
   TECH: "Technologies",
   LANG: "Languages",
+  // Specific Languages
+  AUS: "Auslan",
+  FRA: "French",
+  SPA: "Spanish",
+  JPN: "Japanese",
+  ZHO: "Chinese (Mandarin)",
+  IND: "Indonesian",
+  ABL: "Aboriginal Languages"
 };
 
 const SUBJECT_IMAGES = {
@@ -54,18 +70,36 @@ const SUBJECT_IMAGES = {
   ART: "/illustrations/subjects/world-arts.webp",
   TECH: "/illustrations/subjects/world-energy.webp",
   LANG: "/illustrations/subjects/world-languages.webp",
+  // Reuse main lang image for sub-langs or add specific ones if available
+  AUS: "/illustrations/subjects/world-languages.webp",
+  FRA: "/illustrations/subjects/world-languages.webp", 
+  SPA: "/illustrations/subjects/world-languages.webp",
+  JPN: "/illustrations/subjects/world-languages.webp",
+  ZHO: "/illustrations/subjects/world-languages.webp",
+  IND: "/illustrations/subjects/world-languages.webp",
+  ABL: "/illustrations/subjects/world-languages.webp",
 };
+
+// Configuration for the Language Hub Tiles
+const LANGUAGE_TILES = [
+  { id: "AUS", title: "Auslan", flag: "👐", color: "bg-teal-500", desc: "Australian Sign Language" },
+  { id: "FRA", title: "French", flag: "🇫🇷", color: "bg-blue-600", desc: "Bonjour! Let's learn French." },
+  { id: "JPN", title: "Japanese", flag: "🇯🇵", color: "bg-rose-500", desc: "Konnichiwa! Explore Japan." },
+  { id: "ZHO", title: "Chinese", flag: "🇨🇳", color: "bg-red-600", desc: "Ni Hao! Mandarin basics." },
+  { id: "IND", title: "Indonesian", flag: "🇮🇩", color: "bg-red-500", desc: "Apa Kabar? Indonesian." },
+  { id: "SPA", title: "Spanish", flag: "🇪🇸", color: "bg-amber-500", desc: "Hola! Spanish adventures." },
+  { id: "ABL", title: "Aboriginal & TSI", flag: "🌏", color: "bg-orange-600", desc: "First Nations languages." },
+];
 
 export default function SubjectLessonsPage() {
   const params = useParams();
   const rawId = decodeURIComponent(params?.worldId || "").toLowerCase();
   
-  // 1. Resolve URL slug to a canonical key (e.g. "maths" -> "MATH")
-  // If not found in map, use uppercase raw slug as fallback key.
   const canonicalId = SLUG_MAP[rawId] || rawId.toUpperCase();
   
-  // 2. Resolve target DB IDs (e.g. "MATH" -> ["MATH", "MAT"])
-  // If no alias list exists, default to just the canonical ID.
+  // If we are looking for a specific language (e.g. FRA), targetIds should NOT include "LANG"
+  // If we are looking for the hub "LANG", we include all aliases to count them if needed, 
+  // but we will mainly display tiles.
   const targetIds = SUBJECT_ALIASES[canonicalId] || [canonicalId];
 
   const [subjectName, setSubjectName] = useState(SUBJECT_LABELS[canonicalId] || canonicalId);
@@ -81,8 +115,15 @@ export default function SubjectLessonsPage() {
       setError("");
 
       try {
-        // Try to fetch real name from DB if possible, otherwise keep default
-        // We just grab the first matching subject row to get a nice name
+        // If it's the main Languages hub, we don't necessarily need to fetch ALL lessons immediately
+        // unless we want lesson counts. For now, let's fetch lightly or skip if just rendering tiles.
+        if (canonicalId === "LANG") {
+           // We might fetch counts later, but for speed, let's just finish loading.
+           setLoading(false);
+           return;
+        }
+
+        // Try to fetch real name from DB if possible
         const { data: subData } = await supabase
           .from("subjects")
           .select("name")
@@ -92,9 +133,11 @@ export default function SubjectLessonsPage() {
         
         if (mounted && subData?.name) {
           setSubjectName(subData.name);
+        } else if (mounted) {
+           // Fallback to local label map
+           setSubjectName(SUBJECT_LABELS[canonicalId] || canonicalId);
         }
 
-        // Fetch lessons matching ANY of the target IDs
         const { data: lessonData, error: lessonError } = await supabase
           .from("lessons")
           .select("id,title,year_level,topic,subject_id,curriculum_tags")
@@ -116,47 +159,21 @@ export default function SubjectLessonsPage() {
       }
     }
 
-    if (canonicalId) load();
-    else {
-      setLoading(false);
-      setError("Unknown world.");
-    }
-
+    load();
     return () => { mounted = false; };
   }, [canonicalId, targetIds]);
 
+  // Group lessons by Year Level
   const groups = useMemo(() => {
     if (!lessons.length) return [];
-    
-    // For Languages, we might want to group by specific language code if mixed
-    if (canonicalId === "LANG") {
-      const grouped = {};
-      for (const l of lessons) {
-        const sid = l.subject_id;
-        if (!grouped[sid]) grouped[sid] = [];
-        grouped[sid].push(l);
-      }
-      return Object.keys(grouped)
-        .sort()
-        .map(sid => ({
-          id: sid,
-          title: sid === "LANG" ? "General Languages" : (SUBJECT_LABELS[sid] || sid),
-          lessons: grouped[sid]
-        }));
-    }
-
-    // Default: Group by Topic or just flat list
-    // Let's group by Year Level for better navigation
     const byYear = {};
     for (const l of lessons) {
       const y = l.year_level || "General";
       if (!byYear[y]) byYear[y] = [];
       byYear[y].push(l);
     }
-
     return Object.keys(byYear)
       .sort((a,b) => {
-        // numeric sort if possible
         const na = Number(a), nb = Number(b);
         if (!isNaN(na) && !isNaN(nb)) return na - nb;
         return a.localeCompare(b);
@@ -166,20 +183,81 @@ export default function SubjectLessonsPage() {
         title: y === "General" ? "General" : `Year ${y}`,
         lessons: byYear[y]
       }));
-
-  }, [lessons, canonicalId]);
+  }, [lessons]);
 
   const heroImage = SUBJECT_IMAGES[canonicalId] || SUBJECT_IMAGES.MATH;
-  const subtitle = "Choose a lesson to start your adventure.";
+  const subtitle = canonicalId === "LANG" 
+    ? "Explore a new language. Pick a flag to start!" 
+    : "Choose a lesson to start your adventure.";
 
+  // --- RENDER: LANGUAGE HUB ---
+  if (canonicalId === "LANG") {
+    return (
+      <PageScaffold title={null}>
+        <div className="mb-6">
+          <Link 
+            href="/app/worlds" 
+            className="inline-flex items-center gap-2 rounded-2xl bg-white/50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Worlds
+          </Link>
+        </div>
+
+        <div className="relative mb-10 overflow-hidden rounded-4xl bg-white/60 border border-white/60 p-6 md:p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
+            <div className="relative h-28 w-28 shrink-0 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-md ring-4 ring-white/50">
+              <LanguagesIcon className="w-14 h-14" />
+            </div>
+            <div>
+              <div className="text-xs font-extrabold tracking-wide text-slate-500 uppercase mb-1">World</div>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Languages</h1>
+              <p className="mt-2 text-lg text-slate-600 font-medium max-w-2xl">{subtitle}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {LANGUAGE_TILES.map((lang, idx) => (
+            <Link key={lang.id} href={`/app/world/${lang.id}`}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="group relative h-full overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-brand-primary/40 hover:bg-white"
+              >
+                <div className="flex items-start justify-between">
+                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-3xl shadow-sm ${lang.color} bg-opacity-10`}>
+                    <span className="drop-shadow-sm">{lang.flag}</span>
+                  </div>
+                  <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                    <ChevronRight className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-black text-slate-900 group-hover:text-brand-secondary transition-colors">
+                    {lang.title}
+                  </h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    {lang.desc}
+                  </p>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+      </PageScaffold>
+    );
+  }
+
+  // --- RENDER: SPECIFIC SUBJECT LESSONS ---
   return (
     <PageScaffold title={null}>
       <div className="mb-6">
         <Link 
-          href="/app/worlds" 
+          href={SUBJECT_ALIASES.LANG.includes(canonicalId) ? "/app/world/LANG" : "/app/worlds"}
           className="inline-flex items-center gap-2 rounded-2xl bg-white/50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Worlds
+          <ArrowLeft className="w-4 h-4" /> {SUBJECT_ALIASES.LANG.includes(canonicalId) ? "Back to Languages" : "Back to Worlds"}
         </Link>
       </div>
 
@@ -221,9 +299,9 @@ export default function SubjectLessonsPage() {
           <div className="text-5xl mb-4 opacity-80">🗺️</div>
           <div className="text-slate-900 font-black text-xl">No lessons found</div>
           <div className="text-slate-600 mt-2 max-w-md mx-auto">
-            We couldn't find any lessons for <strong>{canonicalId}</strong> (IDs checked: {targetIds.join(", ")}).
+            We couldn&apos;t find any lessons for <strong>{subjectName}</strong> yet.
             <br/><br/>
-            <span className="text-xs opacity-75">Tip for developers: Check your database <code>lessons</code> table to ensure <code>subject_id</code> matches one of these codes.</span>
+            <span className="text-xs opacity-75">Check back later for new content in this world.</span>
           </div>
         </div>
       ) : (
