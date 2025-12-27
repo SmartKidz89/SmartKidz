@@ -5,8 +5,9 @@ export const maxDuration = 60;
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-// 50 per level = 150 per year/subject = ~7200 per country
-const LESSONS_PER_LEVEL = 50; 
+
+// Scaled up to 100 per level (= 300 per year/subject/country)
+const LESSONS_PER_LEVEL = 100; 
 
 const COUNTRIES = {
   AU: { name: "Australia", term: "Year", curriculum: "Australian Curriculum (AC9)", code: "AU", math: "Maths", hass: "HASS" },
@@ -99,7 +100,8 @@ function generateContent(countryCode, subjectName, topic, year, level) {
 
   const realWorld = `You use ${topic} every day in ${config.name}. Look for examples around your home or school!`;
 
-  const quiz = Array.from({ length: 5 }).map((_, i) => ({
+  // Increased to 10 questions per quiz
+  const quiz = Array.from({ length: 10 }).map((_, i) => ({
     question: `${level} Question ${i + 1}: Which applies to ${topic}?`,
     options: [
       `The correct principle of ${topic}`, 
@@ -127,18 +129,22 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const batch = searchParams.get('batch');
   
-  // Split countries into two groups
-  // Batch 1: AU, NZ, US, GB, CA, IN (6)
-  // Batch 2: SG, ZA, IE, AE, PH, INT (6)
+  // Split 12 countries into 4 batches of 3
   let targetCountries = ALL_COUNTRY_CODES;
-  let filename = "smartkidz_lessons_global_full.csv";
+  let filename = "smartkidz_lessons_full.csv";
 
   if (batch === "1") {
-    targetCountries = ALL_COUNTRY_CODES.slice(0, 6);
-    filename = "smartkidz_lessons_part1_AU-IN.csv";
+    targetCountries = ALL_COUNTRY_CODES.slice(0, 3); // AU, NZ, US
+    filename = "smartkidz_lessons_part1_AU_NZ_US.csv";
   } else if (batch === "2") {
-    targetCountries = ALL_COUNTRY_CODES.slice(6);
-    filename = "smartkidz_lessons_part2_SG-INT.csv";
+    targetCountries = ALL_COUNTRY_CODES.slice(3, 6); // GB, CA, IN
+    filename = "smartkidz_lessons_part2_GB_CA_IN.csv";
+  } else if (batch === "3") {
+    targetCountries = ALL_COUNTRY_CODES.slice(6, 9); // SG, ZA, IE
+    filename = "smartkidz_lessons_part3_SG_ZA_IE.csv";
+  } else if (batch === "4") {
+    targetCountries = ALL_COUNTRY_CODES.slice(9, 12); // AE, PH, INT
+    filename = "smartkidz_lessons_part4_AE_PH_INT.csv";
   }
 
   const headers = new Headers();
