@@ -6,6 +6,7 @@ import { Check, Sparkles, Shield, Zap, Star, Infinity as InfinityIcon, HelpCircl
 import CinematicScroll from "@/components/marketing/CinematicScroll";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import { cn } from "@/lib/utils";
+import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
 
 // --- Components ---
 
@@ -100,34 +101,6 @@ function FeatureItem({ icon: Icon, title, desc }) {
 
 // --- Data ---
 
-const PLANS = [
-  {
-    name: "Monthly",
-    price: "$11.99",
-    period: "/mo",
-    desc: "Flexible. Cancel anytime.",
-    features: [
-      "Unlimited child profiles",
-      "Full curriculum access (Prep–Year 6)",
-      "Parent dashboard & insights",
-      "No ads, ever"
-    ],
-  },
-  {
-    name: "Annual",
-    price: "$99.99",
-    period: "/yr",
-    desc: "Commit to confidence.",
-    features: [
-      "Everything in Monthly",
-      "Save over 30%",
-      "Price locked for life",
-      "30-day money-back guarantee"
-    ],
-    savings: "🔥 Save $43 per year",
-  },
-];
-
 const INCLUDED_FEATURES = [
   { icon: InfinityIcon, title: "Unlimited Kids", desc: "One subscription covers the whole family. Add as many profiles as you need." },
   { icon: Shield, title: "100% Safe", desc: "No ads, no external links, no chat. A walled garden for learning." },
@@ -145,6 +118,36 @@ const FAQS = [
 // --- Page ---
 
 export default function PricingPage() {
+  const geo = useMarketingGeo();
+
+  const PLANS = [
+    {
+      name: "Monthly",
+      price: `${geo.currency}${geo.priceMonthly}`,
+      period: "/mo",
+      desc: "Flexible. Cancel anytime.",
+      features: [
+        "Unlimited child profiles",
+        `Full curriculum (${geo.curriculumShort})`,
+        "Parent dashboard & insights",
+        "No ads, ever"
+      ],
+    },
+    {
+      name: "Annual",
+      price: `${geo.currency}${geo.priceAnnual}`,
+      period: "/yr",
+      desc: "Commit to confidence.",
+      features: [
+        "Everything in Monthly",
+        "Save over 30%",
+        "Price locked for life",
+        "30-day money-back guarantee"
+      ],
+      savings: "🔥 Most Popular",
+    },
+  ];
+
   return (
     <div className="bg-slate-50/50">
       <CinematicScroll>
@@ -180,7 +183,7 @@ export default function PricingPage() {
                className="text-xl text-slate-600 font-medium max-w-2xl mx-auto"
              >
                Start your <strong>7-day free trial</strong>. Cancel anytime.<br/>
-               No hidden fees. Just pure learning value.
+               Prices in {geo.currency} {geo.name}.
              </motion.p>
           </Container>
         </section>

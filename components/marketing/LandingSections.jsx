@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle2, Shield, Trophy, Sparkles, Map, BarChart3 } from "lucide-react";
+import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
 
 function Container({ children, className = "" }) {
   return <div className={"container-pad " + className}>{children}</div>;
@@ -11,6 +12,8 @@ function Container({ children, className = "" }) {
 
 // --- HERO SECTION ---
 export function Hero() {
+  const geo = useMarketingGeo();
+
   return (
     <section className="relative overflow-visible pt-20 pb-16 sm:pt-24 sm:pb-32">
       {/* Background Blobs */}
@@ -29,7 +32,8 @@ export function Hero() {
             className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-slate-200 px-4 py-1.5 text-xs font-extrabold text-slate-600 shadow-sm backdrop-blur-md mb-6"
           >
             <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Australian Curriculum Aligned • Prep to Year 6
+            <span className="mr-1">{geo.flag}</span>
+            {geo.heroTag}
           </motion.div>
 
           <motion.h1
@@ -50,8 +54,8 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed"
           >
-            SmartKidz transforms the Australian Curriculum into a calm, confidence-building adventure. 
-            Full Maths, English, and Science coverage—mastered without the pressure.
+            SmartKidz transforms the {geo.curriculum} into a calm, confidence-building adventure. 
+            Full {geo.mathTerm}, English, and Science coverage—mastered without the pressure.
           </motion.p>
 
           <motion.div
@@ -179,13 +183,14 @@ export function Hero() {
 
 // --- SOCIAL PROOF ---
 export function LogoStrip() {
+  const geo = useMarketingGeo();
   return (
     <Container className="py-10 border-y border-slate-100 bg-slate-50/50">
       <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-wide mb-6">
-        Trusted by Australian families for
+        Trusted by families across {geo.name}
       </p>
       <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100">
-        {["Maths Mastery", "English Confidence", "Science Discovery", "Exam Prep", "School Readiness"].map((label) => (
+        {[geo.mathTerm + " Mastery", "English Confidence", "Science Discovery", "Exam Prep", "School Readiness"].map((label) => (
           <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
             <CheckCircle2 className="w-5 h-5 text-brand-mint" />
             <span className="font-extrabold text-slate-900">{label}</span>
@@ -290,8 +295,10 @@ export function FeatureGrid() {
 
 // --- SUBJECT TILES ---
 export function SubjectTiles() {
+  const geo = useMarketingGeo();
+  
   const subjects = [
-    { id: "math", name: "Maths", color: "bg-sky-500", img: "/illustrations/subjects/world-maths.webp" },
+    { id: "math", name: geo.mathTerm, color: "bg-sky-500", img: "/illustrations/subjects/world-maths.webp" },
     { id: "eng", name: "English", color: "bg-violet-500", img: "/illustrations/subjects/world-english.webp" },
     { id: "sci", name: "Science", color: "bg-emerald-500", img: "/illustrations/subjects/world-science.webp" },
     { id: "lang", name: "Languages", color: "bg-indigo-500", img: "/illustrations/subjects/world-languages.webp" },
@@ -302,7 +309,7 @@ export function SubjectTiles() {
       <div className="text-center mb-12">
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Explore our Worlds</h2>
         <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-          Every subject is a unique world to explore. Mapped to the Australian Curriculum for Years 1–6.
+          Every subject is a unique world to explore. Mapped to the {geo.curriculum} for {geo.gradeTerm}s 1–6.
         </p>
       </div>
 
@@ -338,14 +345,14 @@ export function CTA() {
             Ready to build their confidence?
           </h2>
           <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10 leading-relaxed">
-            Join thousands of Australian families using SmartKidz to make learning fun again. 
-            Start your free 7-day trial today.
+            Join thousands of families building confidence with SmartKidz.
+            Full curriculum access included in every plan.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="https://app.smartkidz.app/app/signup"
-              className="h-14 px-8 rounded-full bg-white text-slate-900 text-lg font-bold shadow-lg hover:bg-slate-100 hover:scale-105 transition-all flex items-center"
+              className="inline-flex h-14 items-center justify-center rounded-full bg-white px-8 text-lg font-bold text-slate-900 shadow-xl hover:scale-105 hover:bg-indigo-50 transition-all"
             >
               Get Started Free
             </Link>

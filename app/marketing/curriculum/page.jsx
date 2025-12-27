@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import CinematicScroll from "@/components/marketing/CinematicScroll";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
+import { useMarketingGeo } from "@/components/marketing/MarketingGeoProvider";
 
 // --- Components ---
 
@@ -64,23 +65,6 @@ function ValueProp({ icon: Icon, title, desc, color }) {
   );
 }
 
-// --- Data ---
-
-const CORE_SUBJECTS = [
-  { 
-    id: "MATH", title: "Mathematics", subtitle: "Number, Algebra, Geometry, Statistics",
-    icon: Calculator, gradient: "from-sky-400 to-blue-600", img: "/illustrations/subjects/world-maths.webp" 
-  },
-  { 
-    id: "ENG", title: "English", subtitle: "Reading, Writing, Speaking, Listening",
-    icon: BookOpen, gradient: "from-violet-400 to-fuchsia-600", img: "/illustrations/subjects/world-english.webp" 
-  },
-  { 
-    id: "SCI", title: "Science", subtitle: "Biological, Chemical, Earth, Physical",
-    icon: FlaskConical, gradient: "from-emerald-400 to-teal-600", img: "/illustrations/subjects/world-science.webp" 
-  },
-];
-
 const WIDER_WORLD = [
   { id: "HASS", title: "HASS", icon: Globe, color: "bg-amber-100 text-amber-700" },
   { id: "ART", title: "The Arts", icon: Palette, color: "bg-pink-100 text-pink-700" },
@@ -90,6 +74,23 @@ const WIDER_WORLD = [
 ];
 
 export default function CurriculumPage() {
+  const geo = useMarketingGeo();
+
+  const CORE_SUBJECTS = [
+    { 
+      id: "MATH", title: geo.mathTerm, subtitle: "Number, Algebra, Geometry, Statistics",
+      icon: Calculator, gradient: "from-sky-400 to-blue-600", img: "/illustrations/subjects/world-maths.webp" 
+    },
+    { 
+      id: "ENG", title: "English", subtitle: "Reading, Writing, Speaking, Listening",
+      icon: BookOpen, gradient: "from-violet-400 to-fuchsia-600", img: "/illustrations/subjects/world-english.webp" 
+    },
+    { 
+      id: "SCI", title: "Science", subtitle: "Biological, Chemical, Earth, Physical",
+      icon: FlaskConical, gradient: "from-emerald-400 to-teal-600", img: "/illustrations/subjects/world-science.webp" 
+    },
+  ];
+
   return (
     <PageScaffold title={null} className="bg-slate-50/50">
       <CinematicScroll>
@@ -114,7 +115,7 @@ export default function CurriculumPage() {
               transition={{ delay: 0.1 }}
               className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.05] mb-6"
             >
-              The full Australian Curriculum. <br/>
+              The full {geo.curriculum}. <br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-sky-600">
                 Hidden inside a game.
               </span>
@@ -126,7 +127,7 @@ export default function CurriculumPage() {
               transition={{ delay: 0.2 }}
               className="text-xl text-slate-600 font-medium max-w-2xl mx-auto mb-10 leading-relaxed"
             >
-              We cover every key learning area from Prep to Year 6. 
+              We cover every key learning area from {geo.gradeTerm} 1 to 6. 
               Structured for mastery, designed for fun.
             </motion.p>
           </Container>
@@ -201,7 +202,7 @@ export default function CurriculumPage() {
                   <ValueProp 
                     icon={CheckCircle2} 
                     title="Curriculum Mapped" 
-                    desc="Every lesson is tagged to specific Australian Curriculum codes (AC9). You can trust that their screen time is actually school time."
+                    desc={`Every lesson is tagged to specific ${geo.curriculumShort} codes. You can trust that their screen time is actually school time.`}
                     color="bg-emerald-500"
                   />
                 </div>
@@ -214,7 +215,7 @@ export default function CurriculumPage() {
                   <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/30 rounded-full blur-3xl -mr-16 -mt-16" />
                   
                   <div className="relative z-10">
-                    <div className="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-2">Example: Year 3 Maths</div>
+                    <div className="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-2">Example: {geo.gradeTerm} 3 {geo.mathTerm}</div>
                     <div className="text-3xl font-black mb-8">Fractions</div>
                     
                     <div className="space-y-4">
@@ -273,7 +274,7 @@ export default function CurriculumPage() {
               <div className="inline-block p-6 rounded-3xl bg-indigo-50 border border-indigo-100 max-w-2xl">
                 <h3 className="font-bold text-indigo-900 mb-2">Did you know?</h3>
                 <p className="text-indigo-800 text-sm leading-relaxed">
-                  We are also adding <strong>Digital Technologies</strong> (Coding basics) and <strong>Aboriginal & Torres Strait Islander Histories</strong> modules this year. SmartKidz grows with the curriculum.
+                  We are also adding <strong>Digital Technologies</strong> (Coding basics) and <strong>Indigenous Histories</strong> modules this year. SmartKidz grows with the curriculum.
                 </p>
               </div>
             </div>
@@ -293,7 +294,7 @@ export default function CurriculumPage() {
                 <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
                   Ready to give them a head start?
                 </h2>
-                <p className="text-lg text-slate-300 font-medium mb-10">
+                <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10">
                   Join thousands of families building confidence with SmartKidz.
                   Full curriculum access included in every plan.
                 </p>
@@ -311,6 +312,10 @@ export default function CurriculumPage() {
                     View Pricing
                   </Link>
                 </div>
+                
+                <p className="mt-6 text-sm text-slate-500 font-semibold">
+                  No credit card required for preview • Cancel anytime
+                </p>
               </div>
             </div>
           </Container>
