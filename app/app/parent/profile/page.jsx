@@ -10,12 +10,24 @@ export default function ParentProfilePage() {
   const supabase = getSupabaseClient();
   const { kids, activeChildId, setActiveChild, refreshKids } = useActiveChild();
   const [me, setMe] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     if (!supabase) return;
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      setMe(data?.user || null);
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      setMe(user || null);
+
+      if (user) {
+        // Explicitly selecting from public.profiles
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single();
+        setProfile(profileData);
+      }
     })();
   }, [supabase]);
 
@@ -43,9 +55,21 @@ export default function ParentProfilePage() {
         <div className="text-lg font-black text-slate-900">Account</div>
         <div className="mt-2 text-sm font-semibold text-slate-700">
           {me?.email ? (
-            <>
-              Signed in as <span className="font-extrabold">{me.email}</span>
-            </>
+            <div className="grid gap-1">
+              <div>
+                Signed in as <span className="font-extrabold">{me.email}</span>
+              </div>
+              {profile?.full_name && (
+                <div>
+                  Name: <span className="font-extrabold">{profile.full_name}</span>
+                </div>
+              )}
+              {profile?.role && (
+                <div className="text-xs text-slate-500 uppercase tracking-wider font-bold mt-1">
+                  {profile.role}
+                </div>
+              )}
+            </div>
           ) : (
             "Loading account…"
           )}
