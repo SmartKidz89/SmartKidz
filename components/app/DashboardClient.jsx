@@ -10,7 +10,7 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
   Wrench, Star, ArrowRight, Zap, Map, Sparkles, Heart, Paintbrush,
-  Book, Globe2, PenTool, Compass
+  Book, Globe2, PenTool, Compass, ALargeSmall
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -101,13 +101,13 @@ const SUBJECTS = [
 
 const TOOLS = [
   { href: "/app/pet", title: "My Pet", icon: Heart, color: "bg-rose-100 text-rose-700" },
+  { href: "/app/tools/grammar", title: "Grammar Gym", icon: ALargeSmall, color: "bg-indigo-100 text-indigo-700" },
   { href: "/app/tools/pixel-art", title: "Pixel Studio", icon: Palette, color: "bg-pink-100 text-pink-700" },
   { href: "/app/tools/worksheet", title: "Worksheets", icon: Book, color: "bg-orange-100 text-orange-700" },
   { href: "/app/tools/world-explorer", title: "Explorer", icon: Globe2, color: "bg-sky-100 text-sky-700" },
   { href: "/app/tools/dictionary", title: "Dictionary", icon: BookOpen, color: "bg-emerald-100 text-emerald-700" },
   { href: "/app/tools/storybook", title: "Storybook", icon: PenTool, color: "bg-blue-100 text-blue-700" },
   { href: "/app/tools/curiosity", title: "Curiosity", icon: Compass, color: "bg-purple-100 text-purple-700" },
-  { href: "/app/tools/focus", title: "Focus Mode", icon: Sparkles, color: "bg-teal-100 text-teal-700" },
 ];
 
 // --- Components ---
