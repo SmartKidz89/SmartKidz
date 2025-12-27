@@ -5,29 +5,34 @@ import { usePathname } from "next/navigation";
 import { useNavMotion } from "@/components/ui/NavMotionProvider";
 import { useFocusMode } from "@/components/ui/FocusModeProvider";
 
-/**
- * Route transition wrapper for the /app segment.
- *
- * Previous version referenced `useNavMotion`, `useFocusMode`, and `variants.pageIn`
- * without importing/defining them, which caused a prerender crash on routes like
- * `/app/admin/import`.
- */
 export default function Template({ children }) {
   const pathname = usePathname();
   const reduce = useReducedMotion();
   const { direction } = useNavMotion();
   const { focus, toggle: toggleFocus } = useFocusMode();
 
-  const pageVariants = reduce
+  const variants = reduce
     ? {
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
       }
     : {
-        initial: (d) => ({ opacity: 0, x: d > 0 ? 18 : -18, filter: "blur(8px)" }),
-        animate: { opacity: 1, x: 0, filter: "blur(0px)" },
-        exit: (d) => ({ opacity: 0, x: d > 0 ? -12 : 12, filter: "blur(8px)" }),
+        // "Spatial" navigation: zoom in slightly on enter, fade out on exit
+        initial: { opacity: 0, scale: 0.96, y: 8, filter: "blur(4px)" },
+        animate: { 
+          opacity: 1, 
+          scale: 1, 
+          y: 0, 
+          filter: "blur(0px)",
+          transition: { type: "spring", stiffness: 380, damping: 25, mass: 0.8 } 
+        },
+        exit: { 
+          opacity: 0, 
+          scale: 1.02, 
+          filter: "blur(2px)",
+          transition: { duration: 0.2, ease: "easeOut" } 
+        },
       };
 
   return (
@@ -35,11 +40,10 @@ export default function Template({ children }) {
       <motion.div
         key={pathname}
         custom={direction}
-        variants={pageVariants}
+        variants={variants}
         initial="initial"
         animate="animate"
         exit="exit"
-        transition={{ duration: 0.25, ease: "easeOut" }}
         className="min-h-[100dvh]"
       >
         {focus ? (
