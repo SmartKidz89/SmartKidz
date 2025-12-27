@@ -1,221 +1,276 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { Check, Sparkles, Shield, Zap, Star, Infinity as InfinityIcon, HelpCircle } from "lucide-react";
+import CinematicScroll from "@/components/marketing/CinematicScroll";
 import SectionReveal from "@/components/marketing/SectionReveal";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
+import { cn } from "@/lib/utils";
 
-import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
+// --- Components ---
+
 function Container({ children, className = "" }) {
-  return <div className={"container-pad " + className}>{children}</div>;
+  return <div className={cn("container-pad px-6", className)}>{children}</div>;
 }
 
-const plans = [
+function PricingCard({ plan, popular = false, delay = 0 }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, delay }}
+      className={cn(
+        "relative flex flex-col p-8 rounded-[2.5rem] transition-all duration-300",
+        popular 
+          ? "bg-slate-900 text-white shadow-2xl scale-105 z-10 border border-slate-700" 
+          : "bg-white text-slate-900 shadow-xl border border-slate-100 hover:-translate-y-1"
+      )}
+    >
+      {popular && (
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-300 to-orange-400 text-slate-900 text-xs font-black uppercase tracking-wider px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+          <Star className="w-3 h-3 fill-current" />
+          Best Value
+        </div>
+      )}
+
+      <div className="mb-6">
+        <h3 className="text-xl font-black opacity-90">{plan.name}</h3>
+        <p className={cn("text-sm font-medium mt-1", popular ? "text-slate-400" : "text-slate-500")}>
+          {plan.desc}
+        </p>
+      </div>
+
+      <div className="flex items-baseline gap-1 mb-6">
+        <span className="text-4xl sm:text-5xl font-black tracking-tight">{plan.price}</span>
+        <span className={cn("font-bold", popular ? "text-slate-500" : "text-slate-400")}>
+          {plan.period}
+        </span>
+      </div>
+
+      <Link
+        href="https://app.smartkidz.app/app/signup"
+        className={cn(
+          "w-full h-12 rounded-xl flex items-center justify-center font-bold transition-all shadow-lg active:scale-95",
+          popular
+            ? "bg-white text-slate-900 hover:bg-indigo-50"
+            : "bg-slate-100 text-slate-900 hover:bg-slate-200 hover:text-slate-900"
+        )}
+      >
+        Start 7-Day Free Trial
+      </Link>
+
+      <div className="mt-8 space-y-4 flex-1">
+        {plan.features.map((feat) => (
+          <div key={feat} className="flex items-start gap-3">
+            <div className={cn("mt-0.5 rounded-full p-0.5 shrink-0", popular ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-600")}>
+              <Check className="w-3.5 h-3.5" />
+            </div>
+            <span className={cn("text-sm font-semibold", popular ? "text-slate-300" : "text-slate-600")}>
+              {feat}
+            </span>
+          </div>
+        ))}
+      </div>
+      
+      {plan.savings && (
+        <div className="mt-6 pt-6 border-t border-white/10 text-center">
+          <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+            {plan.savings}
+          </span>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function FeatureItem({ icon: Icon, title, desc }) {
+  return (
+    <div className="flex gap-4 p-5 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+      <div className="h-12 w-12 shrink-0 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+        <Icon className="w-6 h-6" />
+      </div>
+      <div>
+        <h4 className="font-bold text-slate-900 mb-1">{title}</h4>
+        <p className="text-sm text-slate-600 leading-relaxed">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+// --- Data ---
+
+const PLANS = [
   {
     name: "Monthly",
     price: "$11.99",
-    period: "/month",
-    featured: false,
-    desc: "Flexible month-to-month access for the whole family.",
-    bullets: [
-      "Unlimited kids profiles",
-      "All subjects & worlds",
-      "Rewards, streaks & avatars",
-      "Parent dashboard + weekly insights"
+    period: "/mo",
+    desc: "Flexible. Cancel anytime.",
+    features: [
+      "Unlimited child profiles",
+      "Full curriculum access (Prep–Year 6)",
+      "Parent dashboard & insights",
+      "No ads, ever"
     ],
   },
   {
     name: "Annual",
     price: "$99.99",
-    period: "/year",
-    featured: true,
-    badge: "Best value",
-    desc: "Best savings for families who want steady progress all year.",
-    bullets: [
-      "Unlimited kids profiles",
-      "All subjects & worlds",
-      "Rewards, streaks & avatars",
-      "Parent dashboard + weekly insights"
+    period: "/yr",
+    desc: "Commit to confidence.",
+    features: [
+      "Everything in Monthly",
+      "Save over 30%",
+      "Price locked for life",
+      "30-day money-back guarantee"
     ],
-    subtext: "Save over 30% vs monthly",
+    savings: "🔥 Save $43 per year",
   },
 ];
 
+const INCLUDED_FEATURES = [
+  { icon: InfinityIcon, title: "Unlimited Kids", desc: "One subscription covers the whole family. Add as many profiles as you need." },
+  { icon: Shield, title: "100% Safe", desc: "No ads, no external links, no chat. A walled garden for learning." },
+  { icon: Zap, title: "Offline Mode", desc: "Going on a road trip? Learning works seamlessly on tablets and desktops." },
+  { icon: Star, title: "All Subjects", desc: "Maths, English, Science, and more. We don't charge extra for new worlds." },
+];
+
+const FAQS = [
+  { id: "f1", q: "Does the free trial give full access?", a: "Yes. You get 7 days of unlimited access to everything: all subjects, all year levels, and the parent dashboard." },
+  { id: "f2", q: "Can I change plans later?", a: "Absolutely. You can switch between Monthly and Annual or cancel at any time from your Parent Settings." },
+  { id: "f3", q: "Is this per child?", a: "No! One subscription covers your entire family. You can create separate profiles for each child to track their individual progress." },
+  { id: "f4", q: "What devices does it work on?", a: "SmartKidz works on any modern browser—desktops, laptops, iPads, and tablets." },
+];
+
+// --- Page ---
+
 export default function PricingPage() {
   return (
-    
-    <PageScaffold title="Pricing">
-<div data-scene className="py-10">
-      <Container data-scene className="pt-8 pb-10">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
-              Simple pricing, huge learning value.
-            </h1>
-            <p className="mt-4 text-lg text-slate-600">
-              Choose a plan that fits your family. All plans include access to Maths, Reading, and Science worlds.
-            </p>
-            <div className="mt-6 flex gap-3 flex-wrap">
-              <Link href="https://app.smartkidz.app/app/login" className="sk-btn-primary">Launch App</Link>
-              <Link href="/marketing/features" className="sk-btn-muted">See features</Link>
+    <PageScaffold title={null} className="bg-slate-50/50">
+      <CinematicScroll>
+        
+        {/* 1. HERO */}
+        <section className="pt-24 pb-16 text-center">
+          <Container className="max-w-4xl">
+             <motion.div
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-4 py-1.5 text-xs font-extrabold text-slate-600 shadow-sm mb-8"
+             >
+               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+               Invest in their future
+             </motion.div>
+
+             <motion.h1
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.1 }}
+               className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight mb-6"
+             >
+               Simple pricing. <br/>
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-sky-500">
+                 Unlimited learning.
+               </span>
+             </motion.h1>
+             
+             <motion.p 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.2 }}
+               className="text-xl text-slate-600 font-medium max-w-2xl mx-auto"
+             >
+               Start your <strong>7-day free trial</strong>. Cancel anytime.<br/>
+               No hidden fees. Just pure learning value.
+             </motion.p>
+          </Container>
+        </section>
+
+        {/* 2. PRICING CARDS */}
+        <section className="pb-20">
+          <Container className="max-w-5xl">
+            <div className="grid md:grid-cols-2 gap-6 items-center">
+              <PricingCard plan={PLANS[0]} delay={0.3} />
+              <PricingCard plan={PLANS[1]} popular delay={0.4} />
             </div>
-          </div>
-
-          <div className="sk-card overflow-hidden">
-            <div className="relative h-64 bg-slate-50">
-              <Image src="/illustrations/scenes/pricing-hero.webp" alt="Pricing hero" fill className="object-cover" />
+            
+            <div className="mt-8 text-center">
+               <p className="text-sm font-semibold text-slate-500 flex items-center justify-center gap-2">
+                 <Shield className="w-4 h-4" />
+                 Secure payment via Stripe • 256-bit SSL Encryption
+               </p>
             </div>
-          </div>
-        </div>
-      </Container>
+          </Container>
+        </section>
 
-      <Container className="pb-16">
-        <div className="grid lg:grid-cols-2 gap-6">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={
-                "sk-card p-7 " +
-                (p.featured ? "ring-2 ring-brand-primary/25 shadow-glow" : "")
-              }
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-900">{p.name}</h3>
-                  <p className="mt-1 text-sm text-slate-600">{p.desc}</p>
-                </div>
-                {p.featured && <span className="sk-chip">{p.badge || "Best value"}</span>}
+        {/* 3. VALUE GRID */}
+        <section className="py-20 bg-white border-y border-slate-100">
+          <Container className="max-w-6xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-black text-slate-900">Everything included</h2>
+              <p className="text-slate-600 mt-2 font-medium">We don't nickel-and-dime. One price gets you the full platform.</p>
+            </div>
+            
+            <div className="grid sm:grid-cols-2 gap-6">
+              {INCLUDED_FEATURES.map((feat, i) => (
+                <SectionReveal key={feat.title} delay={i * 0.1}>
+                  <FeatureItem {...feat} />
+                </SectionReveal>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* 4. FAQ */}
+        <section className="py-20">
+          <Container className="max-w-3xl">
+            <div className="text-center mb-12">
+               <h2 className="text-3xl font-black text-slate-900">Common Questions</h2>
+            </div>
+            <FAQAccordion items={FAQS} />
+            
+            <div className="mt-12 p-6 rounded-3xl bg-indigo-50 border border-indigo-100 text-center">
+              <h4 className="font-bold text-indigo-900 mb-2">Still have questions?</h4>
+              <p className="text-indigo-700 text-sm mb-4">We're here to help. Contact our friendly support team.</p>
+              <a href="mailto:support@smartkidz.app" className="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                <HelpCircle className="w-4 h-4" />
+                Contact Support
+              </a>
+            </div>
+          </Container>
+        </section>
+
+        {/* 5. FINAL CTA */}
+        <section className="py-24">
+          <Container>
+            <div className="relative rounded-[3rem] bg-slate-900 overflow-hidden px-6 py-20 text-center">
+              <div className="absolute inset-0">
+                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-b from-indigo-600/30 to-transparent rounded-full blur-[80px] opacity-50" />
+                 <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-t from-emerald-600/20 to-transparent rounded-full blur-[80px] opacity-50" />
               </div>
-
-              <div className="mt-6 flex items-end gap-2">
-                <span className="text-4xl font-extrabold text-slate-900">{p.price}</span>
-                <span className="text-slate-600">{p.period}</span>
-              </div>
-              {p.subtext && (
-                <p className="mt-2 text-sm text-slate-600">{p.subtext}</p>
-              )}
-
-              <ul className="mt-6 space-y-2 text-slate-700">
-                {p.bullets.map((b) => (
-                  <li key={b} className="flex gap-2">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-brand-mint" />
-                    <span className="text-sm">{b}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-7">
-                <Link href="https://app.smartkidz.app/app/login" className={p.featured ? "sk-btn-primary w-full inline-flex justify-center" : "sk-btn-muted w-full inline-flex justify-center"}>
-                  Get started
+              
+              <div className="relative z-10 max-w-2xl mx-auto">
+                <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">
+                  Join the club.
+                </h2>
+                <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10">
+                  Give your child the gift of confidence today.
+                </p>
+                <Link
+                  href="https://app.smartkidz.app/app/signup"
+                  className="inline-flex h-14 items-center justify-center rounded-full bg-white px-10 text-lg font-bold text-slate-900 shadow-xl hover:scale-105 hover:bg-indigo-50 transition-all"
+                >
+                  Start Your Free Trial
                 </Link>
+                <p className="mt-6 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  Try it risk-free
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      
-      <SectionReveal className="py-14">
-        <div className="container-pad grid lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-5">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Pricing FAQ</h2>
-            <p className="mt-3 text-slate-600">Transparent, family-friendly pricing.</p>
-          </div>
-          <div className="lg:col-span-7">
-            <FAQAccordion items={[
-              { id: "p1", q: "Is pricing per child or per family?", a: "It’s one simple family plan with unlimited kids. Every child gets their own profile, progress, and avatar — all included." },
-              { id: "p2", q: "Can multiple kids use different devices at the same time?", a: "Yes. Sessions are per device, so siblings can learn on separate devices at the same time without affecting each other’s progress." },
-              { id: "p3", q: "Is SmartKidz ad-free and kid-safe?", a: "Yes. SmartKidz is an ad-free, kid-safe environment with no external links in the learning experience." },
-              { id: "p4", q: "Can I cancel anytime?", a: "Yes — you can cancel anytime. Your subscription stays active until the end of the current billing period." },
-            ]} />
-          </div>
-        </div>
-      </SectionReveal>
+          </Container>
+        </section>
 
-</Container>
-    </div>
-  
+      </CinematicScroll>
     </PageScaffold>
   );
 }
-      <SectionReveal className="py-14">
-        <div className="container-pad">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl font-extrabold text-slate-900">See what you get</h2>
-            <p className="mt-3 text-slate-600">
-              Parents get clear, confidence-building insights. Kids get worlds, rewards, and adventures they actually want to come back to.
-            </p>
-          </div>
-
-          <div className="mt-10 grid lg:grid-cols-2 gap-8 items-center">
-            <div className="sk-card p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-900">Parent Dashboard</h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Know exactly what they’re mastering, where they’re improving, and what to do next.
-                  </p>
-                </div>
-                <span className="sk-chip">Insights</span>
-              </div>
-
-              <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white">
-                <Image
-                  src="/illustrations/features/feature-parent-dashboard.webp"
-                  alt="Parent dashboard preview"
-                  width={1200}
-                  height={800}
-                  className="h-auto w-full"
-                  priority
-                />
-              </div>
-
-              <ul className="mt-5 space-y-2 text-slate-700">
-                <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-brand-mint" /> <span className="text-sm">Time spent learning, by week</span></li>
-                <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-brand-mint" /> <span className="text-sm">Strengths vs focus areas</span></li>
-                <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-brand-mint" /> <span className="text-sm">Weekly progress emails</span></li>
-              </ul>
-            </div>
-
-            <div className="sk-card p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-900">Kids Dashboard</h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Worlds, quests, rewards, and avatar upgrades — learning that feels like play.
-                  </p>
-                </div>
-                <span className="sk-chip">Fun</span>
-              </div>
-
-              <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white">
-                <Image
-                  src="/illustrations/app/kids-dashboard-header.webp"
-                  alt="Kids dashboard preview"
-                  width={1200}
-                  height={800}
-                  className="h-auto w-full"
-                />
-              </div>
-
-              <ul className="mt-5 space-y-2 text-slate-700">
-                <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-brand-spark" /> <span className="text-sm">Choose Maths, Reading, or Science</span></li>
-                <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-brand-spark" /> <span className="text-sm">Earn coins, badges, and streaks</span></li>
-                <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-brand-spark" /> <span className="text-sm">Customize your avatar as you learn</span></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-10 sk-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">One simple plan. Unlimited kids. Everything included.</p>
-              <p className="mt-1 text-sm text-slate-600">No ads. No external links. Cancel anytime.</p>
-            </div>
-            <Link
-              href="https://app.smartkidz.app/app/login"
-              className="sk-btn-primary inline-flex justify-center"
-            >
-              Start free trial
-            </Link>
-          </div>
-        </div>
-      </SectionReveal>
-
