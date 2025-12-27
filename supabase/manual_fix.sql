@@ -1,21 +1,31 @@
--- 1. Reset the lessons table to avoid ID conflicts
-TRUNCATE TABLE public.lessons CASCADE;
+-- 1. Relax the constraint on the catalog table too
+ALTER TABLE public.lesson_catalog ALTER COLUMN curriculum_tags DROP NOT NULL;
 
--- 2. Ensure all subjects exist (MATH, ENG, SCI, HASS, HPE, ART, TECH, LANG)
--- This prevents "foreign key violation" errors during import.
-INSERT INTO public.subjects (id, name, sort_order) VALUES
-('MATH', 'Mathematics', 1),
-('ENG',  'English', 2),
-('SCI',  'Science', 3),
-('HASS', 'HASS', 4),
-('HPE',  'Health & PE', 5),
-('ART',  'The Arts', 6),
-('TECH', 'Technologies', 7),
-('LANG', 'Languages', 8)
-ON CONFLICT (id) DO UPDATE 
-SET name = EXCLUDED.name;
-
--- 3. Relax the curriculum_tags constraint
--- The CSV might send empty strings or nulls for this array column.
--- Dropping NOT NULL allows the import to succeed even if tags are missing.
-ALTER TABLE public.lessons ALTER COLUMN curriculum_tags DROP NOT NULL;
+-- 2. Update the sync trigger to safely handle NULL tags by converting them to empty arrays
+CREATE OR REPLACE FUNCTION public.sync_lesson_catalog()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  insert into public.lesson_catalog (id, year_level, subject_id, title, topic, curriculum_tags, updated_at)
+  values (
+    new.id, 
+    new.year_level, 
+    new.subject_id, 
+    new.title, 
+    new.topic, 
+    COALESCE(new.curriculum_tags, '{}'), -- FIX: Converts NULL to empty array
+    now()
+  )
+  on conflict (id) do update
+    set year_level = excluded.year_level,
+        subject_id = excluded.subject_id,
+        title = excluded.title,
+        topic = excluded.topic,
+        curriculum_tags = COALESCE(excluded.curriculum_tags, '{}'),
+        updated_at = now();
+  return new;
+end;
+$function$;
