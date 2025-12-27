@@ -6,25 +6,57 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Page as PageScaffold } from "@/components/ui/PageScaffold";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Star, Play } from "lucide-react";
+import { ArrowLeft, BookOpen, Star, Play, Globe } from "lucide-react";
 
-// Map URL slugs to Database Subject IDs
+// Robust mapping of URL slugs -> DB Subject IDs
 const SUBJECT_MAP = {
+  // Core
   math: "MATH",
   maths: "MATH",
+  mathematics: "MATH",
   reading: "ENG",
   english: "ENG",
+  literacy: "ENG",
   science: "SCI",
+  
+  // HASS
   hass: "HASS",
+  history: "HASS", 
+  geography: "HASS",
+  
+  // HPE
   hpe: "HPE",
-  arts: "ARTS",
+  health: "HPE",
+  pe: "HPE",
+  
+  // Arts (DB uses 'ART' in scripts, though 'ARTS' is common in labels)
+  arts: "ART",
+  art: "ART",
+  thearts: "ART",
+  
+  // Tech
   tech: "TECH",
   technologies: "TECH",
+  technology: "TECH",
+  
+  // Languages (Aggregate)
   lang: "LANG",
-  languages: "LANG"
+  languages: "LANG",
+  lote: "LANG",
+  
+  // Specific Languages
+  auslan: "AUS",
+  indonesian: "IND",
+  japanese: "JPN",
+  chinese: "ZHO",
+  mandarin: "ZHO",
+  french: "FRA",
+  spanish: "SPA",
+  aboriginal: "ABL",
+  aboriginallanguages: "ABL"
 };
 
-// Language subjects to aggregate under "LANG"
+// Codes included in the "Languages" world view
 const LANGUAGE_CODES = ["LANG", "AUS", "IND", "JPN", "ZHO", "FRA", "SPA", "ABL"];
 
 const SUBJECT_LABELS = {
@@ -33,9 +65,10 @@ const SUBJECT_LABELS = {
   SCI: "Science",
   HASS: "HASS",
   HPE: "Health & PE",
+  ART: "The Arts",
   ARTS: "The Arts",
   TECH: "Technologies",
-  LANG: "General Languages",
+  LANG: "Languages",
   AUS: "Auslan",
   IND: "Indonesian",
   JPN: "Japanese",
@@ -64,18 +97,15 @@ export default function SubjectLessonsPage() {
       setError("");
 
       try {
-        // 1. Fetch Subject Name (if single subject)
-        if (!isLanguageWorld) {
-          const { data: subjectData } = await supabase
-            .from("subjects")
-            .select("name")
-            .eq("id", worldId)
-            .maybeSingle();
-          if (mounted) {
-            setSubjectName(subjectData?.name || SUBJECT_LABELS[worldId] || worldId);
+        // 1. Determine Display Name
+        if (mounted) {
+          if (isLanguageWorld) {
+            setSubjectName("Languages World");
+          } else {
+            // Try to fetch name, fallback to label map
+            const { data } = await supabase.from("subjects").select("name").eq("id", worldId).maybeSingle();
+            setSubjectName(data?.name || SUBJECT_LABELS[worldId] || worldId);
           }
-        } else {
-          if (mounted) setSubjectName("Languages");
         }
 
         // 2. Fetch Lessons
@@ -116,16 +146,16 @@ export default function SubjectLessonsPage() {
     return () => { mounted = false; };
   }, [worldId, isLanguageWorld]);
 
-  // Group lessons if we are in the Languages world
+  // Group lessons logic
   const groups = useMemo(() => {
     if (!lessons.length) return [];
     
-    // For single subject worlds, put everything in one group
+    // For single subject worlds, put everything in one 'Lessons' group
     if (!isLanguageWorld) {
       return [{ id: worldId, title: "Lessons", lessons }];
     }
 
-    // For Languages, group by subject_id
+    // For Languages world, group by subject_id
     const grouped = {};
     for (const l of lessons) {
       const sid = l.subject_id || "LANG";
@@ -133,7 +163,8 @@ export default function SubjectLessonsPage() {
       grouped[sid].push(l);
     }
 
-    // Sort groups based on our LANGUAGE_CODES order or alphabetical
+    // Sort: Specific languages A-Z, generic LANG last or first? 
+    // Let's sort by label.
     return Object.keys(grouped)
       .sort((a, b) => (SUBJECT_LABELS[a] || a).localeCompare(SUBJECT_LABELS[b] || b))
       .map(sid => ({
@@ -146,12 +177,12 @@ export default function SubjectLessonsPage() {
   return (
     <PageScaffold
       title={subjectName || "Loading..."}
-      subtitle={isLanguageWorld ? "Explore languages from around the world." : "Choose a mission to start learning."}
+      subtitle={isLanguageWorld ? "Explore languages, culture, and communication." : "Choose a mission to start learning."}
     >
-      <div className="mb-6">
+      <div className="mb-8">
         <Link 
           href="/app/worlds" 
-          className="inline-flex items-center gap-2 rounded-2xl bg-white/50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-2 rounded-2xl bg-white/50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors shadow-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Worlds
         </Link>
@@ -159,8 +190,8 @@ export default function SubjectLessonsPage() {
 
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3].map(i => (
-            <div key={i} className="h-32 rounded-3xl bg-white/40 animate-pulse" />
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-40 rounded-3xl bg-white/40 animate-pulse" />
           ))}
         </div>
       ) : error ? (
@@ -168,20 +199,33 @@ export default function SubjectLessonsPage() {
           {error}
         </div>
       ) : lessons.length === 0 ? (
-        <div className="p-8 rounded-3xl bg-white/60 text-center text-slate-600 font-medium">
-          No lessons found for this world yet. Check back soon!
+        <div className="p-10 rounded-3xl bg-white/60 border border-white/50 text-center">
+          <div className="text-4xl mb-3">📭</div>
+          <div className="text-slate-900 font-bold text-lg">No lessons found</div>
+          <div className="text-slate-600">Check back later for new content in this world.</div>
         </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-12">
           {groups.map((group) => (
-            <section key={group.id} className="space-y-4">
-              {isLanguageWorld && (
-                <div className="flex items-center gap-3 px-2">
-                  <div className="h-8 w-1 rounded-full bg-brand-primary" />
-                  <h2 className="text-xl font-black text-slate-900">{group.title}</h2>
-                  <span className="text-xs font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-                    {group.lessons.length}
-                  </span>
+            <section key={group.id} className="space-y-5">
+              {/* Group Header (only if we have multiple groups or it's language world) */}
+              {(isLanguageWorld || groups.length > 1) && (
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm text-xl">
+                    {group.id === "AUS" ? "👐" : 
+                     group.id === "FRA" ? "🇫🇷" : 
+                     group.id === "JPN" ? "🇯🇵" : 
+                     group.id === "ZHO" ? "🇨🇳" : 
+                     group.id === "SPA" ? "🇪🇸" : 
+                     group.id === "IND" ? "🇮🇩" : 
+                     group.id === "ABL" ? "🖤" : "🗣️"}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">{group.title}</h2>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      {group.lessons.length} Lesson{group.lessons.length === 1 ? "" : "s"}
+                    </div>
+                  </div>
                 </div>
               )}
               
@@ -200,37 +244,43 @@ export default function SubjectLessonsPage() {
 
 function LessonCard({ lesson }) {
   return (
-    <Link href={`/app/lesson/${encodeURIComponent(lesson.id)}`} className="group block">
+    <Link href={`/app/lesson/${encodeURIComponent(lesson.id)}`} className="group block h-full">
       <motion.div 
         whileHover={{ y: -4, scale: 1.01 }}
         whileTap={{ scale: 0.98 }}
-        className="relative h-full overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm transition-all hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] hover:border-brand-primary/30"
+        className="relative h-full flex flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm transition-all hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] hover:border-brand-primary/40 hover:bg-white"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-extrabold text-slate-500 mb-1">
-              <span className="bg-slate-100 px-2 py-0.5 rounded-full">
-                Year {lesson.year_level}
-              </span>
-              {lesson.topic && <span>• {lesson.topic}</span>}
-            </div>
-            <h3 className="text-base font-extrabold text-slate-900 leading-snug group-hover:text-brand-secondary transition-colors">
-              {lesson.title}
-            </h3>
-          </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-colors">
-            <Play className="w-4 h-4 ml-0.5 fill-current" />
+        {/* Top: Metadata */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <span className="inline-flex items-center rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-slate-500">
+            Year {lesson.year_level}
+          </span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
+            <Play className="w-3.5 h-3.5 fill-current" />
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-          <div className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+        {/* Middle: Title */}
+        <div className="flex-1">
+          <h3 className="text-lg font-extrabold text-slate-900 leading-snug group-hover:text-brand-secondary transition-colors">
+            {lesson.title}
+          </h3>
+          {lesson.topic && (
+            <p className="mt-1 text-sm font-medium text-slate-500 line-clamp-2">
+              {lesson.topic}
+            </p>
+          )}
+        </div>
+
+        {/* Bottom: Rewards */}
+        <div className="mt-5 flex items-center gap-3 border-t border-slate-100 pt-3">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 group-hover:text-brand-primary transition-colors">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Lesson</span>
+            <span>Open</span>
           </div>
-          <div className="flex items-center gap-1 text-xs font-bold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="ml-auto flex items-center gap-1 text-xs font-black text-amber-400">
             <Star className="w-3.5 h-3.5 fill-current" />
-            <span>+12 XP</span>
+            <span>+12</span>
           </div>
         </div>
       </motion.div>
