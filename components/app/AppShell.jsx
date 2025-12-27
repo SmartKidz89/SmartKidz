@@ -13,9 +13,8 @@ import RouteBackdrop from "@/components/ui/RouteBackdrop";
 import { 
   Home, Map, Trophy, UserCircle, Grid2X2, X, 
   BookOpen, Palette, Globe2, Compass, PenTool, 
-  Sparkles, Clock, LogOut, Settings
+  Sparkles, Clock, Settings
 } from "lucide-react";
-import { useActiveChild } from "@/hooks/useActiveChild";
 
 const HIDE_SHELL_PATHS = ["/app/login","/app/signup","/app/auth","/login","/signup","/auth"];
 
@@ -160,9 +159,7 @@ function BottomNav({ onOpenMenu }) {
 export default function AppShell({ children }) {
   const { focus } = useFocusMode();
   const pathname = usePathname();
-  const reduce = useReducedMotion();
-  const [menuOpen, setMenuOpen] = useState(false);
-
+  
   const isLoginLike =
     pathname === "/app/login" ||
     pathname === "/app/signup" ||
@@ -172,6 +169,8 @@ export default function AppShell({ children }) {
 
   const inParent = pathname === "/app/parent" || pathname?.startsWith("/app/parent/");
   const inKid = !isLoginLike && !inParent;
+  
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (isLoginLike) {
     return <div className="app-ui min-h-screen">{children}</div>;

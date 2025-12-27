@@ -2,17 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useEconomy } from "@/lib/economy/client";
 import { useFocusMode } from "@/components/ui/FocusModeProvider";
 import AvatarBadge from "./AvatarBadge";
 import { 
-  Settings, LogOut, Eye, EyeOff, Menu, X, ChevronDown, CheckCircle2 
+  Settings, Eye, EyeOff, ChevronDown, CheckCircle2 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { getGradeLabel } from "@/lib/marketing/geoConfig";
 
 export default function WelcomeHeader() {
@@ -21,19 +19,11 @@ export default function WelcomeHeader() {
   const { focus, toggle: toggleFocus } = useFocusMode();
   const { scrollY } = useScroll();
   
-  const [menuOpen, setMenuOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  
-  const supabase = createClient();
 
   const headerBg = useTransform(scrollY, [0, 20], ["rgba(255,255,255,0.0)", "rgba(255,255,255,0.9)"]);
   const headerBorder = useTransform(scrollY, [0, 20], ["rgba(0,0,0,0)", "rgba(0,0,0,0.06)"]);
   const headerBackdrop = useTransform(scrollY, [0, 20], ["blur(0px)", "blur(12px)"]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/app/login";
-  };
 
   const displayName = activeChild?.display_name || "Explorer";
   const displayYear = childLoading 
@@ -102,7 +92,7 @@ export default function WelcomeHeader() {
                      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-2">Switch Profile</div>
                      
                      <div className="space-y-1 max-h-60 overflow-y-auto">
-                       {kids.map((kid) => {
+                       {(kids || []).map((kid) => {
                          const isActive = kid.id === activeChild?.id;
                          return (
                            <button
