@@ -67,6 +67,9 @@ export default function Login() {
                 <Link href="/demo" className="text-sm font-extrabold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">
                   ⚡ Demo Mode
                 </Link>
+                <Link href="/admin/generator" className="text-sm font-extrabold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
+                  🛠️ Generator
+                </Link>
               </div>
             </div>
 
