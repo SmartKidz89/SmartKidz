@@ -6,7 +6,7 @@ import addFormats from "ajv-formats";
 import pLimit from "p-limit";
 import crypto from "crypto";
 
-export const maxDuration = 60; // Allow up to 60s on Vercel Hobby/Pro
+export const maxDuration = 60; 
 
 // Env checks
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -20,25 +20,12 @@ const IMAGE_CONCURRENCY = 2;
 const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4-turbo-preview"; 
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "dall-e-3";
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-const limit = pLimit(IMAGE_CONCURRENCY);
-
 function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80);
 }
 
 function uid(prefix) {
   return `${prefix}_${crypto.randomBytes(5).toString("hex")}`;
-}
-
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-
-function nowIso() {
-  return new Date().toISOString();
 }
 
 // ---------- Curriculum Standards Map ----------
@@ -119,7 +106,7 @@ function buildLessonJsonSchema() {
       style_guide: { type: "object" },
       media_requests: {
         type: "array",
-        minItems: 4, // Relaxed min for faster gen, but system prompt asks for more
+        minItems: 4, 
         items: {
           type: "object",
           required: ["asset_id", "purpose", "size", "prompt"],
@@ -164,10 +151,10 @@ function buildLessonJsonSchema() {
                 kind: {
                   type: "string",
                   enum: [
-                    "numeric_entry", // User must type a number
-                    "free_text",     // User must type a sentence/phrase
-                    "drag_reorder",  // User must order items
-                    "drawing_canvas" // User must draw
+                    "numeric_entry", 
+                    "free_text",     
+                    "drag_reorder",  
+                    "drawing_canvas" 
                   ]
                 }
               },
@@ -188,12 +175,11 @@ function buildLessonJsonSchema() {
 function buildActivityPlan(targetMinutes) {
   const targetSeconds = targetMinutes * 60;
   
-  // Enforce INPUT-HEAVY activities. Banning 'visual_observe' from the core loop unless strictly needed.
   const base = [
-    { type: "count_and_type", seconds: 120 }, // Numeric input
-    { type: "fill_in_sequence", seconds: 180 }, // Logic/Pattern input
-    { type: "real_world_task", seconds: 240 }, // Application
-    { type: "reflection", seconds: 180 }      // Metacognition (text input)
+    { type: "count_and_type", seconds: 120 }, 
+    { type: "fill_in_sequence", seconds: 180 }, 
+    { type: "real_world_task", seconds: 240 }, 
+    { type: "reflection", seconds: 180 }      
   ];
 
   let plan = [...base];
@@ -210,10 +196,10 @@ function buildActivityPlan(targetMinutes) {
 }
 
 // ---------- LLM Helpers ----------
-async function llmJson({ system, user, temperature = 0.5 }) {
-  const resp = await openai.chat.completions.create({
+async function llmJson(openaiClient, { system, user, temperature = 0.5 }) {
+  const resp = await openaiClient.chat.completions.create({
     model: TEXT_MODEL,
-    temperature, // Lower temp for strict instruction following
+    temperature,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: system },
@@ -226,7 +212,7 @@ async function llmJson({ system, user, temperature = 0.5 }) {
   return JSON.parse(text);
 }
 
-async function generateLessonPlan({ topic, year, subject, locale, targetMinutes, lessonId, sg, plan }) {
+async function generateLessonPlan({ openaiClient, topic, year, subject, locale, targetMinutes, lessonId, sg, plan }) {
   const standard = getCurriculumStandard(locale);
   
   const system = [
@@ -252,12 +238,12 @@ async function generateLessonPlan({ topic, year, subject, locale, targetMinutes,
     style_guide: sg
   };
 
-  return llmJson({ system, user, temperature: 0.4 });
+  return llmJson(openaiClient, { system, user, temperature: 0.4 });
 }
 
 // ---------- Image Gen ----------
-async function generateImageBase64(prompt, size) {
-  const img = await openai.images.generate({
+async function generateImageBase64(openaiClient, prompt, size) {
+  const img = await openaiClient.images.generate({
     model: IMAGE_MODEL,
     prompt: prompt,
     size: "1024x1024", 
@@ -276,13 +262,18 @@ export async function POST(req) {
 
     const { topic, year, subject, locale = "Australia", duration = 15 } = await req.json();
     
+    // Initialize clients inside handler or safely outside. 
+    // We do it here to ensure env vars are ready.
+    const openaiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     const sg = styleGuide({ locale });
-    const { plan, expectedSeconds } = buildActivityPlan(duration);
+    const { plan } = buildActivityPlan(duration);
     const lessonId = `${slugify(subject)}_${slugify(topic)}_y${year}_${uid("l")}`;
 
     // 1. Generate JSON
     let lesson = await generateLessonPlan({
-      topic, year, subject, locale, targetMinutes: duration, lessonId, sg, plan
+      openaiClient, topic, year, subject, locale, targetMinutes: duration, lessonId, sg, plan
     });
 
     // Validations & Patches
@@ -290,34 +281,42 @@ export async function POST(req) {
     lesson.year_level = Number(year);
     lesson.subject_id = subject;
     lesson.topic = topic;
-    lesson.country = (locale.slice(0, 2).toUpperCase() === "UK") ? "GB" : locale.slice(0, 2).toUpperCase(); // Simple map, refine if needed
+    lesson.country = (locale.slice(0, 2).toUpperCase() === "UK") ? "GB" : locale.slice(0, 2).toUpperCase(); 
+
+    // Validate Schema (Soft check, log error but proceed if fixable)
+    const ajv = new Ajv({ allErrors: true, strict: false });
+    addFormats(ajv);
+    const validate = ajv.compile(buildLessonJsonSchema());
+    if (!validate(lesson)) {
+      console.warn("Schema validation warnings:", validate.errors);
+    }
 
     // 2. Generate Media
-    // We only generate 2 images to stay fast, but requests object asks for more. We pick the top 2.
-    const mediaRequests = (lesson.media_requests || []).slice(0, 2);
-    const assets = [];
-
-    const generatedImages = await Promise.all(mediaRequests.map(req => limit(async () => {
+    const requests = (lesson.media_requests || []).slice(0, 2);
+    
+    // Controlled concurrency for images
+    const limiter = pLimit(IMAGE_CONCURRENCY);
+    
+    const generatedImages = await Promise.all(requests.map(req => limiter(async () => {
        try {
          const stylePrompt = baseImageStylePrompt(sg, locale, subject, topic, year);
          const fullPrompt = `${stylePrompt} Scene: ${req.prompt}`;
-         const b64 = await generateImageBase64(fullPrompt, req.size);
+         const b64 = await generateImageBase64(openaiClient, fullPrompt, req.size);
          const buffer = Buffer.from(b64, "base64");
          const filepath = `lessons/${lessonId}/${req.asset_id}.png`;
          
-         await supabase.storage.from(SUPABASE_STORAGE_BUCKET).upload(filepath, buffer, {
+         await supabaseClient.storage.from(SUPABASE_STORAGE_BUCKET).upload(filepath, buffer, {
             contentType: "image/png",
             upsert: true
          });
          
-         const { data: pub } = supabase.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(filepath);
+         const { data: pub } = supabaseClient.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(filepath);
          
          return {
             asset_id: req.asset_id,
             purpose: req.purpose,
             public_url: pub.publicUrl,
             storage_path: filepath,
-            // Mocking variants for now to fit schema
             variants: [{ public_url: pub.publicUrl, w: 1024, h: 1024 }] 
          };
        } catch (e) {
@@ -336,11 +335,11 @@ export async function POST(req) {
       subject_id: subject,
       topic: topic,
       content_json: lesson,
-      country: lesson.country || "AU", // Store country for filtering
+      country: lesson.country || "AU", 
       updated_at: new Date().toISOString()
     };
     
-    const { error: dbError } = await supabase.from(SUPABASE_TABLE).upsert(row);
+    const { error: dbError } = await supabaseClient.from(SUPABASE_TABLE).upsert(row);
     if (dbError) throw dbError;
 
     return NextResponse.json({ ok: true, lessonId, title: row.title });

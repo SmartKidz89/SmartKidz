@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Lightbulb, BookOpen, Compass, BrainCircuit, Sparkles, CheckCircle2, Eye, Pencil, Camera, MessageCircle, AlertTriangle } from "lucide-react";
+import { Lightbulb, BookOpen, Compass, BrainCircuit, Sparkles, CheckCircle2, Eye, Pencil, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
 import { Card } from "@/components/ui/Card";
@@ -20,7 +20,6 @@ import { unlockSticker } from "@/components/app/CollectionBook";
 import { useEconomy } from "@/lib/economy/client";
 
 import { lessonTelemetry } from "@/lib/lesson/telemetry";
-import { deriveLearningSignals } from "@/lib/lesson/insights";
 
 import CoachBanner from "@/components/ui/CoachBanner";
 
@@ -266,7 +265,6 @@ export default function LessonClient({ lessonId }) {
       // Calculate simple completion score
       const totalActs = activities.length || quizQuestions.length;
       const completedActs = Object.keys(activityProgress).length; 
-      // For old quizzes, we assume 100% if they click complete (legacy behavior) or track separately
       
       const accuracy = totalActs > 0 ? (completedActs / totalActs) : 1;
       
