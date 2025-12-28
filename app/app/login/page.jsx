@@ -63,6 +63,10 @@ export default function Login() {
                 <Link href="/marketing/pricing" className="text-sm font-extrabold text-sky-700 hover:text-sky-800">
                   View pricing
                 </Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/demo" className="text-sm font-extrabold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">
+                  ⚡ Demo Mode
+                </Link>
               </div>
             </div>
 
