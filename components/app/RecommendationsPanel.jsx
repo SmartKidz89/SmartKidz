@@ -21,26 +21,54 @@ export default function RecommendationsPanel() {
       
       const supabase = getSupabaseClient();
       
-      // Use the database function to find the best next lesson
-      // It looks for uncompleted lessons in the child's year level
-      const { data, error } = await supabase.rpc("get_recommended_lessons", {
-        p_child_id: activeChild.id,
-        p_subject_id: "MATH", // Default focus, or randomize
-        p_limit: 1
-      });
+      try {
+        // 1. Get completed lessons for this child
+        const { data: progress } = await supabase
+          .from("lesson_progress")
+          .select("lesson_id")
+          .eq("child_id", activeChild.id)
+          .eq("status", "completed");
+          
+        const completedIds = (progress || []).map(p => p.lesson_id);
 
-      if (mounted) {
-        if (data && data.length > 0) {
-          setRec(data[0]);
-        } else {
-          setRec(null);
+        // 2. Find next available lesson in their year level
+        // (Ordering by ID as a proxy for sequence)
+        let query = supabase
+          .from("lessons")
+          .select("id, title, topic, subject_id, year_level")
+          .eq("year_level", activeChild.year_level)
+          .order("id", { ascending: true })
+          .limit(10);
+        
+        // Exclude completed if not empty
+        if (completedIds.length > 0) {
+           query = query.not("id", "in", `(${completedIds.join(',')})`);
         }
-        setLoading(false);
+
+        const { data: lessons, error } = await query;
+        
+        if (mounted) {
+           if (lessons && lessons.length > 0) {
+             const l = lessons[0];
+             setRec({
+                lesson_id: l.id,
+                title: l.title,
+                topic: l.topic,
+                reason: "Next in your year level"
+             });
+           } else {
+             setRec(null);
+           }
+           setLoading(false);
+        }
+      } catch (e) {
+        console.error("Rec load failed", e);
+        if (mounted) setLoading(false);
       }
     }
     load();
     return () => { mounted = false; };
-  }, [activeChild?.id]);
+  }, [activeChild?.id, activeChild?.year_level]);
 
   if (!activeChild) {
     return <div className="text-sm opacity-80 p-4">Select a child profile to get personalised recommendations.</div>;
@@ -84,12 +112,12 @@ export default function RecommendationsPanel() {
           {rec.title}
         </div>
         <div className="text-sm font-medium text-slate-500 mt-1">
-          {rec.reason || "Recommended for your year level"}
+          {rec.reason}
         </div>
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Link href={`/app/lesson/${rec.lesson_id}`} className="flex-1">
+        <Link href={`/app/lesson/${encodeURIComponent(rec.lesson_id)}`} className="flex-1">
           <Button className="w-full shadow-lg hover:scale-105 transition-transform">
             Start Lesson <ArrowRight className="w-4 h-4 ml-1" />
           </Button>

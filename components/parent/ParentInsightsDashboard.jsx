@@ -14,7 +14,11 @@ export default function ParentInsightsDashboard() {
   const { kids, activeChildId, setActiveChild } = useActiveChild();
   const [selectedId, setSelectedId] = useState(activeChildId || null);
   const [loading, setLoading] = useState(true);
-  const [dash, setDash] = useState(null);
+  
+  // Data state
+  const [summary, setSummary] = useState([]);
+  const [badges, setBadges] = useState([]);
+  const [streak, setStreak] = useState({ current: 0 });
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -39,20 +43,55 @@ export default function ParentInsightsDashboard() {
       }
 
       try {
-        const { data, error } = await supabase.rpc("get_child_dashboard", {
-          p_child_id: selectedId,
-          p_subject_id: null,
+        // 1. Fetch Lesson Progress directly
+        const { data: progressData, error: progErr } = await supabase
+          .from("lesson_progress")
+          .select("lesson_id, status, mastery_score, updated_at")
+          .eq("child_id", selectedId);
+
+        if (progErr) throw progErr;
+
+        // 2. Fetch Lessons to map subjects (Optimization: could be cached)
+        const completedIds = progressData?.filter(p => p.status === 'completed').map(p => p.lesson_id) || [];
+        
+        let lessonsMap = {};
+        if (completedIds.length > 0) {
+            const { data: lData } = await supabase
+                .from("lessons")
+                .select("id, subject_id")
+                .in("id", completedIds);
+            (lData || []).forEach(l => { lessonsMap[l.id] = l.subject_id; });
+        }
+
+        // 3. Aggregate Summary
+        const agg = {};
+        (progressData || []).forEach(p => {
+           if (p.status !== 'completed') return;
+           const subj = lessonsMap[p.lesson_id] || 'Other';
+           if (!agg[subj]) agg[subj] = { count: 0, sumMastery: 0 };
+           agg[subj].count++;
+           agg[subj].sumMastery += (p.mastery_score || 0);
         });
 
+        const summaryArray = Object.entries(agg).map(([subject_id, val]) => ({
+            subject_id,
+            lessons_completed: val.count,
+            avg_mastery: val.count ? val.sumMastery / val.count : 0
+        }));
+
+        // 4. Fetch Badges directly
+        const { data: badgeData } = await supabase
+           .from("child_badges")
+           .select("badge_id, awarded_at")
+           .eq("child_id", selectedId);
+
         if (mounted) {
-           if (error) {
-             console.warn("Dashboard RPC error:", error.message);
-             setError(error.message);
-             setDash(null); 
-           } else {
-             setDash(data);
-           }
+           setSummary(summaryArray);
+           setBadges(badgeData || []);
+           // Mock streak for now as it requires complex query, or fetch from child_daily_activity if exists
+           setStreak({ current: 0 }); // Placeholder
         }
+
       } catch (e) {
         console.warn("Dashboard fetch failed:", e);
         if (mounted) setError(e.message);
@@ -66,20 +105,17 @@ export default function ParentInsightsDashboard() {
   }, [selectedId]);
 
   const selectedKid = useMemo(() => kids?.find((k) => k.id === selectedId) || null, [kids, selectedId]);
-  const summary = dash?.summary || [];
-  const badges = dash?.badges || [];
-  const streak = dash?.streak || null;
-  
-  // Get dynamic config based on the selected kid's country
   const geo = getGeoConfig(selectedKid?.country || "AU");
 
   const SUBJECT_LABELS = {
     MAT: geo.mathTerm,
+    MATH: geo.mathTerm,
     ENG: "English",
     SCI: "Science",
-    HASS: geo.code === "US" ? "Social Studies" : "HASS",
+    HASS: geo.hassTerm,
     HPE: geo.code === "US" ? "Health & PE" : "HPE",
     ARTS: "Arts",
+    ART: "Arts",
     TECH: "Technologies",
     LANG: "Languages",
   };

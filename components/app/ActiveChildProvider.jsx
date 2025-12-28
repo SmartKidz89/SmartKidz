@@ -56,29 +56,31 @@ export function ActiveChildProvider({ children }) {
         return;
       }
 
-      // Try fetching with 'country' (new schema)
-      let { data, error: kidsErr } = await supabase
+      // Query matched exactly to the provided schema
+      const { data, error: kidsErr } = await supabase
         .from("children")
-        .select("id,display_name,year_level,country,avatar_key,avatar_config")
+        .select(`
+          id,
+          display_name,
+          year_level,
+          country,
+          avatar_key,
+          avatar_config,
+          accessibility_settings
+        `)
         .eq("parent_id", session.user.id)
         .order("created_at", { ascending: true });
 
-      // Fallback for old schema (missing country column)
-      if (kidsErr && (kidsErr.code === "42703" || kidsErr.message?.includes("country"))) {
-         console.warn("Schema mismatch: 'country' column missing. Falling back to legacy select.");
-         const res = await supabase
-            .from("children")
-            .select("id,display_name,year_level,avatar_key,avatar_config")
-            .eq("parent_id", session.user.id)
-            .order("created_at", { ascending: true });
-         
-         data = res.data?.map(k => ({ ...k, country: "AU" })) || [];
-         kidsErr = res.error;
-      }
-
       if (kidsErr) throw kidsErr;
 
-      const list = data || [];
+      // Safe defaults if columns are null (schema says defaults exist, but good to be safe)
+      const list = (data || []).map(k => ({
+        ...k,
+        country: k.country || "AU",
+        avatar_key: k.avatar_key || "robot",
+        year_level: k.year_level || 1
+      }));
+
       setKids(list);
       resolveActiveChild(list);
     } catch (e) {
