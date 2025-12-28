@@ -56,12 +56,25 @@ export function ActiveChildProvider({ children }) {
         return;
       }
 
-      // FETCHING COUNTRY HERE
-      const { data, error: kidsErr } = await supabase
+      // Try fetching with 'country' (new schema)
+      let { data, error: kidsErr } = await supabase
         .from("children")
         .select("id,display_name,year_level,country,avatar_key,avatar_config")
         .eq("parent_id", session.user.id)
         .order("created_at", { ascending: true });
+
+      // Fallback for old schema (missing country column)
+      if (kidsErr && (kidsErr.code === "42703" || kidsErr.message?.includes("country"))) {
+         console.warn("Schema mismatch: 'country' column missing. Falling back to legacy select.");
+         const res = await supabase
+            .from("children")
+            .select("id,display_name,year_level,avatar_key,avatar_config")
+            .eq("parent_id", session.user.id)
+            .order("created_at", { ascending: true });
+         
+         data = res.data?.map(k => ({ ...k, country: "AU" })) || [];
+         kidsErr = res.error;
+      }
 
       if (kidsErr) throw kidsErr;
 

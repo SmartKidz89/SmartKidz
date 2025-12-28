@@ -15,6 +15,7 @@ export default function ParentInsightsDashboard() {
   const [selectedId, setSelectedId] = useState(activeChildId || null);
   const [loading, setLoading] = useState(true);
   const [dash, setDash] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!selectedId && kids?.length) setSelectedId(kids[0].id);
@@ -29,6 +30,7 @@ export default function ParentInsightsDashboard() {
     let mounted = true;
     async function run() {
       setLoading(true);
+      setError(null);
       const supabase = getSupabaseClient();
       
       if (!supabase || !selectedId) {
@@ -45,6 +47,7 @@ export default function ParentInsightsDashboard() {
         if (mounted) {
            if (error) {
              console.warn("Dashboard RPC error:", error.message);
+             setError(error.message);
              setDash(null); 
            } else {
              setDash(data);
@@ -52,6 +55,7 @@ export default function ParentInsightsDashboard() {
         }
       } catch (e) {
         console.warn("Dashboard fetch failed:", e);
+        if (mounted) setError(e.message);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -114,26 +118,33 @@ export default function ParentInsightsDashboard() {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-soft">
-          <div className="text-xs font-extrabold text-slate-500">Current streak</div>
-          <div className="mt-1 text-2xl font-black text-slate-900">
-            {streak ? `${streak.current} day${streak.current === 1 ? "" : "s"}` : "0 days"}
+      {error ? (
+        <div className="mt-6 p-4 rounded-3xl bg-rose-50 border border-rose-100 text-center">
+           <div className="text-rose-700 font-bold text-sm mb-1">Could not load dashboard data</div>
+           <div className="text-rose-500 text-xs font-mono">{error}</div>
+        </div>
+      ) : (
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-soft">
+            <div className="text-xs font-extrabold text-slate-500">Current streak</div>
+            <div className="mt-1 text-2xl font-black text-slate-900">
+              {streak ? `${streak.current} day${streak.current === 1 ? "" : "s"}` : "0 days"}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-soft">
+            <div className="text-xs font-extrabold text-slate-500">Subjects started</div>
+            <div className="mt-1 text-2xl font-black text-slate-900">{summary.length}</div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-soft">
+            <div className="text-xs font-extrabold text-slate-500">Badges earned</div>
+            <div className="mt-1 text-2xl font-black text-slate-900">{badges.length}</div>
           </div>
         </div>
+      )}
 
-        <div className="rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-soft">
-          <div className="text-xs font-extrabold text-slate-500">Subjects started</div>
-          <div className="mt-1 text-2xl font-black text-slate-900">{summary.length}</div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-soft">
-          <div className="text-xs font-extrabold text-slate-500">Badges earned</div>
-          <div className="mt-1 text-2xl font-black text-slate-900">{badges.length}</div>
-        </div>
-      </div>
-
-      {summary.length === 0 && !loading && (
+      {summary.length === 0 && !loading && !error && (
         <div className="mt-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 text-center">
            <div className="text-slate-500 font-medium">No activity recorded yet.</div>
            <div className="text-sm text-slate-400 mt-1">Complete a lesson to see stats here!</div>

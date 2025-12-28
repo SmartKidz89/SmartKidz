@@ -11,7 +11,7 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
   Wrench, Star, Zap, Map, Sparkles, Heart,
-  Book, Globe2, PenTool, Compass, ALargeSmall, Plus, Palette as PaletteIcon, Clock
+  Book, Globe2, PenTool, Compass, ALargeSmall, Plus, Palette as PaletteIcon, Clock, AlertCircle, RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGeoConfig } from "@/lib/marketing/geoConfig";
@@ -181,21 +181,42 @@ function EmptyState() {
   );
 }
 
+function ErrorState({ error }) {
+  return (
+    <PageScaffold title={null}>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-8">
+        <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center shadow-inner mb-6 text-rose-500">
+           <AlertCircle className="w-10 h-10" />
+        </div>
+        <h1 className="text-3xl font-black text-slate-900 mb-2">Something went wrong</h1>
+        <p className="text-slate-600 font-medium max-w-md mb-6 break-words bg-slate-50 p-4 rounded-xl text-xs font-mono">
+           {error}
+        </p>
+        <button onClick={() => window.location.reload()} className="h-12 px-6 rounded-full bg-white border border-slate-200 text-slate-900 font-bold shadow-sm hover:bg-slate-50 flex items-center gap-2">
+           <RotateCcw className="w-4 h-4" /> Reload
+        </button>
+      </div>
+    </PageScaffold>
+  );
+}
+
 export default function DashboardClient() {
   const router = useRouter();
   
   // Safe hook usage
-  let activeChild, loading, kids;
+  let activeChild, loading, kids, error;
   try {
     const res = useActiveChild();
     activeChild = res.activeChild;
     loading = res.loading;
     kids = res.kids;
+    error = res.error;
   } catch (e) {
     return <EmptyState />;
   }
   
   if (loading) return <DashboardSkeleton />;
+  if (error) return <ErrorState error={error} />;
   if (!activeChild && (!kids || kids.length === 0)) return <EmptyState />;
 
   const name = activeChild?.display_name?.split(" ")[0] || "Explorer";
