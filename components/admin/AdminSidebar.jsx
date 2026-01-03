@@ -19,7 +19,8 @@ import {
   Activity,
   ShieldAlert,
   Blocks,
-  Code2
+  Code2,
+  Brush
 } from "lucide-react";
 import { cx } from "@/components/admin/adminUi";
 
@@ -31,6 +32,7 @@ const GROUPS = [
       { href: "/admin/lesson-builder", label: "Lesson Factory", icon: BookOpen },
       { href: "/admin/navigation", label: "Navigation", icon: Navigation },
       { href: "/admin/media", label: "Media Library", icon: Image },
+      { href: "/admin/media/studio", label: "Image Studio", icon: Brush },
       { href: "/admin/media/generator", label: "Asset Generator", icon: Factory },
     ],
   },

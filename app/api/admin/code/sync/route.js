@@ -14,6 +14,7 @@ export async function POST(req) {
   const body = await req.json();
   const relPath = body.path;
   let content = body.content;
+  const encoding = body.encoding || "utf-8";
 
   if (!relPath) return NextResponse.json({ error: "Path required" }, { status: 400 });
 
@@ -28,7 +29,8 @@ export async function POST(req) {
   const [owner, repo] = fullRepo.split("/");
   
   // If content not provided in body, try reading from disk (legacy/local mode)
-  if (content === undefined) {
+  // Only valid for text/utf-8 calls usually
+  if (content === undefined && encoding === "utf-8") {
     try {
       const fullPath = path.join(process.cwd(), relPath);
       content = await fs.readFile(fullPath, "utf-8");
@@ -38,8 +40,8 @@ export async function POST(req) {
   }
 
   try {
-    const message = `Update ${relPath} via Admin Code Editor`;
-    await putFile({ token, owner, repo, branch, path: relPath, content, message });
+    const message = `Update ${relPath} via Admin`;
+    await putFile({ token, owner, repo, branch, path: relPath, content, message, encoding });
 
     return NextResponse.json({ ok: true, message: `Pushed ${relPath} to ${branch}` });
   } catch (e) {
