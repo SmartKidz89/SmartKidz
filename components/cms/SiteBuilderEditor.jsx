@@ -2,17 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
+  KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 import { Button } from "@/components/ui/Button"; 
 import { useAdminMe } from "@/components/admin/useAdminMe";
 import { BLOCK_TYPES, defaultBlock, normalizePageContent } from "@/lib/cms/blocks";
-import { RenderBlocks } from "@/components/cms/RenderBlocks"; // Import named export
+import { RenderBlocks } from "@/components/cms/RenderBlocks"; 
 import { useUndoRedoState } from "@/components/cms/builder/useUndoRedo";
 import LinkPickerModal from "@/components/cms/builder/LinkPickerModal";
 import AssetPickerModal from "@/components/cms/builder/AssetPickerModal";
@@ -20,38 +17,25 @@ import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
 
 import {
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  Plus,
-  Redo2,
-  Save,
-  Trash2,
-  Undo2,
-  Layout,
-  Search,
-  Settings,
-  FileText,
-  Smartphone,
-  Tablet,
-  Monitor,
-  Palette,
-  Type,
-  FileQuestion
+  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe
 } from "lucide-react";
 
 function slugify(input) {
-  return (input || "")
-    .trim()
-    .replace(/^\/+|\/+$/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9\-\/]+/g, "")
-    .toLowerCase();
+  return (input || "").trim().replace(/^\/+|\/+$/g, "").replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\-\/]+/g, "").toLowerCase();
 }
 
 function cx(...parts) {
   return parts.filter(Boolean).join(" ");
 }
+
+const HARDCODED_PAGES = [
+  { title: "Home", slug: "/", scope: "public" },
+  { title: "Features", slug: "marketing/features", scope: "public" },
+  { title: "Pricing", slug: "marketing/pricing", scope: "public" },
+  { title: "Login", slug: "login", scope: "auth" },
+  { title: "App Dashboard", slug: "app", scope: "app" },
+  { title: "Worlds", slug: "app/worlds", scope: "app" },
+];
 
 export default function SiteBuilderEditor() {
   const { role, loading, authenticated } = useAdminMe();
@@ -68,35 +52,26 @@ export default function SiteBuilderEditor() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  const [device, setDevice] = useState("desktop"); // desktop | tablet | mobile
+  const [device, setDevice] = useState("desktop"); 
   const [previewMode, setPreviewMode] = useState(false);
   
-  // Inspector Tabs
-  const [sidebarTab, setSidebarTab] = useState("content"); // content | style
-
-  // Pickers
+  const [sidebarTab, setSidebarTab] = useState("content"); 
   const [linkPicker, setLinkPicker] = useState({ open: false, value: "", onPick: null });
   const [assetPicker, setAssetPicker] = useState({ open: false, onPick: null });
 
-  // Page Data
-  const [scheduleAt, setScheduleAt] = useState("");
-  const [pageSettingsTab, setPageSettingsTab] = useState("general"); // general | seo
-
+  const [pageSettingsTab, setPageSettingsTab] = useState("general"); 
   const [dirty, setDirty] = useState(false);
   const [pageQuery, setPageQuery] = useState("");
   
-  // Create Modal
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ title: "", scope: "marketing" });
 
-  // Content State
   const [content, setContent, history] = useUndoRedoState({ version: 1, seo: {}, blocks: [] }, { limit: 50 });
   const [selectedBlockId, setSelectedBlockId] = useState(null);
 
   const blocks = Array.isArray(content?.blocks) ? content.blocks : [];
   const selectedBlock = useMemo(() => blocks.find((b) => b?.id === selectedBlockId) || null, [blocks, selectedBlockId]);
 
-  // Loaders
   async function loadPages() {
     setLoadingPages(true);
     try {
@@ -152,7 +127,6 @@ export default function SiteBuilderEditor() {
     }
   }, [canUse]);
 
-  // Mutations
   function addBlock(type) {
     const blk = defaultBlock(type);
     setDirty(true);
@@ -307,31 +281,37 @@ export default function SiteBuilderEditor() {
                </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-               {loadingPages && <div className="p-4 text-xs text-slate-400 text-center">Loading pages...</div>}
-               
-               {!loadingPages && filteredPages.length === 0 && (
-                 <div className="p-6 text-center">
-                    <FileQuestion className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <div className="text-xs text-slate-500 font-bold mb-1">No CMS Pages</div>
-                    <p className="text-[10px] text-slate-400 leading-snug mb-3">
-                       This builder is for new dynamic content (e.g. landing pages). It does not edit hardcoded system routes.
-                    </p>
-                    <button onClick={() => setCreateOpen(true)} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-sm hover:bg-indigo-700 w-full">
-                       Create First Page
-                    </button>
+            <div className="flex-1 overflow-y-auto p-2 space-y-4">
+               <div>
+                 <div className="px-3 mb-2 text-[10px] font-black uppercase text-slate-400">Custom Pages</div>
+                 <div className="space-y-1">
+                   {filteredPages.map(p => (
+                     <button key={p.id} onClick={() => loadPage(p.id)} className={cx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all", selectedId === p.id ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" : "text-slate-600 hover:text-slate-900")}>
+                        <div className="truncate">{p.title || "Untitled"}</div>
+                        <div className="flex justify-between mt-1 opacity-70 text-[10px]">
+                           <span className="font-mono uppercase">{p.scope}</span>
+                           <span className={cx("w-1.5 h-1.5 rounded-full", p.published ? "bg-emerald-400" : "bg-slate-300")} />
+                        </div>
+                     </button>
+                   ))}
                  </div>
-               )}
+               </div>
 
-               {filteredPages.map(p => (
-                 <button key={p.id} onClick={() => loadPage(p.id)} className={cx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all", selectedId === p.id ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" : "text-slate-600 hover:text-slate-900")}>
-                    <div className="truncate">{p.title || "Untitled"}</div>
-                    <div className="flex justify-between mt-1 opacity-70 text-[10px]">
-                       <span className="font-mono uppercase">{p.scope}</span>
-                       <span className={cx("w-1.5 h-1.5 rounded-full", p.published ? "bg-emerald-400" : "bg-slate-300")} />
-                    </div>
-                 </button>
-               ))}
+               {/* Hardcoded System Routes - Read Only */}
+               <div>
+                  <div className="px-3 mb-2 text-[10px] font-black uppercase text-slate-400">System Pages (Hardcoded)</div>
+                  <div className="space-y-1 px-3">
+                     {HARDCODED_PAGES.map(hp => (
+                        <div key={hp.slug} className="flex items-center gap-2 py-1.5 text-xs text-slate-500 opacity-60">
+                           {hp.scope === 'public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                           <span className="truncate">{hp.title}</span>
+                        </div>
+                     ))}
+                     <div className="mt-2 text-[10px] text-slate-400 italic">
+                        These pages are code-based. To edit content here, you must update the source code or rebuild them as new Custom Pages above.
+                     </div>
+                  </div>
+               </div>
             </div>
          </div>
 
@@ -491,6 +471,7 @@ export default function SiteBuilderEditor() {
   );
 }
 
+// ... existing BlockFields and BlockStyles components ...
 function BlockStyles({ style, onChange }) {
    const colors = [
      { id: "white", bg: "bg-white border border-slate-200" },
