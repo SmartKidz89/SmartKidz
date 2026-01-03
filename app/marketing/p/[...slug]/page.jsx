@@ -1,12 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import RenderBlocks from "@/components/cms/RenderBlocks";
+import { RenderBlocks } from "@/components/cms/RenderBlocks";
 import { normalizePageContent } from "@/lib/cms/blocks";
 
 export const dynamic = "force-dynamic";
 
 export default async function CmsMarketingPage({ params }) {
-  const slug = Array.isArray(params?.slug) ? params.slug.join("/") : "";
+  const { slug: slugArray } = await params;
+  const slug = Array.isArray(slugArray) ? slugArray.join("/") : "";
+  
   const sb = await createClient();
   const { data, error } = await sb
     .from("cms_pages")
@@ -16,9 +18,7 @@ export default async function CmsMarketingPage({ params }) {
     .eq("published", true)
     .maybeSingle();
 
-
   if (error || !data) {
-    // Redirect support (exact path match)
     const fromPath = `/marketing/p/${slug}`;
     const { data: r } = await sb
       .from("cms_redirects")

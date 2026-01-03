@@ -2,11 +2,11 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/components/admin/adminUi";
+import { cx } from "@/components/admin/adminUi";
 
 export default function AdminPageHeader({ title, subtitle, backLink, actions, children, className }) {
   return (
-    <div className={cn("flex flex-col gap-6 mb-8", className)}>
+    <div className={cx("flex flex-col gap-6 mb-8", className)}>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="flex items-start gap-4">
           {backLink && (
