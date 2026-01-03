@@ -51,6 +51,25 @@ export async function POST(req) {
   }
 
   if (resp.error) return NextResponse.json({ error: resp.error.message || "Save failed" }, { status: 500 });
+
+  // Version snapshot (draft or published)
+  try {
+    const created_by = auth.session?.user?.username || auth.session?.user?.id || "admin";
+    await admin.from("cms_page_versions").insert({
+      page_id: resp.data.id,
+      status: payload.published ? "published" : "draft",
+      created_by,
+      content_json: payload.content_json,
+    });
+
+    if (payload.published) {
+      // Publishing via checkbox should cancel any schedule.
+      await admin.from("cms_page_schedules").delete().eq("page_id", resp.data.id);
+    }
+  } catch (e) {
+    // If versioning tables are not installed yet, do not block basic save.
+  }
+
   return NextResponse.json({ page: resp.data });
 }
 

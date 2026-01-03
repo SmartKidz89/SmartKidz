@@ -72,6 +72,10 @@ export default function SiteBuilderEditor() {
   const [linkPicker, setLinkPicker] = useState({ open: false, value: "", onPick: null });
   const [assetPicker, setAssetPicker] = useState({ open: false, onPick: null });
 
+  const [versions, setVersions] = useState([]);
+  const [scheduleAt, setScheduleAt] = useState("");
+
+
   const [content, setContent, history] = useUndoRedoState({ version: 1, blocks: [] }, { limit: 80 });
   const [selectedBlockId, setSelectedBlockId] = useState(null);
 
@@ -101,6 +105,100 @@ export default function SiteBuilderEditor() {
     }
   }
 
+
+
+async function loadVersions(pageId) {
+  try {
+    const res = await fetch(`/api/admin/cms-pages/versions?page_id=${encodeURIComponent(pageId)}`, { cache: "no-store" });
+    const j = await res.json();
+    if (res.ok) setVersions(j.data || []);
+  } catch {}
+}
+
+async function loadSchedule(pageId) {
+  try {
+    const res = await fetch(`/api/admin/cms-pages/schedule?page_id=${encodeURIComponent(pageId)}`, { cache: "no-store" });
+    const j = await res.json();
+    const s = j?.schedule?.publish_at;
+    setScheduleAt(s ? String(s).slice(0, 16) : "");
+  } catch {
+    setScheduleAt("");
+  }
+}
+
+async function publishNow() {
+  if (!selectedMeta) return;
+  setBusy(true);
+  setMsg(null);
+  try {
+    const res = await fetch("/api/admin/cms-pages/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page_id: selectedMeta.id, content_json: content }),
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j?.error || "Publish failed");
+    setSelectedMeta((m) => ({ ...m, published: true }));
+    await loadVersions(selectedMeta.id);
+    await loadSchedule(selectedMeta.id);
+    setMsg("Published.");
+  } catch (e) {
+    setMsg(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function schedulePublish() {
+  if (!selectedMeta) return;
+  if (!scheduleAt) {
+    setMsg("Pick a publish date/time first.");
+    return;
+  }
+  setBusy(true);
+  setMsg(null);
+  try {
+    const iso = new Date(scheduleAt).toISOString();
+    const res = await fetch("/api/admin/cms-pages/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page_id: selectedMeta.id, content_json: content, publish_at: iso }),
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j?.error || "Schedule failed");
+    await loadSchedule(selectedMeta.id);
+    setMsg(`Scheduled for ${iso}`);
+  } catch (e) {
+    setMsg(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function rollbackTo(versionId) {
+  if (!selectedMeta) return;
+  if (!confirm("Rollback this page to the selected version and publish it?")) return;
+  setBusy(true);
+  setMsg(null);
+  try {
+    const res = await fetch("/api/admin/cms-pages/rollback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page_id: selectedMeta.id, version_id: versionId }),
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j?.error || "Rollback failed");
+    // reload page to get restored content
+    await loadPage(selectedMeta.id);
+    await loadVersions(selectedMeta.id);
+    await loadSchedule(selectedMeta.id);
+    setMsg("Rolled back and published.");
+  } catch (e) {
+    setMsg(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
   async function loadPage(id) {
     setMsg(null);
     const res = await fetch(`/api/admin/cms-pages?id=${encodeURIComponent(id)}`, { cache: "no-store" });
@@ -380,9 +478,38 @@ export default function SiteBuilderEditor() {
               ))}
               {!pages.length ? <div className="text-sm text-slate-600">No pages yet. Create one.</div> : null}
             </div>
-          </Card>
+</Card>
 
-          <Card className="p-4">
+<Card className="p-4">
+  <div className="flex items-center justify-between gap-2">
+    <div className="text-sm font-semibold">Version history</div>
+    <div className="text-xs text-slate-500">{versions.length} snapshots</div>
+  </div>
+  <div className="mt-3 space-y-2 max-h-[260px] overflow-auto">
+    {versions.length === 0 ? (
+      <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
+    ) : (
+      versions.map((v) => (
+        <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
+            <div className="text-sm truncate">
+              <span className="font-medium">{v.status}</span>
+              <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
+              Rollback
+            </Button>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</Card>
+
+<Card className="p-4">
             <div className="font-semibold">Add blocks</div>
             <div className="mt-3 grid gap-2">
               <select
@@ -560,6 +687,20 @@ export default function SiteBuilderEditor() {
                   Published
                 </label>
 
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button onClick={publishNow} disabled={busy}>Publish now</Button>
+                </div>
+
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={scheduleAt}
+                    onChange={(e) => setScheduleAt(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  />
+                  <Button variant="secondary" onClick={schedulePublish} disabled={busy}>Schedule</Button>
+                </div>
+
                 <div className="pt-2 flex gap-2">
                   <Button variant="danger" onClick={deletePage} disabled={busy}>
                     <Trash2 className="w-4 h-4" /> Delete
@@ -567,9 +708,38 @@ export default function SiteBuilderEditor() {
                 </div>
               </div>
             )}
-          </Card>
+</Card>
 
-          <Card className="p-4">
+<Card className="p-4">
+  <div className="flex items-center justify-between gap-2">
+    <div className="text-sm font-semibold">Version history</div>
+    <div className="text-xs text-slate-500">{versions.length} snapshots</div>
+  </div>
+  <div className="mt-3 space-y-2 max-h-[260px] overflow-auto">
+    {versions.length === 0 ? (
+      <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
+    ) : (
+      versions.map((v) => (
+        <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
+            <div className="text-sm truncate">
+              <span className="font-medium">{v.status}</span>
+              <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
+              Rollback
+            </Button>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</Card>
+
+<Card className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="font-semibold">Blocks</div>
@@ -595,9 +765,38 @@ export default function SiteBuilderEditor() {
                 />
               </div>
             )}
-          </Card>
+</Card>
 
-          <Card className="p-4">
+<Card className="p-4">
+  <div className="flex items-center justify-between gap-2">
+    <div className="text-sm font-semibold">Version history</div>
+    <div className="text-xs text-slate-500">{versions.length} snapshots</div>
+  </div>
+  <div className="mt-3 space-y-2 max-h-[260px] overflow-auto">
+    {versions.length === 0 ? (
+      <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
+    ) : (
+      versions.map((v) => (
+        <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
+            <div className="text-sm truncate">
+              <span className="font-medium">{v.status}</span>
+              <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
+              Rollback
+            </Button>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</Card>
+
+<Card className="p-4">
             <div className="font-semibold">Inspector</div>
             {!selectedBlock ? (
               <div className="mt-2 text-sm text-slate-600">Select a block on the canvas or in the list.</div>

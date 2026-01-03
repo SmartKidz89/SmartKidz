@@ -64,3 +64,32 @@ Now visit `/admin/login` and sign in.
 - Admin sessions are stored in `public.admin_sessions` and set as an **HttpOnly** cookie (`sk_admin_session`).
 - Root-only routes include: GitHub Sync, SQL runner, audit log, deleting nav/assets/redirects, user management.
 - Do not share your service role key, DB URL, or GitHub token with anyone.
+
+## Lesson Builder (Step 2)
+
+### Required DB schema
+Run `docs/STEP2_CMS_VERSIONING_AND_LESSON_BUILDER.sql` in Supabase SQL Editor.
+
+### Admin user bootstrap (recommended)
+Set `ADMIN_BOOTSTRAP_TOKEN` in your environment, then call:
+
+POST `/api/admin-auth/bootstrap` with header `x-bootstrap-token: <ADMIN_BOOTSTRAP_TOKEN>`
+Body: `{ "username": "root", "password": "..." }`
+
+### Llama (OpenAI-compatible) configuration
+Set:
+- `LLM_BASE_URL` (must end with `/v1`, e.g. `https://your-host/v1`)
+- `LLM_MODEL`
+- optional `LLM_API_KEY`
+
+### ComfyUI configuration
+Set:
+- `COMFYUI_BASE_URL` (e.g. `http://127.0.0.1:8188` locally; for Vercel this must be reachable over HTTPS)
+- optional `LESSON_ASSETS_BUCKET` (defaults to `cms-assets`)
+
+Workflows live in `comfyui/workflows/`. Replace `basic_text2img.json` with your exported ComfyUI workflow JSON.
+
+### Running the pipeline
+1. Admin → Lesson Builder → upload `SmartKidz Lessons.xlsx` (imports jobs + prompts + image specs)
+2. Click **Generate next 5** (creates/updates lesson_templates + lesson_editions and enqueues images)
+3. Go to **Asset Queue** tab and click **Run next 25** to generate and upload images
