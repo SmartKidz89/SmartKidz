@@ -221,6 +221,19 @@ async function rollbackTo(versionId) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canUse]);
 
+  // auto-select first page so the canvas is immediately interactive
+  useEffect(() => {
+    if (!canUse) return;
+    if (selectedId || !pages.length) return;
+    const first = pages[0];
+    if (!first?.id) return;
+    loadPage(first.id).then(() => {
+      loadVersions(first.id);
+      loadSchedule(first.id);
+    }).catch((e) => setMsg(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canUse, pages, selectedId]);
+
   function updateMeta(k, v) {
     setSelectedMeta((p) => ({ ...p, [k]: v }));
   }
@@ -615,7 +628,7 @@ async function rollbackTo(versionId) {
                 disabled={!selectedMeta}
                 title="Toggle preview"
               >
-                <Eye className="w-4 h-4" /> {previewMode ? "Preview" : "Edit"}
+                <Eye className="w-4 h-4" /> {previewMode ? "Exit preview" : "Preview"}
               </button>
             </div>
           </div>

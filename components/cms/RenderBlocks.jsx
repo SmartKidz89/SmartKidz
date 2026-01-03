@@ -12,8 +12,30 @@ function Spacer({ size }) {
   return <div className={cls} />;
 }
 
-function CtaLink({ href, children }) {
+function CtaLink({ href, children, selectable = false }) {
   if (!href) return null;
+
+  // In the builder (selectable mode), prevent navigation so clicks select the block instead.
+  if (selectable) {
+    return (
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        className={cn(
+          "inline-flex items-center justify-center rounded-2xl px-6 h-11",
+          "font-extrabold tracking-wide",
+          "text-white bg-slate-900 hover:bg-slate-800",
+          "shadow-[0_4px_14px_0_rgba(15,23,42,0.25)]"
+        )}
+      >
+        {children}
+      </a>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -68,7 +90,7 @@ export function RenderBlocks({ content, selectable = false, selectedBlockId = nu
                       <p className="mt-4 text-lg text-slate-700">{b.subheadline}</p>
                     )}
                     <div className="mt-7 flex flex-wrap gap-3">
-                      {b.ctaText && <CtaLink href={b.ctaHref}>{b.ctaText}</CtaLink>}
+                      {b.ctaText && <CtaLink href={b.ctaHref} selectable={selectable}>{b.ctaText}</CtaLink>}
                     </div>
                   </div>
                 </div>
