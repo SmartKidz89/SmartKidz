@@ -36,7 +36,8 @@ import {
   Tablet,
   Monitor,
   Palette,
-  Type
+  Type,
+  FileQuestion
 } from "lucide-react";
 
 function slugify(input) {
@@ -57,6 +58,7 @@ export default function SiteBuilderEditor() {
   const canUse = !loading && authenticated && (role === "admin" || role === "root");
 
   const [pages, setPages] = useState([]);
+  const [loadingPages, setLoadingPages] = useState(true);
   const [assets, setAssets] = useState([]);
   
   // Selection State
@@ -96,11 +98,16 @@ export default function SiteBuilderEditor() {
 
   // Loaders
   async function loadPages() {
+    setLoadingPages(true);
     try {
       const res = await fetch("/api/admin/cms-pages", { cache: "no-store" });
       const j = await res.json();
       if (res.ok) setPages(j.pages || []);
-    } catch {}
+    } catch (e) {
+      console.error("Failed to load pages", e);
+    } finally {
+      setLoadingPages(false);
+    }
   }
 
   async function loadAssets() {
@@ -299,7 +306,23 @@ export default function SiteBuilderEditor() {
                   <input className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none" placeholder="Find page..." value={pageQuery} onChange={e => setPageQuery(e.target.value)} />
                </div>
             </div>
+            
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
+               {loadingPages && <div className="p-4 text-xs text-slate-400 text-center">Loading pages...</div>}
+               
+               {!loadingPages && filteredPages.length === 0 && (
+                 <div className="p-6 text-center">
+                    <FileQuestion className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <div className="text-xs text-slate-500 font-bold mb-1">No CMS Pages</div>
+                    <p className="text-[10px] text-slate-400 leading-snug mb-3">
+                       This builder is for new dynamic content (e.g. landing pages). It does not edit hardcoded system routes.
+                    </p>
+                    <button onClick={() => setCreateOpen(true)} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-sm hover:bg-indigo-700 w-full">
+                       Create First Page
+                    </button>
+                 </div>
+               )}
+
                {filteredPages.map(p => (
                  <button key={p.id} onClick={() => loadPage(p.id)} className={cx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all", selectedId === p.id ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" : "text-slate-600 hover:text-slate-900")}>
                     <div className="truncate">{p.title || "Untitled"}</div>
@@ -332,7 +355,10 @@ export default function SiteBuilderEditor() {
                  {!content.blocks?.length && <div className="py-32 text-center text-slate-400 italic">Page is empty. Add blocks from the sidebar.</div>}
                </div>
             ) : (
-               <div className="m-auto text-slate-400">Select a page to edit</div>
+               <div className="m-auto text-slate-400 flex flex-col items-center">
+                  <Layout className="w-12 h-12 mb-3 opacity-20" />
+                  <div>Select a page to edit</div>
+               </div>
             )}
             
             <div className="absolute bottom-6 flex gap-1 bg-slate-900 text-white p-1 rounded-full shadow-lg z-30">
