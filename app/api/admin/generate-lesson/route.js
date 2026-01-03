@@ -1,189 +1,314 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
-import pLimit from "p-limit";
+import OpenAI from "openai";
 import crypto from "crypto";
 
-export const maxDuration = 60; 
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_STORAGE_BUCKET = "lesson-assets";
-const SUPABASE_TABLE = "lessons";
-const IMAGE_CONCURRENCY = 4;
-const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
-const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "dall-e-3";
 
-// ... [Keep helpers slugify, uid, getCurriculumStandard, styleGuide, baseImageStylePrompt exactly as they were] ...
-function slugify(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80); }
-function uid(prefix) { return `${prefix}_${crypto.randomBytes(5).toString("hex")}`; }
-function getCurriculumStandard(locale) {
-  const l = (locale || "").toLowerCase();
-  if (l.includes("australia") || l.includes("au")) return "Australian Curriculum (AC9) Version 9.0";
-  if (l.includes("united states") || l.includes("us")) return "Common Core (CCSS) & NGSS";
-  if (l.includes("united kingdom") || l.includes("uk")) return "UK National Curriculum";
-  return "Global Standard / IB PYP";
-}
-function styleGuide({ locale, subject }) {
-  const isAus = (locale || "").toLowerCase().includes("australia");
-  return {
-    brand: "SmartKidz",
-    art_style_id: "premium_educational_3d_v2",
-    palette: "vibrant_learning_high_contrast",
-    character_pack: isAus ? "koala_kids_v1" : "friendly_global_kids_v1",
-    illustration_rules: ["Style: Soft 3D Claymorphism, warm lighting.", "Clarity: Literal visual aid.", "No Text: NO text inside image."]
-  };
-}
-function baseImageStylePrompt(sg, locale, subject, topic, year) {
-  return [...(sg?.illustration_rules || []), `Context: Year ${year} ${subject} ${topic}. Locale: ${locale}.`, "Quality: 4k, octane render, cute."].join(" ");
-}
+// --- Prompt Contract & Templates ---
 
-// -----------------------------------------------------------------------------
-// UPDATED PROMPT FOR "PREMIUM" LENGTH
-// -----------------------------------------------------------------------------
+const SYSTEM_PROMPT = `
+You are a Senior Learning Designer and Software/Data Architect for SmartKidz (Australian K–6).
+Non-negotiables:
+- Output ONLY valid JSON that conforms to SmartKidz Lesson Schema v1. No markdown, no commentary.
+- en-AU localisation, British spelling, metric units, AUD where relevant.
+- Constructed-response learning: typed answers are primary; handwriting fallback only when symbol-heavy or not keyboardable.
+- No mascots, no characters, no roleplay voices, no dialogue, no anthropomorphism.
+- Pedagogy: 1 primary micro-skill across all 10 questions; up to 2 supporting micro-skills only when helpful.
+- Always include a short “why this is correct”. Wrong-answer feedback must be misconception-targeted and include one corrective step + one actionable next step.
+- Include 1–2 worked examples as first-class objects.
+- Hard anti-generic rules:
+  * Vary representations and formats across the 10 questions.
+  * Include at least one reasoning item and one transfer item when year band allows.
+  * No repeated question skeletons; avoid generic stems and filler phrasing.
+- Continuation rules: Continuation ONLY inside the current unit. If unit changes, it is a fresh start.
+- Asset plan: exactly 2 diagrams + 1 abstract sticker (no characters). Include ComfyUI parameters and strong negative prompts (no people, no mascots, no logos, no watermarks, no text artifacts).
+Before finalising, internally verify: schema validity, 10 questions, variety targets, and no banned contexts. Output the JSON only.
+`;
 
-function buildSystemPrompt(standard, year) {
+function buildUserPrompt(vars) {
   return `
-You are the "SmartKidz Pedagogy Engine".
-Generate a PREMIUM, MASSIVE lesson plan JSON. 
-User expects a 30-minute experience, NOT a quick quiz.
+Generate ONE lesson JSON.
 
-### Structure (Must generate ~20 items in 'activities' array)
-1. **Hook (Phase: hook)**: 1 Visual observation task to grab attention.
-2. **Explicit Instruction (Phase: instruction)**: 3-4 slides breaking down the concept. Use simple language but go deep.
-3. **Guided Practice (Phase: guided_practice)**: A scenario with 3-4 interactive questions (fill_blank or multiple_choice) where we solve it together.
-4. **Independent Practice (Phase: independent_practice)**: A robust quiz of 10 questions. Varied difficulty.
-5. **Challenge (Phase: challenge)**: 1 final deep-thinking reflection prompt.
+Job:
+- job_id: ${vars.job_id}
+- lesson_id: ${vars.lesson_id}
+- subject: ${vars.subject}
+- year_level: ${vars.year_level}
+- strand/topic/subtopic: ${vars.strand} / ${vars.topic} / ${vars.subtopic}
+- difficulty_band: ${vars.difficulty_band || "secure"}
+- estimated_duration_minutes target: 15
 
-### Schema
-Return JSON object:
-{
-  "title": "...",
-  "duration_minutes": 30,
-  "overview": "...",
-  "explanation": "...",
-  "media_requests": [ { "asset_id": "img1", "purpose": "hook", "prompt": "..." }, ... (4 images total) ],
-  "activities": [
-    {
-       "phase": "hook" | "instruction" | "guided_practice" | "independent_practice" | "challenge",
-       "type": "visual_observe" | "learn" | "multiple_choice" | "fill_blank" | "reflection",
-       "title": "...",
-       "prompt": "...", 
-       "media_ref_id": "img1" (optional),
-       "options": ["A","B"] (if quiz),
-       "correct_answer": "A",
-       "explanation": "Why correct..."
-    },
-    ... (total ~20 items)
-  ]
-}
-`.trim();
-}
+Year band constraints:
+- band: ${vars.band}
+- language_complexity: simple
+- max_reasoning_steps: 2
+- representation_preferences: ["diagram", "number_line"]
 
-async function generateLessonContent({ openai, topic, year, subject, locale, lessonId }) {
-  const standard = getCurriculumStandard(locale);
-  const systemPrompt = buildSystemPrompt(standard, year);
-  const userPrompt = JSON.stringify({ task: "generate_lesson_premium", meta: { locale, subject, year, topic } });
+Mastery model:
+- primary_micro_skill: ${vars.topic}_core
+- mastery_band: secure
+- mastery_score: 0.8
 
-  const completion = await openai.chat.completions.create({
-    model: TEXT_MODEL,
-    temperature: 0.5,
-    response_format: { type: "json_object" },
-    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }]
-  });
+Lesson design constraints:
+- arc_template: concept_build
+- Enforce variety across the 10 questions: at least 2 representation shifts, at least 3 question formats.
 
-  const raw = completion.choices?.[0]?.message?.content;
-  if (!raw) throw new Error("Empty response");
-  return JSON.parse(raw);
+Continuation:
+- mode: fresh_start
+- unit: unit_id=u_${vars.job_id}, unit_title=${vars.topic}, lesson_index_in_unit=1, lessons_in_unit_total=5
+
+ComfyUI assets:
+- Must output asset_plan with EXACTLY 3 assets: 2 diagrams + 1 abstract sticker icon.
+- Diagram types must match the subject.
+- Negative prompt MUST include: people, person, face, character, mascot, cartoon character, anthropomorphic, logo, watermark, brand, text artifacts.
+
+Safety bans:
+No brands/ads, gambling, alcohol/drugs, weapons/violence, sexual content, political persuasion, religion as doctrine, real tragedies/disasters, medical/mental-health advice contexts, stereotypes.
+
+Return JSON only.
+`;
 }
 
-// ... [Keep generateImages and POST handler mostly same, just ensuring they use the new content structure] ...
+// --- Helpers ---
 
-async function generateImages({ openaiImages, supabase, requests, lessonId, sg, locale, subject, topic, year }) {
-  if (!openaiImages) return [];
-  const limiter = pLimit(IMAGE_CONCURRENCY);
-  const promises = requests.map(req => limiter(async () => {
-    try {
-      const baseStyle = baseImageStylePrompt(sg, locale, subject, topic, year);
-      const fullPrompt = `${baseStyle} Scene: ${req.prompt}`;
-      const response = await openaiImages.images.generate({
-        model: IMAGE_MODEL, prompt: fullPrompt, size: "1024x1024", response_format: "b64_json", quality: "standard", n: 1
-      });
-      const b64 = response.data?.[0]?.b64_json;
-      if (!b64) throw new Error("No image data");
-      const buffer = Buffer.from(b64, "base64");
-      const path = `lessons/${lessonId}/${req.asset_id}.png`;
-      const { error: uploadErr } = await supabase.storage.from(SUPABASE_STORAGE_BUCKET).upload(path, buffer, { contentType: "image/png", upsert: true });
-      if (uploadErr) throw uploadErr;
-      const { data: { publicUrl } } = supabase.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(path);
-      return { asset_id: req.asset_id, url: publicUrl };
-    } catch (e) { console.error(`Image gen failed: ${req.asset_id}`); return null; }
-  }));
-  const results = await Promise.all(promises);
-  return results.filter(Boolean);
+function slugify(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80); }
+function uid(prefix) { return `${prefix}_${crypto.randomBytes(4).toString("hex")}`; }
+
+// Determine phase based on pacing plan indices
+function getPhaseForIndex(idx, pacing) {
+  if (pacing?.warmup_indices?.includes(idx)) return "hook";
+  if (pacing?.core_indices?.includes(idx)) return "guided_practice";
+  if (pacing?.challenge_indices?.includes(idx)) return "independent_practice";
+  if (pacing?.reflect_indices?.includes(idx)) return "challenge";
+  return "independent_practice"; // default
 }
+
+function getSubjectCode(subject) {
+  const map = {
+    "Mathematics": "MATH", "English": "ENG", "Science": "SCI",
+    "HASS": "HASS", "Technologies": "TECH", "The Arts": "ART", "Health and Physical Education": "HPE"
+  };
+  return map[subject] || "GEN";
+}
+
+function getBand(year) {
+  const y = Number(year);
+  if (y <= 1) return "Prep-Y1";
+  if (y <= 3) return "Y2-Y3";
+  if (y === 4) return "Y4";
+  return "Y5-Y6";
+}
+
+// --- Main Handler ---
 
 export async function POST(req) {
   try {
-    const baseUrl = (OPENAI_BASE_URL || "").trim();
-    const isOpenAICloud = !baseUrl || baseUrl.includes("api.openai.com");
-    let apiKey = OPENAI_API_KEY;
-    if (!apiKey && !isOpenAICloud) apiKey = "local";
-    if (!apiKey && isOpenAICloud) {
-      return NextResponse.json({ error: "Missing OPENAI_API_KEY" }, { status: 500 });
-    }
     const body = await req.json();
-    const { topic, year, subject, locale = "Australia" } = body;
+    const { 
+      topic, year, subject, subtopic, strand, 
+      llmUrl, llmModel, llmKey // Optional local overrides
+    } = body;
 
-    // Text client (OpenAI cloud or local OpenAI-compatible server)
-    const openai = new OpenAI({ apiKey, baseURL: baseUrl || undefined });
-    // Image client: only supported by OpenAI cloud in this app.
-    const imageKey = process.env.OPENAI_IMAGE_API_KEY || (isOpenAICloud ? apiKey : null);
-    const openaiImages = (isOpenAICloud && imageKey) ? new OpenAI({ apiKey: imageKey }) : null;
+    // 1. Setup Clients
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const lessonId = `${slugify(subject)}_${slugify(topic)}_y${year}_${uid("v5")}`;
+    
+    const openai = new OpenAI({
+      baseURL: llmUrl || process.env.LLM_BASE_URL || process.env.OPENAI_BASE_URL,
+      apiKey: llmKey || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "local",
+    });
+    
+    const model = llmModel || process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
 
-    // 1. Generate Rich Text
-    const content = await generateLessonContent({ openai, topic, year, subject, locale, lessonId });
+    // 2. Prepare Context
+    const job_id = uid("job");
+    const lesson_id = `${getSubjectCode(subject)}_Y${year}_${slugify(topic)}`;
+    
+    const promptVars = {
+      job_id,
+      lesson_id,
+      subject,
+      year_level: `Year ${year}`,
+      strand: strand || "General",
+      topic,
+      subtopic: subtopic || topic,
+      band: getBand(year)
+    };
 
-    // 2. Generate Images
-    const sg = styleGuide({ locale, subject });
-    const images = await generateImages({ openaiImages, supabase, requests: content.media_requests || [], lessonId, sg, locale, subject, topic, year });
+    const userPrompt = buildUserPrompt(promptVars);
 
-    // 3. Link Images
-    content.media_library = images;
-    if (content.activities) {
-        content.activities = content.activities.map(act => {
-            if (act.media_ref_id) {
-                const img = images.find(i => i.asset_id === act.media_ref_id);
-                if (img) act.media_urls = [img.url];
-            }
-            return act;
-        });
+    // 3. Generate
+    console.log(`[Generate] Generating lesson ${lesson_id} using ${model}...`);
+    
+    const completion = await openai.chat.completions.create({
+      model: model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2, // Low temp for schema adherence
+      response_format: { type: "json_object" }
+    });
+
+    const rawContent = completion.choices[0].message.content;
+    let jsonContent;
+    try {
+      jsonContent = JSON.parse(rawContent);
+    } catch (e) {
+      console.error("JSON Parse Error", rawContent);
+      return NextResponse.json({ error: "LLM output invalid JSON", raw: rawContent }, { status: 500 });
     }
 
-    // 4. Save
-    const row = {
-      id: lessonId,
-      title: content.title || topic,
+    // 4. Save Relational Data
+    const now = new Date().toISOString();
+    
+    // A) Template
+    const templateRow = {
+      template_id: lesson_id,
+      subject_id: getSubjectCode(subject),
       year_level: Number(year),
-      subject_id: subject,
+      title: jsonContent.lesson_intro?.narrative_setup?.text || topic,
       topic: topic,
-      content_json: content,
-      country: (locale.slice(0, 2).toUpperCase() === "UK") ? "GB" : locale.slice(0, 2).toUpperCase(),
-      updated_at: new Date().toISOString()
+      canonical_tags: [strand, subtopic].filter(Boolean),
+      created_at: now,
+      updated_at: now
     };
-    const { error: dbError } = await supabase.from(SUPABASE_TABLE).upsert(row);
-    if (dbError) throw dbError;
+    
+    const { error: tplErr } = await supabase.from("lesson_templates").upsert(templateRow, { onConflict: "template_id" });
+    if (tplErr) throw new Error(`Template save failed: ${tplErr.message}`);
 
-    return NextResponse.json({ ok: true, lessonId, stats: { activities: content.activities?.length || 0 } });
+    // B) Edition (AU)
+    const edition_id = `${lesson_id}_AU`;
+    const editionRow = {
+      edition_id,
+      template_id: lesson_id,
+      country_code: "AU",
+      locale_code: "en-AU",
+      curriculum_id: "AC9",
+      title: templateRow.title,
+      wrapper_json: jsonContent, // Store full generation as source of truth
+      created_at: now,
+      updated_at: now
+    };
+
+    const { error: edErr } = await supabase.from("lesson_editions").upsert(editionRow, { onConflict: "edition_id" });
+    if (edErr) throw new Error(`Edition save failed: ${edErr.message}`);
+
+    // C) Content Items (Questions -> Slides)
+    const questions = jsonContent.questions || [];
+    const pacing = jsonContent.engagement?.pacing_plan || {};
+    
+    // Clear old items for this edition
+    await supabase.from("lesson_content_items").delete().eq("edition_id", edition_id);
+    await supabase.from("content_item_pedagogy").delete().eq("content_id", edition_id); // This query is usually prefix-based but we'll skip complex cleanup for MVP
+
+    const contentItems = [];
+    const pedagogyItems = [];
+    const gamificationItems = [];
+
+    // Intro Slide
+    const introId = `${edition_id}_intro`;
+    contentItems.push({
+      content_id: introId,
+      edition_id,
+      activity_order: 0,
+      phase: "hook",
+      type: "learn",
+      title: "Introduction",
+      content_json: {
+        prompt: jsonContent.lesson_intro?.narrative_setup?.text || "Welcome",
+        ...jsonContent.lesson_intro
+      }
+    });
+
+    // Questions
+    questions.forEach((q) => {
+      const idx = q.question_index;
+      const cId = `${edition_id}_q${idx}`;
+      const phase = getPhaseForIndex(idx, pacing);
+      
+      contentItems.push({
+        content_id: cId,
+        edition_id,
+        activity_order: idx,
+        phase,
+        type: q.question_format === "multiple_choice" ? "multiple_choice" : "fill_blank", // Simplified mapping
+        title: `Question ${idx}`,
+        content_json: q
+      });
+
+      // Extract Layers
+      if (q.feedback_model || q.scaffolding) {
+        pedagogyItems.push({
+          content_id: cId,
+          pedagogy_json: { 
+            feedback: q.feedback_model,
+            scaffolding: q.scaffolding,
+            objectives: jsonContent.learning_objectives 
+          }
+        });
+      }
+
+      if (q.gamification) {
+        gamificationItems.push({
+          content_id: cId,
+          gamification_json: q.gamification
+        });
+      }
+    });
+
+    // Outro Slide
+    const outroId = `${edition_id}_outro`;
+    contentItems.push({
+      content_id: outroId,
+      edition_id,
+      activity_order: 99,
+      phase: "challenge",
+      type: "learn",
+      title: "Summary",
+      content_json: {
+        prompt: jsonContent.lesson_outro?.performance_summary?.text || "Great work!",
+        ...jsonContent.lesson_outro
+      }
+    });
+
+    // Bulk Insert
+    if (contentItems.length) await supabase.from("lesson_content_items").insert(contentItems);
+    if (pedagogyItems.length) await supabase.from("content_item_pedagogy").insert(pedagogyItems);
+    if (gamificationItems.length) await supabase.from("content_item_gamification").insert(gamificationItems);
+
+    // D) Assets (Queue them)
+    // The schema provides an asset_plan with prompts. We can queue them for generation.
+    const assetPlan = jsonContent.asset_plan?.assets || [];
+    const assetJobs = assetPlan.map(a => ({
+      job_id: job_id,
+      edition_id,
+      image_type: a.asset_type === "sticker" ? "sticker" : "illustration",
+      prompt: a.prompt,
+      negative_prompt: a.negative_prompt,
+      comfyui_workflow: "basic_text2img",
+      status: "queued",
+      target_content_id: a.asset_type === "sticker" ? outroId : introId, // Simple heuristic for now
+    }));
+
+    if (assetJobs.length) {
+      await supabase.from("lesson_asset_jobs").insert(assetJobs);
+    }
+
+    return NextResponse.json({ 
+      ok: true, 
+      lesson_id: edition_id,
+      title: templateRow.title,
+      questions: questions.length,
+      assets_queued: assetJobs.length
+    });
+
   } catch (e) {
-    console.error("[Gen] Error:", e);
+    console.error("[Generate] Error:", e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

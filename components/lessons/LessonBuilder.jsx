@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
+import { Sparkles, Server, Save } from "lucide-react";
+import { Button, Input, Select } from "@/components/admin/AdminControls";
 
 function Pill({ children, tone = "slate" }) {
   const toneMap = {
@@ -44,16 +46,25 @@ function toneForStatus(s) {
 }
 
 export default function LessonBuilder() {
-  const [tab, setTab] = useState("jobs"); // jobs | assets
+  const [tab, setTab] = useState("interactive"); // interactive | jobs | assets
   const [jobs, setJobs] = useState([]);
   const [assets, setAssets] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null); // { tone, title?, text }
+  const [notice, setNotice] = useState(null);
 
-  const [jobQuery, setJobQuery] = useState("");
-  const [jobStatusFilter, setJobStatusFilter] = useState("all");
-  const [assetQuery, setAssetQuery] = useState("");
-  const [assetStatusFilter, setAssetStatusFilter] = useState("all");
+  // Interactive Form State
+  const [form, setForm] = useState({
+    subject: "Mathematics",
+    year: "3",
+    topic: "Fractions",
+    strand: "Number",
+    subtopic: "Equivalent Fractions",
+    useLocalLLM: false,
+    llmUrl: "http://127.0.0.1:11434/v1", // Default Ollama
+    llmModel: "llama3",
+  });
+
+  const [lastResult, setLastResult] = useState(null);
 
   async function refresh() {
     try {
@@ -70,364 +81,281 @@ export default function LessonBuilder() {
 
   useEffect(() => { refresh(); }, []);
 
-  async function importXlsx(file) {
+  async function handleGenerate() {
     setBusy(true);
     setNotice(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/lesson-jobs/import-xlsx", { method: "POST", body: fd });
-      const out = await res.json();
-      if (!res.ok) throw new Error(out?.error || "Import failed");
-      setNotice({
-        tone: "success",
-        title: "Import complete",
-        text: `Imported: jobs=${out.jobs_imported}, prompt_profiles=${out.prompt_profiles_imported}, image_specs=${out.image_specs_imported}, year_profiles=${out.year_profiles_imported || 0}`,
-      });
-      await refresh();
-    } catch (e) {
-      setNotice({ tone: "danger", title: "Import failed", text: e.message });
-    } finally {
-      setBusy(false);
-    }
-  }
+    setLastResult(null);
 
-  async function runLessonGen(limit = 5) {
-    setBusy(true);
-    setNotice(null);
     try {
-      const res = await fetch("/api/admin/lesson-jobs/run", {
+      const payload = {
+        subject: form.subject,
+        year: form.year,
+        topic: form.topic,
+        strand: form.strand,
+        subtopic: form.subtopic,
+      };
+
+      // Add local overrides if enabled
+      if (form.useLocalLLM) {
+        payload.llmUrl = form.llmUrl;
+        payload.llmModel = form.llmModel;
+        payload.llmKey = "local";
+      }
+
+      const res = await fetch("/api/admin/generate-lesson", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ limit }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-      const out = await res.json();
-      if (!res.ok) throw new Error(out?.error || "Generation failed");
-      setNotice({
-        tone: out.failed ? "warning" : "success",
-        title: "Lesson generation finished",
-        text: `Processed=${out.processed}, ok=${out.ok}, failed=${out.failed}`,
+
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+      
+      setLastResult(data);
+      setNotice({ 
+        tone: "success", 
+        title: "Lesson Created", 
+        text: `Generated "${data.title}" (${data.lesson_id}) with ${data.questions} questions.` 
       });
-      await refresh();
+      
+      await refresh(); // Refresh asset queue
+
     } catch (e) {
-      setNotice({ tone: "danger", title: "Lesson generation failed", text: e.message });
+      setNotice({ tone: "danger", title: "Generation failed", text: e.message });
     } finally {
       setBusy(false);
     }
   }
 
+  // ... (Legacy Handlers: importXlsx, runLessonGen, runAssetBatch kept for bulk tab)
   async function runAssetBatch(limit = 25) {
-    setBusy(true);
-    setNotice(null);
-    try {
-      const res = await fetch("/api/admin/lesson-assets/run-batch", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ limit }),
-      });
-      const out = await res.json();
-      if (!res.ok) throw new Error(out?.error || "Asset batch failed");
-      setNotice({
-        tone: out.failed ? "warning" : "success",
-        title: "Asset batch finished",
-        text: `Processed=${out.processed}, ok=${out.ok}, failed=${out.failed}`,
-      });
-      await refresh();
-    } catch (e) {
-      setNotice({ tone: "danger", title: "Asset batch failed", text: e.message });
-    } finally {
-      setBusy(false);
-    }
+     setBusy(true); setNotice(null);
+     try {
+        const res = await fetch("/api/admin/lesson-assets/run-batch", { method: "POST", body: JSON.stringify({ limit }) });
+        const out = await res.json();
+        setNotice({ tone: "success", title: "Assets Processed", text: `Success: ${out.ok}, Failed: ${out.failed}` });
+        refresh();
+     } catch (e) { setNotice({ tone: "danger", text: e.message }); }
+     setBusy(false);
   }
 
-  const queuedJobs = useMemo(() => jobs.filter(j => (j.status || "").toLowerCase() === "queued"), [jobs]);
-  const queuedAssets = useMemo(() => assets.filter(a => (a.status || "").toLowerCase() === "queued"), [assets]);
-
-  const filteredJobs = useMemo(() => {
-    const q = jobQuery.trim().toLowerCase();
-    return (jobs || []).filter((j) => {
-      const st = String(j.status || "").toLowerCase();
-      if (jobStatusFilter !== "all" && st !== jobStatusFilter) return false;
-      if (!q) return true;
-      const hay = `${j.job_id || ""} ${j.subject || ""} ${j.topic || ""} ${j.year_level || ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [jobs, jobQuery, jobStatusFilter]);
-
-  const filteredAssets = useMemo(() => {
-    const q = assetQuery.trim().toLowerCase();
-    return (assets || []).filter((a) => {
-      const st = String(a.status || "").toLowerCase();
-      if (assetStatusFilter !== "all" && st !== assetStatusFilter) return false;
-      if (!q) return true;
-      const hay = `${a.job_id || ""} ${a.image_type || ""} ${a.comfyui_workflow || ""} ${a.storage_path || ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [assets, assetQuery, assetStatusFilter]);
-
-  const jobFiltersActive = jobQuery.trim() || jobStatusFilter !== "all";
-  const assetFiltersActive = assetQuery.trim() || assetStatusFilter !== "all";
+  const queuedAssets = assets.filter(a => (a.status || "").toLowerCase() === "queued");
 
   return (
     <div className="space-y-6">
+      {/* Tabs */}
       <div className="flex flex-wrap items-center gap-2">
+        <button
+          className={`rounded-xl px-3 py-2 text-sm border font-bold ${tab === "interactive" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
+          onClick={() => setTab("interactive")}
+        >
+          <Sparkles className="w-4 h-4 inline mr-2" />
+          Interactive Generator
+        </button>
         <button
           className={`rounded-xl px-3 py-2 text-sm border ${tab === "jobs" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
           onClick={() => setTab("jobs")}
         >
-          Lesson Jobs <span className="ml-1 text-xs opacity-80">({queuedJobs.length} queued)</span>
+          Bulk Jobs
         </button>
         <button
           className={`rounded-xl px-3 py-2 text-sm border ${tab === "assets" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
           onClick={() => setTab("assets")}
         >
-          Asset Queue <span className="ml-1 text-xs opacity-80">({queuedAssets.length} queued)</span>
+          Asset Queue {queuedAssets.length > 0 && <span className="ml-1 bg-amber-100 text-amber-700 px-1.5 rounded-full text-xs">{queuedAssets.length}</span>}
         </button>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
-            onClick={refresh}
-            disabled={busy}
-          >
-            Refresh
-          </button>
+        
+        <div className="ml-auto">
+           <Button tone="secondary" onClick={refresh} disabled={busy}>Refresh</Button>
         </div>
       </div>
 
-      {notice ? (
-        <AdminNotice tone={notice.tone} title={notice.title}>
-          {notice.text}
-        </AdminNotice>
-      ) : null}
+      {notice && (
+        <AdminNotice tone={notice.tone} title={notice.title}>{notice.text}</AdminNotice>
+      )}
 
-      {tab === "jobs" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Section
-            title="Import lesson jobs"
-            desc="Upload your SmartKidz Lessons.xlsx. This imports Lesson Jobs, Prompt Library, and Image Specs into Supabase."
-          >
-            <input
-              type="file"
-              accept=".xlsx"
-              disabled={busy}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) importXlsx(f);
-              }}
-            />
-            <div className="mt-3 text-xs text-slate-500">
-              Requires server dependencies and DB tables from Step 2 schema. For production on Vercel, ensure your SQL has been applied.
-            </div>
-          </Section>
+      {/* INTERACTIVE TAB */}
+      {tab === "interactive" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <div className="lg:col-span-2 space-y-6">
+              <Section title="Lesson Parameters" desc="Define the lesson scope. This uses the v1.7 Schema.">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Subject</label>
+                       <Select value={form.subject} onChange={e => setForm({...form, subject: e.target.value})}>
+                          <option value="Mathematics">Mathematics</option>
+                          <option value="English">English</option>
+                          <option value="Science">Science</option>
+                          <option value="HASS">HASS</option>
+                          <option value="Technologies">Technologies</option>
+                          <option value="The Arts">The Arts</option>
+                          <option value="Health and Physical Education">HPE</option>
+                       </Select>
+                    </div>
+                    <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Year Level</label>
+                       <Select value={form.year} onChange={e => setForm({...form, year: e.target.value})}>
+                          {[1,2,3,4,5,6].map(y => <option key={y} value={y}>Year {y}</option>)}
+                       </Select>
+                    </div>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Strand</label>
+                       <Input value={form.strand} onChange={e => setForm({...form, strand: e.target.value})} placeholder="e.g. Number" />
+                    </div>
+                    <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Topic</label>
+                       <Input value={form.topic} onChange={e => setForm({...form, topic: e.target.value})} placeholder="e.g. Fractions" />
+                    </div>
+                    <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Subtopic</label>
+                       <Input value={form.subtopic} onChange={e => setForm({...form, subtopic: e.target.value})} placeholder="e.g. Halves" />
+                    </div>
+                 </div>
 
-          <Section
-            title="Generate lessons (Llama)"
-            desc="Processes queued jobs and writes lessons into lesson_templates + lesson_editions. Also creates image generation queue items."
+                 <div className="flex justify-end">
+                    <Button onClick={handleGenerate} disabled={busy} className="h-12 px-6 shadow-md">
+                       <Sparkles className="w-5 h-5 mr-2" />
+                       {busy ? "Generating (approx 30s)..." : "Generate & Save"}
+                    </Button>
+                 </div>
+              </Section>
+
+              {lastResult && (
+                 <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-6 animate-in fade-in slide-in-from-bottom-2">
+                    <h3 className="font-bold text-emerald-900 text-lg mb-2">Success!</h3>
+                    <div className="text-sm text-emerald-800 space-y-1">
+                       <div><strong>Lesson ID:</strong> {lastResult.lesson_id}</div>
+                       <div><strong>Questions:</strong> {lastResult.questions}</div>
+                       <div><strong>Assets Queued:</strong> {lastResult.assets_queued}</div>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                       <Button tone="ghost" onClick={() => setTab("assets")} className="text-emerald-700 hover:text-emerald-900">
+                          View Asset Queue
+                       </Button>
+                    </div>
+                 </div>
+              )}
+           </div>
+
+           <div className="lg:col-span-1 space-y-6">
+              <Section title="AI Configuration" desc="Switch between Cloud and Local LLMs.">
+                 <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                       <span className="text-sm font-bold text-slate-700">Use Local LLM</span>
+                       <input 
+                         type="checkbox" 
+                         className="toggle"
+                         checked={form.useLocalLLM}
+                         onChange={e => setForm({...form, useLocalLLM: e.target.checked})}
+                       />
+                    </div>
+                    
+                    {form.useLocalLLM && (
+                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 animate-in fade-in">
+                          <div>
+                             <label className="text-xs font-bold text-slate-500 uppercase">Base URL</label>
+                             <Input 
+                               value={form.llmUrl} 
+                               onChange={e => setForm({...form, llmUrl: e.target.value})} 
+                               placeholder="http://localhost:11434/v1"
+                             />
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-slate-500 uppercase">Model Name</label>
+                             <Input 
+                               value={form.llmModel} 
+                               onChange={e => setForm({...form, llmModel: e.target.value})} 
+                               placeholder="llama3"
+                             />
+                          </div>
+                          <div className="text-xs text-slate-500">
+                             Ensure Ollama is running: <code className="bg-slate-200 px-1 rounded">ollama serve</code>
+                          </div>
+                       </div>
+                    )}
+                    
+                    {!form.useLocalLLM && (
+                       <div className="text-xs text-slate-500">
+                          Using server environment variables (OPENAI_API_KEY).
+                       </div>
+                    )}
+                 </div>
+              </Section>
+           </div>
+        </div>
+      )}
+
+      {/* ASSETS TAB */}
+      {tab === "assets" && (
+         <Section
+            title="Generate Assets"
+            desc="Process queued image requests via ComfyUI."
             right={
-              <button
-                className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm hover:bg-slate-800 disabled:opacity-50"
-                disabled={busy || queuedJobs.length === 0}
-                onClick={() => runLessonGen(5)}
-              >
-                Generate next 5
-              </button>
+              <Button onClick={() => runAssetBatch(25)} disabled={busy || queuedAssets.length === 0}>
+                 Run Batch
+              </Button>
             }
-          >
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Pill tone="amber">{queuedJobs.length} queued</Pill>
-              <div className="text-xs text-slate-500">
-                Uses env vars: LLM_BASE_URL, LLM_MODEL (optional LLM_API_KEY).
-              </div>
-            </div>
-          </Section>
-
-          <div className="lg:col-span-2">
-            <Section
-              title="Jobs"
-              desc="Most recent 50 jobs"
-              right={
-                <div className="flex items-center gap-2">
-                  <Pill tone="slate">{filteredJobs.length} shown</Pill>
-                  <span className="text-xs text-slate-500">of {jobs.length}</span>
-                  {jobFiltersActive ? (
-                    <button
-                      className="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs hover:bg-slate-50"
-                      onClick={() => {
-                        setJobQuery("");
-                        setJobStatusFilter("all");
-                      }}
-                      disabled={busy}
-                    >
-                      Clear
-                    </button>
-                  ) : null}
-                </div>
-              }
-            >
-              <div className="mb-3 grid gap-2 sm:grid-cols-2">
-                <input
-                  className="h-10 rounded-xl border border-slate-200 px-3 text-sm"
-                  placeholder="Search jobs (job id, subject, topic, year)…"
-                  value={jobQuery}
-                  onChange={(e) => setJobQuery(e.target.value)}
-                  disabled={busy}
-                />
-                <select
-                  className="h-10 rounded-xl border border-slate-200 px-3 bg-white text-sm"
-                  value={jobStatusFilter}
-                  onChange={(e) => setJobStatusFilter(e.target.value)}
-                  disabled={busy}
-                >
-                  <option value="all">All statuses</option>
-                  <option value="queued">Queued</option>
-                  <option value="running">Running</option>
-                  <option value="processing">Processing</option>
-                  <option value="completed">Completed</option>
-                  <option value="failed">Failed</option>
-                  <option value="error">Error</option>
-                </select>
-              </div>
-              <div className="overflow-auto">
-                <table className="min-w-[900px] w-full text-sm">
-                  <thead className="text-xs text-slate-500">
-                    <tr className="border-b border-slate-100">
-                      <th className="py-2 text-left">Job</th>
-                      <th className="py-2 text-left">Subject</th>
-                      <th className="py-2 text-left">Year</th>
-                      <th className="py-2 text-left">Topic</th>
-                      <th className="py-2 text-left">Status</th>
-                      <th className="py-2 text-left">Lesson ID</th>
-                      <th className="py-2 text-left">Images</th>
-                    </tr>
+         >
+            <div className="overflow-auto max-h-[600px]">
+               <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-slate-500 border-b border-slate-100">
+                     <tr>
+                        <th className="py-2">Lesson</th>
+                        <th className="py-2">Prompt Preview</th>
+                        <th className="py-2">Status</th>
+                     </tr>
                   </thead>
                   <tbody>
-                    {filteredJobs.map((j) => (
-                      <tr key={j.id} className="border-b border-slate-50">
-                        <td className="py-2 font-mono text-xs">{j.job_id}</td>
-                        <td className="py-2">{j.subject}</td>
-                        <td className="py-2">{j.year_level}</td>
-                        <td className="py-2">{j.topic}</td>
-                        <td className="py-2"><Pill tone={toneForStatus(j.status)}>{j.status}</Pill></td>
-                        <td className="py-2 font-mono text-xs">{j.supabase_lesson_id || "-"}</td>
-                        <td className="py-2 text-xs text-slate-600">{j.image_status || "-"}</td>
-                      </tr>
-                    ))}
-                    {jobs.length === 0 ? (
-                      <tr><td className="py-6 text-center text-slate-500" colSpan={7}>No jobs found yet.</td></tr>
-                    ) : filteredJobs.length === 0 ? (
-                      <tr><td className="py-6 text-center text-slate-500" colSpan={7}>No jobs match the current filters.</td></tr>
-                    ) : null}
+                     {assets.map(a => (
+                        <tr key={a.id} className="border-b border-slate-50 last:border-0">
+                           <td className="py-3 font-mono text-xs">{a.edition_id}</td>
+                           <td className="py-3 truncate max-w-xs text-slate-600">{a.prompt}</td>
+                           <td className="py-3"><Pill tone={toneForStatus(a.status)}>{a.status}</Pill></td>
+                        </tr>
+                     ))}
+                     {assets.length === 0 && <tr><td colSpan={3} className="py-8 text-center text-slate-400">Queue empty.</td></tr>}
                   </tbody>
-                </table>
-              </div>
-            </Section>
-          </div>
-        </div>
-      ) : null}
+               </table>
+            </div>
+         </Section>
+      )}
 
-      {tab === "assets" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Section
-            title="Generate assets (ComfyUI)"
-            desc="Runs queued asset jobs in batches of 25. Uploads images to Supabase Storage and links them to lessons."
-            right={
-              <button
-                className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm hover:bg-slate-800 disabled:opacity-50"
-                disabled={busy || queuedAssets.length === 0}
-                onClick={() => runAssetBatch(25)}
-              >
-                Run next 25
-              </button>
-            }
-          >
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Pill tone="amber">{queuedAssets.length} queued</Pill>
-              <div className="text-xs text-slate-500">
-                Uses env vars: COMFYUI_BASE_URL (and a workflow template). For Vercel, ComfyUI must be reachable over HTTPS.
-              </div>
+      {/* JOBS TAB (Read Only / Bulk) */}
+      {tab === "jobs" && (
+         <Section title="Bulk Jobs" desc="Background processing for spreadsheet imports.">
+             <div className="text-sm text-slate-600">
+                To run bulk jobs, use the "Import" tool or check the status below.
+             </div>
+             {/* Simple table for bulk jobs */}
+             <div className="mt-4 overflow-auto max-h-[500px]">
+               <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-slate-500 border-b border-slate-100">
+                     <tr>
+                        <th className="py-2">Job ID</th>
+                        <th className="py-2">Subject</th>
+                        <th className="py-2">Topic</th>
+                        <th className="py-2">Status</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {jobs.map(j => (
+                        <tr key={j.id} className="border-b border-slate-50 last:border-0">
+                           <td className="py-3 font-mono text-xs">{j.job_id}</td>
+                           <td className="py-3">{j.subject}</td>
+                           <td className="py-3">{j.topic}</td>
+                           <td className="py-3"><Pill tone={toneForStatus(j.status)}>{j.status}</Pill></td>
+                        </tr>
+                     ))}
+                     {jobs.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-400">No bulk jobs.</td></tr>}
+                  </tbody>
+               </table>
             </div>
-          </Section>
-
-          <Section
-            title="Queue"
-            desc="Most recent 100 assets"
-            right={
-              <div className="flex items-center gap-2">
-                <Pill tone="slate">{filteredAssets.length} shown</Pill>
-                <span className="text-xs text-slate-500">of {assets.length}</span>
-                {assetFiltersActive ? (
-                  <button
-                    className="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs hover:bg-slate-50"
-                    onClick={() => {
-                      setAssetQuery("");
-                      setAssetStatusFilter("all");
-                    }}
-                    disabled={busy}
-                  >
-                    Clear
-                  </button>
-                ) : null}
-              </div>
-            }
-          >
-            <div className="mb-3 grid gap-2 sm:grid-cols-2">
-              <input
-                className="h-10 rounded-xl border border-slate-200 px-3 text-sm"
-                placeholder="Search assets (job id, type, workflow, path)…"
-                value={assetQuery}
-                onChange={(e) => setAssetQuery(e.target.value)}
-                disabled={busy}
-              />
-              <select
-                className="h-10 rounded-xl border border-slate-200 px-3 bg-white text-sm"
-                value={assetStatusFilter}
-                onChange={(e) => setAssetStatusFilter(e.target.value)}
-                disabled={busy}
-              >
-                <option value="all">All statuses</option>
-                <option value="queued">Queued</option>
-                <option value="running">Running</option>
-                <option value="processing">Processing</option>
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
-                <option value="error">Error</option>
-              </select>
-            </div>
-            <div className="overflow-auto">
-              <table className="min-w-[900px] w-full text-sm">
-                <thead className="text-xs text-slate-500">
-                  <tr className="border-b border-slate-100">
-                    <th className="py-2 text-left">Job</th>
-                    <th className="py-2 text-left">Type</th>
-                    <th className="py-2 text-left">Workflow</th>
-                    <th className="py-2 text-left">Status</th>
-                    <th className="py-2 text-left">Output</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAssets.map((a) => (
-                    <tr key={a.id} className="border-b border-slate-50">
-                      <td className="py-2 font-mono text-xs">{a.job_id}</td>
-                      <td className="py-2 text-xs">{a.image_type}</td>
-                      <td className="py-2 text-xs">{a.comfyui_workflow}</td>
-                      <td className="py-2"><Pill tone={toneForStatus(a.status)}>{a.status}</Pill></td>
-                      <td className="py-2 text-xs text-slate-600">
-                        {a.storage_path ? <a className="underline" href={a.public_url || "#"} target="_blank" rel="noreferrer">view</a> : "-"}
-                      </td>
-                    </tr>
-                  ))}
-                  {assets.length === 0 ? (
-                    <tr><td className="py-6 text-center text-slate-500" colSpan={5}>No assets yet.</td></tr>
-                  ) : filteredAssets.length === 0 ? (
-                    <tr><td className="py-6 text-center text-slate-500" colSpan={5}>No assets match the current filters.</td></tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-        </div>
-      ) : null}
+         </Section>
+      )}
     </div>
   );
 }
