@@ -14,8 +14,10 @@ import {
   Github,
   ClipboardList,
   Settings,
-  Home,
-  Factory
+  Factory,
+  Mail,
+  Activity,
+  ShieldAlert
 } from "lucide-react";
 import { cx } from "@/components/admin/adminUi";
 
@@ -31,20 +33,27 @@ const GROUPS = [
     ],
   },
   {
+    title: "Operations",
+    items: [
+      { href: "/admin/communications", label: "Communications", icon: Mail },
+      { href: "/admin/system", label: "System & Ops", icon: Activity },
+      { href: "/admin/users", label: "Users & Roles", icon: Users, minRole: "root" },
+      { href: "/admin/audit", label: "Audit Log", icon: ClipboardList, minRole: "root" },
+    ],
+  },
+  {
     title: "Configuration",
     items: [
       { href: "/admin/theme", label: "Theme & Brand", icon: Palette },
       { href: "/admin/workflows", label: "AI Workflows", icon: Wand2 },
-      { href: "/admin/settings", label: "System Settings", icon: Settings },
+      { href: "/admin/settings", label: "Global Settings", icon: Settings },
     ],
   },
   {
-    title: "Platform",
+    title: "Infrastructure",
     items: [
-      { href: "/admin/users", label: "Users & Roles", icon: Users, minRole: "root" },
       { href: "/admin/database", label: "Database SQL", icon: Database, minRole: "root" },
       { href: "/admin/github", label: "GitHub Sync", icon: Github, minRole: "root" },
-      { href: "/admin/audit", label: "Audit Log", icon: ClipboardList, minRole: "root" },
     ],
   },
 ];
