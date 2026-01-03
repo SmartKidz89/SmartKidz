@@ -81,7 +81,7 @@ export default function AdminMediaPage() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
             <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            <div className="text-xs text-slate-500 mt-1">Recommended: .png/.jpg/.webp, < 2–5MB</div>
+            <div className="text-xs text-slate-500 mt-1">Recommended: .png/.jpg/.webp, {"<"} 2–5MB</div>
           </div>
           <div className="grid gap-2">
             <input className="h-10 rounded-xl border border-slate-200 px-3" placeholder="Alt text" value={alt} onChange={(e)=>setAlt(e.target.value)} />

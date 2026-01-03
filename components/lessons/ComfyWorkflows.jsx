@@ -220,7 +220,10 @@ export default function ComfyWorkflows() {
               spellCheck={false}
             />
             <div className="mt-2 text-xs text-slate-500">
-              Tip: use variables like <span className="font-mono">{{"{{prompt}}"}}</span>, <span className="font-mono">{{"{{negative_prompt}}"}}</span>, <span className="font-mono">{{"{{width}}"}}</span>, <span className="font-mono">{{"{{height}}"}}</span>, etc.
+              Tip: use variables like <span className="font-mono">{"{{prompt}}"}</span>,{" "}
+              <span className="font-mono">{"{{negative_prompt}}"}</span>,{" "}
+              <span className="font-mono">{"{{width}}"}</span>,{" "}
+              <span className="font-mono">{"{{height}}"}</span>, etc.
             </div>
           </div>
         </div>
