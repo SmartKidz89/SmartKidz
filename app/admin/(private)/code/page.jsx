@@ -129,9 +129,20 @@ export default function CodeEditorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: activeFile, content })
       });
-      if (!res.ok) throw new Error("Save failed");
+      // Don't fail UI if local save fails on Vercel (read-only fs)
+      // We still update original state so user can proceed to sync
       setOriginal(content);
-      setMsg({ type: "success", text: "Saved to disk" });
+      if (res.ok) {
+         setMsg({ type: "success", text: "Saved to disk" });
+      } else {
+         const j = await res.json();
+         // If error is EROFS (Read-only file system), it's fine, we can still sync
+         if (j.error?.includes("ROFS") || j.error?.includes("read-only")) {
+            setMsg({ type: "success", text: "Ready to Sync (Read-only Env)" });
+         } else {
+            throw new Error(j.error || "Save failed");
+         }
+      }
       setTimeout(() => setMsg(null), 2000);
     } catch (e) {
       setMsg({ type: "error", text: e.message });
@@ -141,20 +152,17 @@ export default function CodeEditorPage() {
   }
 
   async function pushToGit() {
-    if (content !== original) {
-      if(!confirm("You have unsaved changes. Save to disk first?")) return;
-      await saveFile();
-    }
-    
     setStatus("syncing");
     try {
       const res = await fetch("/api/admin/code/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: activeFile })
+        // Send content directly to support serverless environments
+        body: JSON.stringify({ path: activeFile, content }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      setOriginal(content);
       setMsg({ type: "success", text: "Committed to GitHub" });
     } catch (e) {
       setMsg({ type: "error", text: e.message });

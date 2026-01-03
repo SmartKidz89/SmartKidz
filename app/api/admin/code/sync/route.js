@@ -11,7 +11,10 @@ export async function POST(req) {
   const auth = await requireAdminSession({ minRole: "root" });
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
-  const { path: relPath } = await req.json();
+  const body = await req.json();
+  const relPath = body.path;
+  let content = body.content;
+
   if (!relPath) return NextResponse.json({ error: "Path required" }, { status: 400 });
 
   const token = process.env.GITHUB_SYNC_TOKEN;
@@ -23,12 +26,19 @@ export async function POST(req) {
   }
 
   const [owner, repo] = fullRepo.split("/");
-  const fullPath = path.join(process.cwd(), relPath);
+  
+  // If content not provided in body, try reading from disk (legacy/local mode)
+  if (content === undefined) {
+    try {
+      const fullPath = path.join(process.cwd(), relPath);
+      content = await fs.readFile(fullPath, "utf-8");
+    } catch (e) {
+      return NextResponse.json({ error: "Could not read file from disk. Provide content in body." }, { status: 400 });
+    }
+  }
 
   try {
-    const content = await fs.readFile(fullPath, "utf-8");
     const message = `Update ${relPath} via Admin Code Editor`;
-
     await putFile({ token, owner, repo, branch, path: relPath, content, message });
 
     return NextResponse.json({ ok: true, message: `Pushed ${relPath} to ${branch}` });
