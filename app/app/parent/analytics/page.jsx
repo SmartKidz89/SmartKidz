@@ -30,13 +30,14 @@ export default function ParentAnalyticsPage() {
       if (!activeChildId) { setStats(null); setLoading(false); return; }
 
       // 1. Fetch Lesson Progress
-      const { data: attemptsData } = await supabase
-        .from("attempts")
-        .select("edition_id,title,country_code,lesson_templates(subject_id,year_level,topic)")
+      const { data: progressData } = await supabase
+        .from("lesson_progress")
+        .select("lesson_id, status, mastery_score")
         .eq("child_id", activeChildId);
 
+      const completed = (progressData || []).filter(p => p.status === 'completed');
+      
       // 2. Fetch Completed Lessons details
-      const completed = (progress || []).filter(p => p.status === 'completed');
       const lessonIds = completed.map(p => p.lesson_id);
       
       let lessons = [];
@@ -52,7 +53,7 @@ export default function ParentAnalyticsPage() {
       const { data: attempts } = await supabase
          .from("attempts")
          .select("*")
-         .eq("user_id", activeChildId) 
+         .eq("child_id", activeChildId) 
          .order("created_at", { ascending: false })
          .limit(10);
       
@@ -187,13 +188,13 @@ export default function ParentAnalyticsPage() {
                           const pct = (count / (stats?.totalLessons || 1)) * 100;
                           return (
                             <div key={subject}>
-                               <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                                <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
                                   <span>{subject}</span>
                                   <span>{count} lessons</span>
-                               </div>
-                               <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                                </div>
+                                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
                                   <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
-                               </div>
+                                </div>
                             </div>
                           );
                        })}
@@ -209,8 +210,8 @@ export default function ParentAnalyticsPage() {
                        <h3 className="font-bold text-lg">AI Insight</h3>
                     </div>
                     <p className="text-indigo-100 leading-relaxed font-medium">
-                       {activeKid?.display_name} is showing strong consistency in Maths. 
-                       Try introducing a short Science lesson next to broaden their horizon!
+                       {activeKid?.display_name} is showing strong consistency. 
+                       Try introducing a new topic next to broaden their horizon!
                     </p>
                  </div>
 

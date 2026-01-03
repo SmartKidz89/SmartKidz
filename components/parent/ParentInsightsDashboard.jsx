@@ -44,22 +44,23 @@ export default function ParentInsightsDashboard() {
 
       try {
         // 1. Fetch Lesson Progress
-        const { data: attemptsDataData, error: progErr } = await supabase
-          .from("attempts")
-          .select("edition_id,title,country_code,lesson_templates(subject_id,year_level,topic)")
+        // Using lesson_progress table instead of attempts for completion status
+        const { data: progressData, error: progErr } = await supabase
+          .from("lesson_progress")
+          .select("lesson_id, status, mastery_score")
           .eq("child_id", selectedId);
 
         if (progErr) throw progErr;
 
         // 2. Fetch Lessons
-        const completedIds = progressData?.filter(p => p.status === 'completed').map(p => p.lesson_id) || [];
+        const completedIds = (progressData || []).filter(p => p.status === 'completed').map(p => p.lesson_id);
         
         let lessonsMap = {};
         if (completedIds.length > 0) {
             const { data: lData } = await supabase
                 .from("lesson_editions")
                 .select("id, subject_id")
-                .in("edition_id", completedIds);
+                .in("edition_id", completedIds); // edition_id matches lesson_id
             (lData || []).forEach(l => { lessonsMap[l.id] = l.subject_id; });
         }
 
@@ -67,6 +68,7 @@ export default function ParentInsightsDashboard() {
         const agg = {};
         (progressData || []).forEach(p => {
            if (p.status !== 'completed') return;
+           // If we don't have the lesson details (e.g. deleted lesson), skip or categorize as Other
            const subj = lessonsMap[p.lesson_id] || 'Other';
            if (!agg[subj]) agg[subj] = { count: 0, sumMastery: 0 };
            agg[subj].count++;
@@ -115,6 +117,7 @@ export default function ParentInsightsDashboard() {
     ART: "Arts",
     TECH: "Tech",
     LANG: "Languages",
+    Other: "Other"
   };
 
   return (
@@ -180,7 +183,7 @@ export default function ParentInsightsDashboard() {
                 <div className="space-y-4">
                    {summary.map(s => {
                       const total = summary.reduce((a,b) => a + b.lessons_completed, 0);
-                      const pct = Math.round((s.lessons_completed / total) * 100);
+                      const pct = total ? Math.round((s.lessons_completed / total) * 100) : 0;
                       return (
                         <div key={s.subject_id} className="flex items-center gap-3">
                            <div className="w-24 text-sm font-bold text-slate-700 truncate">

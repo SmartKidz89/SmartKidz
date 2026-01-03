@@ -87,6 +87,6 @@ test("Full journey: learn -> earn -> spend -> trust (with value assertions)", as
   await page.goto("/app/parent/insights");
   await expect(page.getByText(/Weekly Learning Report/i)).toBeVisible();
   await expect(page.locator('[data-testid="latest-activity"]')).toBeVisible();
-}
+
   expect(consoleErrors, `Console/page errors:\n${consoleErrors.join("\n")}`).toEqual([]);
 });

@@ -50,13 +50,15 @@ function buildNarratives({ childName, recentLessons }) {
     tone: "indigo",
   });
 
-  insights.push({
-    icon: "🧠",
-    title: `Strongest focus: ${topSubject}`,
-    body: `${name} has been spending the most time in ${topSubject}. Keep that momentum and add a small mix-in from another world each week.`,
-    meta: "Balanced progression",
-    tone: "emerald",
-  });
+  if (recentLessons.length > 0) {
+    insights.push({
+        icon: "🧠",
+        title: `Strongest focus: ${topSubject}`,
+        body: `${name} has been spending the most time in ${topSubject}. Keep that momentum and add a small mix-in from another world each week.`,
+        meta: "Balanced progression",
+        tone: "emerald",
+    });
+  }
 
   insights.push({
     icon: "🛡️",
@@ -92,42 +94,50 @@ export default function ParentInsightFeed({ childId, childName }) {
       setRecent([]);
       if (!childId) { setLoading(false); return; }
 
-      const { data: attemptsData, error: pErr } = await supabase
-        .from("attempts")
-        .select("edition_id,title,country_code,lesson_templates(subject_id,year_level,topic)")
-        .eq("child_id", childId)
-        .order("updated_at", { ascending: false })
-        .limit(40);
+      try {
+          const { data: progressData, error: pErr } = await supabase
+            .from("lesson_progress")
+            .select("lesson_id, status, updated_at")
+            .eq("child_id", childId)
+            .eq("status", "completed")
+            .order("updated_at", { ascending: false });
 
-      if (!mounted) return;
-      if (pErr) { setError(pErr.message); setLoading(false); return; }
+          if (!mounted) return;
+          if (pErr) throw pErr;
 
-      const completed = (progress || []).filter((p) => (p.status || "").toLowerCase() === "completed");
-      const ids = completed.map((p) => p.lesson_id).filter(Boolean);
-      if (!ids.length) {
-        setInsights(buildNarratives({ childName, recentLessons: [] }));
-        setLoading(false);
-        return;
+          const ids = (progressData || []).map((p) => p.lesson_id).filter(Boolean);
+          
+          if (!ids.length) {
+            setInsights(buildNarratives({ childName, recentLessons: [] }));
+            setLoading(false);
+            return;
+          }
+
+          const { data: lessons, error: lErr } = await supabase
+            .from("lesson_editions")
+            .select("id, title, topic, subject_id, year_level")
+            .in("id", ids); // Use 'id' instead of 'edition_id' to match standard query, assuming they are the same in this context or mapped correctly
+
+          if (!mounted) return;
+          if (lErr) throw lErr;
+
+          // map by id, keep order of completion
+          const map = new Map((lessons || []).map((l) => [l.id, l]));
+          const recentLessons = progressData
+            .slice(0, 10)
+            .map((p) => {
+                const l = map.get(p.lesson_id);
+                return l ? { ...l, when: p.updated_at } : null;
+            })
+            .filter(Boolean);
+
+          setRecent(recentLessons);
+          setInsights(buildNarratives({ childName, recentLessons }));
+      } catch (err) {
+          if (mounted) setError(err.message);
+      } finally {
+          if (mounted) setLoading(false);
       }
-
-      const { data: lessons, error: lErr } = await supabase
-        .from("lesson_editions")
-        .select("id, title, topic, subject_id, year_level")
-        .in("edition_id", ids);
-
-      if (!mounted) return;
-      if (lErr) { setError(lErr.message); setLoading(false); return; }
-
-      // map by id, keep order of completion
-      const map = new Map((lessons || []).map((l) => [l.id, l]));
-      const recentLessons = completed
-        .slice(0, 10)
-        .map((p) => ({ ...map.get(p.lesson_id), when: p.updated_at }))
-        .filter(Boolean);
-
-      setRecent(recentLessons);
-      setInsights(buildNarratives({ childName, recentLessons }));
-      setLoading(false);
     }
     load();
     return () => { mounted = false; };
