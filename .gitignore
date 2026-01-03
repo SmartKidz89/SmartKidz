@@ -1,0 +1,23 @@
+# Secrets
+.env.local
+.env
+.env.*.local
+
+# Dependencies
+node_modules
+
+# Build output
+.next
+out
+dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode
+.idea

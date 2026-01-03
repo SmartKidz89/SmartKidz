@@ -1,0 +1,512 @@
+{
+  "meta": {
+    "version": "1.0",
+    "bands": [
+      "prep",
+      "y1",
+      "y2",
+      "y3"
+    ]
+  },
+  "passages": [
+    {
+      "id": "prep_cvc_01",
+      "band": "prep",
+      "title": "Sam the Cat",
+      "theme": "Everyday",
+      "phonics_focus": [
+        "CVC",
+        "a"
+      ],
+      "sight_words": [
+        "the",
+        "a",
+        "is"
+      ],
+      "text": "Sam is a cat.\nSam sat.\nSam can nap.\nSam is a happy cat.",
+      "questions": [
+        {
+          "q": "Who is Sam?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "A cat",
+              "c": true,
+              "f": "Yes\u2014Sam is a cat."
+            },
+            {
+              "t": "A dog",
+              "c": false,
+              "f": "Not this time. Sam is a cat."
+            },
+            {
+              "t": "A fish",
+              "c": false,
+              "f": "No\u2014Sam is not a fish."
+            }
+          ]
+        },
+        {
+          "q": "What can Sam do?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "Nap",
+              "c": true,
+              "f": "Correct\u2014Sam can nap."
+            },
+            {
+              "t": "Fly",
+              "c": false,
+              "f": "No\u2014cats do not fly."
+            },
+            {
+              "t": "Swim all day",
+              "c": false,
+              "f": "Not in this story."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prep_cvc_02",
+      "band": "prep",
+      "title": "A Red Box",
+      "theme": "Everyday",
+      "phonics_focus": [
+        "CVC",
+        "o",
+        "x"
+      ],
+      "sight_words": [
+        "a",
+        "in",
+        "is"
+      ],
+      "text": "I see a red box.\nA top is on the box.\nI put a pen in.\nThe box is shut.",
+      "questions": [
+        {
+          "q": "What color is the box?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "Red",
+              "c": true,
+              "f": "Yes\u2014red box."
+            },
+            {
+              "t": "Blue",
+              "c": false,
+              "f": "Read again: it says red."
+            },
+            {
+              "t": "Green",
+              "c": false,
+              "f": "Not in this passage."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "y1_digraph_01",
+      "band": "y1",
+      "title": "The Shell Shop",
+      "theme": "Beach",
+      "phonics_focus": [
+        "sh",
+        "ch"
+      ],
+      "sight_words": [
+        "the",
+        "to",
+        "and"
+      ],
+      "text": "Chloe went to the beach.\nShe had a shell.\nShe saw a shop.\n\"Shall I buy a shell?\" she said.\nChloe chose a shiny shell and a chip snack.",
+      "questions": [
+        {
+          "q": "Where did Chloe go?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "To the beach",
+              "c": true,
+              "f": "Correct\u2014she went to the beach."
+            },
+            {
+              "t": "To the zoo",
+              "c": false,
+              "f": "No\u2014this story is at the beach."
+            },
+            {
+              "t": "To school",
+              "c": false,
+              "f": "Not in this passage."
+            }
+          ]
+        },
+        {
+          "q": "What did Chloe buy?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "A shiny shell",
+              "c": true,
+              "f": "Yes\u2014she chose a shiny shell."
+            },
+            {
+              "t": "A hat",
+              "c": false,
+              "f": "No hat mentioned."
+            },
+            {
+              "t": "A bike",
+              "c": false,
+              "f": "No bike in this story."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "y1_blends_01",
+      "band": "y1",
+      "title": "The Frog and the Flag",
+      "theme": "Animals",
+      "phonics_focus": [
+        "bl",
+        "fl",
+        "gr"
+      ],
+      "sight_words": [
+        "was",
+        "on",
+        "with"
+      ],
+      "text": "A green frog was on a log.\nA flag flapped in the wind.\nThe frog blinked.\n\"I will grab that flag!\" said the frog.\nBut the flag was too high.",
+      "questions": [
+        {
+          "q": "What color is the frog?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "Green",
+              "c": true,
+              "f": "Yes\u2014green frog."
+            },
+            {
+              "t": "Pink",
+              "c": false,
+              "f": "No\u2014it's green."
+            },
+            {
+              "t": "Brown",
+              "c": false,
+              "f": "Not in the passage."
+            }
+          ]
+        },
+        {
+          "q": "Was the flag easy to grab?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "No, it was too high",
+              "c": true,
+              "f": "Correct\u2014it was too high."
+            },
+            {
+              "t": "Yes, very easy",
+              "c": false,
+              "f": "Read again\u2014too high."
+            },
+            {
+              "t": "It was underwater",
+              "c": false,
+              "f": "No\u2014it's flapping in wind."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "y2_pd_01",
+      "band": "y2",
+      "title": "The Clever Little Mouse",
+      "theme": "Classic Tales",
+      "phonics_focus": [
+        "long vowels",
+        "e"
+      ],
+      "sight_words": [
+        "because",
+        "could",
+        "when"
+      ],
+      "text": "A tiny mouse lived near a big lion.\nOne day, the lion caught the mouse.\n\"Please let me go,\" said the mouse.\nThe lion laughed, but he let the mouse go.\nLater, the lion was trapped in a net.\nThe mouse chewed the ropes until the lion was free.\nEven small friends can help in big ways.",
+      "questions": [
+        {
+          "q": "Why did the mouse chew the net?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "To free the lion",
+              "c": true,
+              "f": "Yes\u2014the mouse helped the lion escape."
+            },
+            {
+              "t": "To eat the lion's food",
+              "c": false,
+              "f": "No\u2014he chewed the ropes."
+            },
+            {
+              "t": "To build a house",
+              "c": false,
+              "f": "Not in this story."
+            }
+          ]
+        },
+        {
+          "q": "What is the lesson of the story?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "Small friends can help too",
+              "c": true,
+              "f": "Correct\u2014that\u2019s the message."
+            },
+            {
+              "t": "Never help anyone",
+              "c": false,
+              "f": "Opposite of the message."
+            },
+            {
+              "t": "Lions can fly",
+              "c": false,
+              "f": "Not true."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "y2_pd_02",
+      "band": "y2",
+      "title": "Slow and Steady",
+      "theme": "Classic Tales",
+      "phonics_focus": [
+        "consonant clusters",
+        "st"
+      ],
+      "sight_words": [
+        "again",
+        "until",
+        "every"
+      ],
+      "text": "A fast hare boasted that he could run quicker than anyone.\nA tortoise said, \"Let\u2019s race.\"\nThe hare raced ahead and stopped to rest.\nThe tortoise walked slowly, step by step.\nThe hare fell asleep.\nThe tortoise kept going until he crossed the finish line.\nSlow and steady can win when you keep going.",
+      "questions": [
+        {
+          "q": "What did the hare do during the race?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "He rested and fell asleep",
+              "c": true,
+              "f": "Yes\u2014he stopped and slept."
+            },
+            {
+              "t": "He walked the whole way",
+              "c": false,
+              "f": "No\u2014he ran ahead then rested."
+            },
+            {
+              "t": "He carried the tortoise",
+              "c": false,
+              "f": "No\u2014never happened."
+            }
+          ]
+        },
+        {
+          "q": "Who won the race?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "The tortoise",
+              "c": true,
+              "f": "Correct\u2014steady steps won."
+            },
+            {
+              "t": "The hare",
+              "c": false,
+              "f": "No\u2014the hare slept."
+            },
+            {
+              "t": "No one",
+              "c": false,
+              "f": "Someone did win."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "y3_story_01",
+      "band": "y3",
+      "title": "The Lost Library Book",
+      "theme": "Everyday",
+      "phonics_focus": [
+        "prefix re-",
+        "vocabulary"
+      ],
+      "sight_words": [
+        "suddenly",
+        "because",
+        "through"
+      ],
+      "text": "Mia borrowed a library book about space.\nAt home, she read it on the couch.\nSuddenly, she could not find it.\nShe looked under the couch and behind the curtains.\nThen she remembered: she had taken it to her room.\nMia returned the book the next day and said sorry.\nThe librarian smiled because Mia was honest.",
+      "questions": [
+        {
+          "q": "Where was the book?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "In Mia's room",
+              "c": true,
+              "f": "Yes\u2014she had taken it to her room."
+            },
+            {
+              "t": "In the fridge",
+              "c": false,
+              "f": "No\u2014silly place for a book."
+            },
+            {
+              "t": "Outside in the rain",
+              "c": false,
+              "f": "Not in the story."
+            }
+          ]
+        },
+        {
+          "q": "Why did the librarian smile?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "Mia was honest",
+              "c": true,
+              "f": "Correct\u2014honesty mattered."
+            },
+            {
+              "t": "The book was funny",
+              "c": false,
+              "f": "Not mentioned."
+            },
+            {
+              "t": "The library was closed",
+              "c": false,
+              "f": "No."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "y3_story_02",
+      "band": "y3",
+      "title": "A Stormy Surprise",
+      "theme": "Nature",
+      "phonics_focus": [
+        "compound words",
+        "vocabulary"
+      ],
+      "sight_words": [
+        "although",
+        "instead",
+        "noticed"
+      ],
+      "text": "Although the sky was dark, Leo wanted to play soccer.\nHe noticed the wind getting stronger.\nA few drops of rain fell, then a loud thunderclap sounded.\nLeo went inside instead.\nHe watched the storm from the window and counted the seconds between lightning and thunder.\nWhen the storm passed, the air felt fresh and cool.",
+      "questions": [
+        {
+          "q": "What did Leo do when the storm started?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "He went inside",
+              "c": true,
+              "f": "Yes\u2014he went inside instead."
+            },
+            {
+              "t": "He kept playing outside",
+              "c": false,
+              "f": "No\u2014there was thunder."
+            },
+            {
+              "t": "He climbed a tree",
+              "c": false,
+              "f": "Not safe, and not in the story."
+            }
+          ]
+        },
+        {
+          "q": "What did Leo count?",
+          "type": "mcq",
+          "options": [
+            {
+              "t": "Seconds between lightning and thunder",
+              "c": true,
+              "f": "Correct."
+            },
+            {
+              "t": "Soccer goals",
+              "c": false,
+              "f": "Not in this passage."
+            },
+            {
+              "t": "Raindrops on the grass",
+              "c": false,
+              "f": "Not mentioned."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sight_words": {
+    "prep": [
+      "a",
+      "I",
+      "the",
+      "is",
+      "in",
+      "on",
+      "to"
+    ],
+    "y1": [
+      "the",
+      "and",
+      "to",
+      "was",
+      "with",
+      "she",
+      "said",
+      "shall"
+    ],
+    "y2": [
+      "because",
+      "could",
+      "when",
+      "again",
+      "until",
+      "every",
+      "later"
+    ],
+    "y3": [
+      "suddenly",
+      "through",
+      "although",
+      "instead",
+      "noticed",
+      "honest"
+    ]
+  }
+}

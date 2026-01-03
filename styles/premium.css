@@ -1,0 +1,271 @@
+/* -------------------------------------------------------------------------- */
+/* SmartKidz “Premium x 100” UI System                                        */
+/* -------------------------------------------------------------------------- */
+/*
+  Goals:
+  - App-store grade polish (depth, light, micro-interactions)
+  - Kid-safe: big tap targets, high contrast, playful motion
+  - Parent-safe: calm, trustworthy, structured
+
+  This file intentionally stays framework-agnostic (pure CSS).
+*/
+
+:root{
+  /* Accent gradients - VIBRANT UPDATE */
+  --skz-g-1: radial-gradient(800px 500px at 15% 0%, rgba(124, 58, 237, 0.18), transparent 60%); /* Electric Violet */
+  --skz-g-2: radial-gradient(900px 500px at 85% 10%, rgba(236, 72, 153, 0.16), transparent 55%); /* Hot Pink */
+  --skz-g-3: radial-gradient(900px 600px at 55% 95%, rgba(14, 165, 233, 0.14), transparent 60%);  /* Bright Sky */
+
+  /* Premium glass + clay */
+  --skz-clay: rgba(255,255,255,.86);
+  --skz-clay-border: rgba(255,255,255,.60);
+  --skz-clay-highlight: rgba(255,255,255,.90);
+  --skz-clay-shadow: rgba(2,6,23,.10);
+
+  /* Subtle noise (CSS only) */
+  --skz-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+}
+
+/* Backdrop wrappers --------------------------------------------------------- */
+
+.marketing-ui{
+  background:
+    var(--skz-g-1),
+    var(--skz-g-2),
+    var(--skz-g-3),
+    linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #ffffff 100%);
+}
+
+.app-ui{
+  background:
+    radial-gradient(900px 520px at 10% 0%, rgba(0,191,165,.20), transparent 58%),
+    radial-gradient(900px 560px at 92% 12%, rgba(99,102,241,.14), transparent 60%),
+    radial-gradient(900px 560px at 55% 96%, rgba(245,158,11,.12), transparent 62%),
+    linear-gradient(180deg, rgb(var(--skz-bg-1)) 0%, rgb(var(--skz-bg-0)) 70%, rgb(var(--skz-bg-0)) 100%);
+  position: relative;
+}
+
+/* Soft noise overlay to avoid “flat” gradients */
+.marketing-ui::before,
+.app-ui::before{
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--skz-noise);
+  background-size: 260px 260px;
+  mix-blend-mode: soft-light;
+  opacity: .35;
+  z-index: 0;
+}
+
+/* Ensure main content is above overlays */
+.marketing-ui > *,
+.app-ui > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* Premium surfaces ---------------------------------------------------------- */
+
+.skz-surface{
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(255,255,255,.60);
+  box-shadow: var(--skz-shadow-1);
+  backdrop-filter: blur(var(--skz-glass-blur));
+  -webkit-backdrop-filter: blur(var(--skz-glass-blur));
+  border-radius: var(--skz-radius-card);
+}
+
+.skz-clay{
+  background:
+    linear-gradient(180deg, var(--skz-clay-highlight), var(--skz-clay)),
+    radial-gradient(800px 400px at 30% 0%, rgba(255,255,255,.70), transparent 60%);
+  border: 1px solid var(--skz-clay-border);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.55) inset,
+    0 20px 60px rgba(2,6,23,.12);
+  border-radius: var(--skz-radius-card);
+}
+
+.skz-card-hover{
+  transition: transform 180ms var(--skz-ease), box-shadow 180ms var(--skz-ease);
+}
+.skz-card-hover:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--skz-shadow-2);
+}
+
+/* Buttons ------------------------------------------------------------------ */
+
+.skz-btn-premium{
+  position: relative;
+  border-radius: var(--skz-radius-btn);
+  padding: 12px 18px;
+  font-weight: 900;
+  letter-spacing: .02em;
+  transform: translateZ(0);
+  transition: transform 160ms var(--skz-ease), filter 160ms var(--skz-ease);
+}
+
+.skz-btn-premium::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(600px 120px at 30% 0%, rgba(255,255,255,.50), transparent 60%);
+  opacity: .85;
+  pointer-events: none;
+}
+
+.skz-btn-premium:active{
+  transform: scale(.985);
+}
+
+/* Fun motion primitives ----------------------------------------------------- */
+
+@keyframes skz-float{
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-6px); }
+}
+
+@keyframes skz-shimmer{
+  0%{ transform: translateX(-40%); opacity: 0; }
+  30%{ opacity: .7; }
+  100%{ transform: translateX(120%); opacity: 0; }
+}
+
+.skz-float{
+  animation: skz-float 4.5s ease-in-out infinite;
+}
+
+.skz-shimmer{
+  position: relative;
+  overflow: hidden;
+}
+.skz-shimmer::before{
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 60%;
+  height: 180%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: translateX(-40%);
+  animation: skz-shimmer 2.8s var(--skz-ease) infinite;
+  pointer-events: none;
+}
+
+/* Scroll polish ------------------------------------------------------------- */
+
+html{
+  scroll-behavior: smooth;
+}
+
+/* Better tap targets on mobile */
+a,button{
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Premium Layout Primitives                                                   */
+/* -------------------------------------------------------------------------- */
+
+.skz-page{
+  position: relative;
+  padding-bottom: 2rem;
+}
+
+.skz-header{
+  position: relative;
+}
+
+.skz-chip{
+  display: inline-flex;
+  align-items: center;
+  padding: .45rem .75rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(255,255,255,.75);
+  box-shadow: var(--shadow-e1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-weight: 800;
+  font-size: .85rem;
+  color: rgba(15, 23, 42, .82);
+}
+
+.skz-dot{
+  width: .55rem;
+  height: .55rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(59,130,246,.9), rgba(16,185,129,.85));
+  box-shadow: 0 8px 18px rgba(59,130,246,.22);
+}
+
+.skz-icon-bubble{
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1.25rem;
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(255,255,255,.8);
+  box-shadow: var(--shadow-e2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 1.25rem;
+}
+
+.skz-card{
+  border-radius: 1.75rem;
+}
+
+.skz-surface{
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.72));
+  border: 1px solid rgba(255,255,255,.78);
+  box-shadow: var(--shadow-e2);
+  overflow: hidden;
+}
+
+.skz-surface:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(700px 350px at 20% 0%, rgba(59,130,246,.10), transparent 60%),
+    radial-gradient(700px 350px at 90% 10%, rgba(16,185,129,.10), transparent 60%),
+    radial-gradient(700px 350px at 60% 120%, rgba(245,158,11,.10), transparent 62%);
+  pointer-events:none;
+  mix-blend-mode: normal;
+}
+
+.skz-surface:after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  background: linear-gradient(120deg, rgba(255,255,255,.65), transparent 45%, rgba(255,255,255,.50));
+  opacity:.5;
+  pointer-events:none;
+}
+
+.skz-surface > *{ position: relative; z-index: 1; }
+
+.container-pad{
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* Entry animation utility (no tailwind plugin required) */
+.skz-enter { 
+  animation: skzEnter 520ms cubic-bezier(.2,.9,.2,1) both;
+}
+@keyframes skzEnter {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}

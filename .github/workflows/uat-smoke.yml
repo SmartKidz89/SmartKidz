@@ -1,0 +1,24 @@
+name: UAT Smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run links:audit
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:smoke
+        env:
+          PLAYWRIGHT_NO_WEBSERVER: ""

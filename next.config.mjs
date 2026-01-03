@@ -1,0 +1,17 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    serverActions: { bodySizeLimit: "2mb" },
+  },
+  reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/**" },
+      { protocol: "https", hostname: "flagcdn.com" },
+      { protocol: "https", hostname: "upload.wikimedia.org" },
+      { protocol: "https", hostname: "image.pollinations.ai" },
+    ],
+  },
+};
+
+export default nextConfig;

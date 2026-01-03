@@ -1,0 +1,70 @@
+/* SmartKidz Premium Theme Tokens
+   - Parent layer: calm, high-trust, App-Store grade
+   - Kid layer: claymorphism + vibrant accents with safe contrast
+*/
+
+:root{
+  /* Neutral surfaces */
+  --skz-bg-0: 250 250 250;      /* #FAFAFA */
+  --skz-bg-1: 246 248 250;
+  --skz-surface: 255 255 255;
+  --skz-surface-2: 249 250 251;
+
+  /* Ink */
+  --skz-ink: 15 23 42;          /* slate-900 */
+  --skz-ink-2: 30 41 59;        /* slate-800 */
+  --skz-muted: 71 85 105;       /* slate-600 */
+
+  /* Brand */
+  --skz-teal: 0 191 165;        /* #00BFA5 */
+  --skz-coral: 255 111 97;      /* #FF6F61 */
+  --skz-primary: var(--skz-teal);
+  --skz-accent: var(--skz-coral);
+
+  /* Status */
+  --skz-success: 16 185 129;
+  --skz-warning: 245 158 11;
+  --skz-danger: 239 68 68;
+
+  /* Borders */
+  --skz-border: 226 232 240;
+  --skz-border-2: 203 213 225;
+
+  /* Shape */
+  --skz-radius-card: 26px;
+  --skz-radius-modal: 30px;
+  --skz-radius-btn: 999px; /* pill */
+
+  /* Elevation */
+  --skz-shadow-0: 0 1px 0 rgba(2,6,23,.06);
+  --skz-shadow-1: 0 14px 36px rgba(2,6,23,.10), 0 6px 18px rgba(2,6,23,.06);
+  --skz-shadow-2: 0 26px 80px rgba(2,6,23,.16);
+
+  /* Glass */
+  --skz-glass-bg: rgba(255,255,255,.55);
+  --skz-glass-border: rgba(255,255,255,.45);
+  --skz-glass-blur: 14px;
+
+  /* Motion */
+  --skz-ease: cubic-bezier(.2,.8,.2,1);
+}
+
+/* Kid theme overrides (within data-theme="kid") */
+[data-theme="kid"]{
+  --skz-bg-0: 246 249 255;
+  --skz-bg-1: 242 248 255;
+  --skz-surface: 255 255 255;
+
+  /* slightly warmer ink for friendliness */
+  --skz-ink: 17 24 39;
+  --skz-muted: 71 85 105;
+
+  /* vibrant but controlled */
+  --skz-primary: var(--skz-teal);
+  --skz-accent: var(--skz-coral);
+
+  --skz-radius-card: 30px;
+  --skz-radius-modal: 34px;
+  --skz-shadow-1: 0 2px 0 rgba(2,6,23,.10), 0 18px 52px rgba(2,6,23,.14);
+  --skz-shadow-2: 0 32px 110px rgba(2,6,23,.18);
+}
