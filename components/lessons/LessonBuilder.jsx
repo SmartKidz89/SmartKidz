@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
@@ -70,6 +70,8 @@ export default function LessonBuilder() {
     llmModel: "llama3",
   });
 
+  const [selectedJobId, setSelectedJobId] = useState(""); // For picking from spreadsheet
+
   const [lastResult, setLastResult] = useState(null);
 
   async function refresh() {
@@ -86,6 +88,31 @@ export default function LessonBuilder() {
   }
 
   useEffect(() => { refresh(); }, []);
+
+  // Filter logic for spreadsheet jobs
+  const availableSubjects = useMemo(() => [...new Set(jobs.map(j => j.subject).filter(Boolean))].sort(), [jobs]);
+  const availableYears = useMemo(() => [...new Set(jobs.map(j => String(j.year_level)).filter(Boolean))].sort(), [jobs]);
+  
+  const filteredJobs = useMemo(() => {
+    return jobs.filter(j => 
+       String(j.subject) === form.subject && 
+       String(j.year_level) === String(form.year)
+    );
+  }, [jobs, form.subject, form.year]);
+
+  function selectJob(jobId) {
+    setSelectedJobId(jobId);
+    const job = jobs.find(j => j.job_id === jobId || j.id === jobId);
+    if (job) {
+      setForm(prev => ({
+        ...prev,
+        // Don't overwrite subject/year since we filtered by them
+        strand: job.topic || "",      // Map topic column to strand field if needed, or check schema
+        topic: job.subtopic || job.topic || "", // Heuristic mapping based on likely spreadsheet columns
+        subtopic: job.subtopic || "", 
+      }));
+    }
+  }
 
   async function searchLessons() {
     if (!searchQuery) return;
@@ -337,26 +364,63 @@ export default function LessonBuilder() {
       {tab === "interactive" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
            <div className="lg:col-span-2 space-y-6">
-              <Section title="Lesson Parameters" desc="Define the lesson scope. This uses the v1.7 Schema.">
+              <Section title="Lesson Parameters" desc="Select from imported spreadsheet jobs or create manually.">
+                 
+                 {/* Filters */}
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Subject</label>
-                       <Select value={form.subject} onChange={e => setForm({...form, subject: e.target.value})}>
-                          <option value="Mathematics">Mathematics</option>
-                          <option value="English">English</option>
-                          <option value="Science">Science</option>
-                          <option value="HASS">HASS</option>
-                          <option value="Technologies">Technologies</option>
-                          <option value="The Arts">The Arts</option>
-                          <option value="Health and Physical Education">HPE</option>
+                       <Select 
+                         value={form.subject} 
+                         onChange={e => { setForm({...form, subject: e.target.value}); setSelectedJobId(""); }}
+                       >
+                          {availableSubjects.length > 0 ? (
+                             availableSubjects.map(s => <option key={s} value={s}>{s}</option>)
+                          ) : (
+                             <>
+                               <option value="Mathematics">Mathematics</option>
+                               <option value="English">English</option>
+                               <option value="Science">Science</option>
+                             </>
+                          )}
                        </Select>
                     </div>
                     <div>
                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Year Level</label>
-                       <Select value={form.year} onChange={e => setForm({...form, year: e.target.value})}>
-                          {[1,2,3,4,5,6].map(y => <option key={y} value={y}>Year {y}</option>)}
+                       <Select 
+                         value={form.year} 
+                         onChange={e => { setForm({...form, year: e.target.value}); setSelectedJobId(""); }}
+                       >
+                          {availableYears.length > 0 ? (
+                             availableYears.map(y => <option key={y} value={y}>{y.replace(/^\D+/g, '')}</option>)
+                          ) : (
+                             [1,2,3,4,5,6].map(y => <option key={y} value={y}>Year {y}</option>)
+                          )}
                        </Select>
                     </div>
+                 </div>
+
+                 {/* Job Picker */}
+                 <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                       <ListFilter className="w-4 h-4" /> Select Pending Job
+                    </div>
+                    {filteredJobs.length > 0 ? (
+                       <Select 
+                         value={selectedJobId} 
+                         onChange={e => selectJob(e.target.value)}
+                         className="bg-white"
+                       >
+                          <option value="">-- Choose Topic --</option>
+                          {filteredJobs.map(j => (
+                             <option key={j.job_id || j.id} value={j.job_id || j.id}>
+                                {j.topic} {j.subtopic ? ` - ${j.subtopic}` : ""} ({toneForStatus(j.status)})
+                             </option>
+                          ))}
+                       </Select>
+                    ) : (
+                       <div className="text-xs text-slate-400 italic">No jobs found for this subject/year in the import queue.</div>
+                    )}
                  </div>
                  
                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
