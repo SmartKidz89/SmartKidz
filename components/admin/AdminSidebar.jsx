@@ -17,7 +17,8 @@ import {
   Factory,
   Mail,
   Activity,
-  ShieldAlert
+  ShieldAlert,
+  Blocks
 } from "lucide-react";
 import { cx } from "@/components/admin/adminUi";
 
@@ -52,6 +53,7 @@ const GROUPS = [
   {
     title: "Infrastructure",
     items: [
+      { href: "/admin/integrations", label: "Integrations", icon: Blocks, minRole: "root" },
       { href: "/admin/database", label: "Database SQL", icon: Database, minRole: "root" },
       { href: "/admin/github", label: "GitHub Sync", icon: Github, minRole: "root" },
     ],

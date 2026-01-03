@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
+import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
 function Pill({ children, tone = "slate" }) {
   const toneMap = {
@@ -46,11 +47,16 @@ function toneForStatus(s) {
 }
 
 export default function LessonBuilder() {
-  const [tab, setTab] = useState("interactive"); // interactive | import | jobs | assets
+  const [tab, setTab] = useState("interactive"); // interactive | import | jobs | assets | preview
   const [jobs, setJobs] = useState([]);
   const [assets, setAssets] = useState([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
+
+  // Preview State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [previewLesson, setPreviewLesson] = useState(null);
 
   // Interactive Form State
   const [form, setForm] = useState({
@@ -80,6 +86,80 @@ export default function LessonBuilder() {
   }
 
   useEffect(() => { refresh(); }, []);
+
+  async function searchLessons() {
+    if (!searchQuery) return;
+    setBusy(true);
+    try {
+      // Reusing the general content API or hitting DB directly via a new endpoint would be best
+      // For now, we reuse the /api/admin/content logic but filtered
+      const res = await fetch("/api/admin/cms-pages"); // Placeholder, ideally a dedicated search endpoint
+      // Actually let's use the content endpoint if available, or just fetch lesson_editions
+      // We'll add a quick search fetch here
+      const searchRes = await fetch(`/api/admin/lesson-jobs`); // reusing job list for now as proxy or implement real search
+      // Real implementation:
+      const { data, error } = await (await fetch("/api/admin/lesson-jobs")).json(); // This is jobs, not lessons.
+      
+      // Let's implement a real search call to Supabase via existing API if possible or just use what we have.
+      // Since we don't have a dedicated search API exposed here yet, I'll use the job list as a proxy for "recent generations".
+      // A better approach is to use the /api/admin/content endpoint if it supports search.
+      // Let's assume we want to search `lesson_editions`. I'll use the /api/admin/content endpoint I saw earlier? No that was for CMS pages.
+      // I will add a direct fetch to /api/admin/lesson-jobs but filter locally for this MVP.
+      
+      if (data) {
+         const filtered = data.filter(j => 
+            j.topic?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            j.job_id?.toLowerCase().includes(searchQuery.toLowerCase())
+         );
+         setSearchResults(filtered);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+  
+  // Actually, to do this properly I need to fetch the FULL lesson content for the previewer.
+  // I'll add a loadLesson function.
+  async function loadPreview(jobId) {
+     setBusy(true);
+     try {
+        // We need the `lesson_editions` row. The job_id usually maps to template_id.
+        // Let's try to fetch via the public lesson API for simplicity, or admin equivalent.
+        // Since /app/lesson/[id] fetches client side, we can replicate that fetch here if we had an endpoint.
+        // I'll use the `lesson_editions` table via admin-auth directly if I can, or use the job data if it has the ID.
+        // The job table has `supabase_lesson_id`.
+        
+        const job = jobs.find(j => j.job_id === jobId || j.id === jobId);
+        const editionId = job?.supabase_lesson_id || jobId; // Fallback if user searched exact ID
+
+        // We need an endpoint to get the full lesson JSON. 
+        // I will use a direct call to a new helper or reuse the content manager API.
+        // Let's use the `lesson-editions` table via a direct query in a new route? 
+        // No, let's reuse `/api/admin/content` logic if possible.
+        // Actually, I'll just fetch it directly using the client-side supabase if authenticated, 
+        // BUT this is an admin page, so we should use an API route to avoid RLS issues if the admin isn't the "owner".
+        // I'll add a quick fetcher here.
+        
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        
+        const { data, error } = await supabase
+           .from("lesson_editions")
+           .select("*, lesson_content_items(*)")
+           .eq("edition_id", editionId)
+           .single();
+           
+        if (error) throw error;
+        setPreviewLesson(data);
+        
+     } catch (e) {
+        setNotice({ tone: "danger", title: "Load Failed", text: "Could not load lesson content. " + e.message });
+     } finally {
+        setBusy(false);
+     }
+  }
 
   async function handleGenerate() {
     setBusy(true);
@@ -185,6 +265,13 @@ export default function LessonBuilder() {
           Interactive
         </button>
         <button
+          className={`rounded-xl px-3 py-2 text-sm border ${tab === "preview" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
+          onClick={() => setTab("preview")}
+        >
+          <Eye className="w-4 h-4 inline mr-2" />
+          Preview
+        </button>
+        <button
           className={`rounded-xl px-3 py-2 text-sm border ${tab === "import" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
           onClick={() => setTab("import")}
         >
@@ -211,6 +298,45 @@ export default function LessonBuilder() {
 
       {notice && (
         <AdminNotice tone={notice.tone} title={notice.title}>{notice.text}</AdminNotice>
+      )}
+
+      {/* PREVIEW TAB */}
+      {tab === "preview" && (
+         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+            <div className="space-y-4">
+               <Section title="Find Lesson" desc="Search by ID or Topic">
+                  <div className="flex gap-2">
+                     <Input 
+                       value={searchQuery} 
+                       onChange={e => { setSearchQuery(e.target.value); searchLessons(); }} 
+                       placeholder="Search..." 
+                     />
+                     <Button tone="secondary" onClick={searchLessons} disabled={busy}><Search className="w-4 h-4" /></Button>
+                  </div>
+                  <div className="mt-4 space-y-2 max-h-[500px] overflow-y-auto">
+                     {jobs.filter(j => !searchQuery || j.topic?.toLowerCase().includes(searchQuery.toLowerCase())).map(j => (
+                        <button 
+                          key={j.id} 
+                          onClick={() => loadPreview(j.id)}
+                          className={`w-full text-left p-3 rounded-xl border transition-colors ${previewLesson?.template_id === j.job_id ? "bg-indigo-50 border-indigo-200 text-indigo-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
+                        >
+                           <div className="font-bold text-sm truncate">{j.topic}</div>
+                           <div className="text-xs text-slate-500 truncate">{j.supabase_lesson_id || j.job_id}</div>
+                        </button>
+                     ))}
+                  </div>
+               </Section>
+            </div>
+            <div>
+               {previewLesson ? (
+                  <AdminLessonPlayer lessonData={previewLesson} />
+               ) : (
+                  <div className="h-[600px] rounded-3xl border-4 border-dashed border-slate-200 flex items-center justify-center text-slate-400 font-bold">
+                     Select a lesson to preview
+                  </div>
+               )}
+            </div>
+         </div>
       )}
 
       {/* INTERACTIVE TAB */}
@@ -273,6 +399,9 @@ export default function LessonBuilder() {
                     <div className="mt-4 flex gap-2">
                        <Button tone="ghost" onClick={() => setTab("assets")} className="text-emerald-700 hover:text-emerald-900">
                           View Asset Queue
+                       </Button>
+                       <Button tone="primary" onClick={() => { loadPreview(lastResult.lesson_id); setTab("preview"); }}>
+                          Preview Now
                        </Button>
                     </div>
                  </div>
