@@ -43,6 +43,14 @@ export default function AdminSettingsPage() {
   const me = useAdminMe();
   const isRoot = me.role === "root";
 
+
+  const bootstrapCurl = [
+    'curl -X POST \"$BASE_URL/api/admin-auth/bootstrap\" \\',
+    '  -H \"x-bootstrap-token: $ADMIN_BOOTSTRAP_TOKEN\" \\',
+    '  -H \"content-type: application/json\" \\',
+    `  -d '{\"username\":\"root\",\"password\":\"change-me\"}'`,
+  ].join('\n');
+
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null); // { tone, title, message }
@@ -497,10 +505,7 @@ export default function AdminSettingsPage() {
             Create the first root admin by calling <span className="font-mono">POST /api/admin-auth/bootstrap</span> with header <span className="font-mono">x-bootstrap-token</span> set to <span className="font-mono">ADMIN_BOOTSTRAP_TOKEN</span>.
           </div>
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-mono whitespace-pre-wrap">
-            curl -X POST "$BASE_URL/api/admin-auth/bootstrap" \
-  -H "x-bootstrap-token: $ADMIN_BOOTSTRAP_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"username":"root","password":"change-me"}'
+            {bootstrapCurl}
           </div>
           <div className="mt-3 flex items-center gap-2">
             <Button
