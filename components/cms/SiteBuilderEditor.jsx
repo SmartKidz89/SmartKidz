@@ -8,7 +8,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 import { Button } from "@/components/ui/Button"; 
 import { useAdminMe } from "@/components/admin/useAdminMe";
-import { BLOCK_TYPES, defaultBlock, normalizePageContent } from "@/lib/cms/blocks";
+import { BLOCK_TYPES, defaultBlock, normalizePageContent, newId } from "@/lib/cms/blocks";
 import { RenderBlocks } from "@/components/cms/RenderBlocks"; 
 import { useUndoRedoState } from "@/components/cms/builder/useUndoRedo";
 import LinkPickerModal from "@/components/cms/builder/LinkPickerModal";
@@ -17,7 +17,7 @@ import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
 
 import {
-  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe, Code, Info
+  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe, Code, Info, Copy
 } from "lucide-react";
 
 function slugify(input) {
@@ -35,10 +35,24 @@ const HARDCODED_PAGES = [
   { title: "Curriculum", slug: "marketing/curriculum", scope: "public" },
   { title: "Login", slug: "login", scope: "auth" },
   { title: "Signup", slug: "signup", scope: "auth" },
-  { title: "Student Dashboard", slug: "app", scope: "app" },
-  { title: "Worlds Map", slug: "app/worlds", scope: "app" },
-  { title: "Parent Dashboard", slug: "app/parent", scope: "parent" },
 ];
+
+// Pre-defined block structures for system pages to allow "forking"
+const SYSTEM_TEMPLATES = {
+  "/": {
+    title: "Home",
+    slug: "home", // internal slug
+    scope: "marketing",
+    blocks: [
+      { id: newId("hero"), type: "component", componentName: "MarketingHero" },
+      { id: newId("logo"), type: "component", componentName: "LogoStrip" },
+      { id: newId("feat"), type: "component", componentName: "FeatureGrid" },
+      { id: newId("subj"), type: "component", componentName: "SubjectTiles" },
+      { id: newId("shot"), type: "component", componentName: "ScreenshotsShowcase" },
+      { id: newId("cta"),  type: "component", componentName: "CTA" },
+    ]
+  }
+};
 
 export default function SiteBuilderEditor() {
   const { role, loading, authenticated } = useAdminMe();
@@ -120,6 +134,41 @@ export default function SiteBuilderEditor() {
       setMsg(e.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  // Fork a system page into the database
+  async function forkPage(sysPage) {
+    if(!confirm(`This will create a editable copy of "${sysPage.title}" in the database. It will override the hardcoded version. Continue?`)) return;
+    
+    setBusy(true);
+    try {
+       const template = SYSTEM_TEMPLATES[sysPage.slug];
+       if (!template) throw new Error("No template available for this page yet.");
+
+       const res = await fetch("/api/admin/cms-pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: template.title,
+          slug: template.slug,
+          scope: template.scope,
+          published: true, // Auto-publish to take effect immediately
+          content_json: { version: 1, blocks: template.blocks }
+        })
+      });
+      
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Fork failed");
+      
+      setMsg(`Forked ${sysPage.title}. You can now edit it.`);
+      await loadPages();
+      await loadPage(j.page.id);
+      
+    } catch (e) {
+       alert(e.message);
+    } finally {
+       setBusy(false);
     }
   }
 
@@ -318,21 +367,30 @@ export default function SiteBuilderEditor() {
                     System Pages <Lock className="w-3 h-3 opacity-50" />
                   </div>
                   <div className="space-y-1 px-3">
-                     {filteredSystemPages.map(hp => (
-                        <div key={hp.slug} className="group flex items-center justify-between py-1.5 text-xs text-slate-500 opacity-80 hover:opacity-100 transition-opacity">
-                           <div className="flex items-center gap-2 truncate">
-                              <Code className="w-3 h-3 opacity-50" />
-                              <span className="truncate font-medium">{hp.title}</span>
-                           </div>
-                           <a href={hp.slug.startsWith('/') ? hp.slug : `/${hp.slug}`} target="_blank" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded">
-                              <ExternalLinkIcon />
-                           </a>
-                        </div>
-                     ))}
-                  </div>
-                  <div className="mt-3 mx-3 p-2 bg-indigo-50 border border-indigo-100 rounded text-[10px] text-indigo-800 leading-tight">
-                     <Info className="w-3 h-3 inline mr-1 mb-0.5" />
-                     <strong>Note:</strong> System pages are built with code (React) and cannot be edited here. Use this builder for landing pages, help docs, and blogs.
+                     {filteredSystemPages.map(hp => {
+                        const canFork = SYSTEM_TEMPLATES[hp.slug];
+                        // If page already exists in custom pages (by slug), disable fork
+                        const exists = pages.some(p => p.slug === (canFork ? canFork.slug : hp.slug));
+                        
+                        return (
+                          <div key={hp.slug} className="group flex items-center justify-between py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded px-2 transition-colors">
+                             <div className="flex items-center gap-2 truncate">
+                                <Code className="w-3 h-3 opacity-50" />
+                                <span className="truncate font-medium">{hp.title}</span>
+                             </div>
+                             {canFork && !exists && (
+                               <button 
+                                 onClick={() => forkPage(hp)} 
+                                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white hover:text-indigo-600 rounded shadow-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                                 title="Fork to CMS"
+                               >
+                                 <Copy className="w-3 h-3" /> Fork
+                               </button>
+                             )}
+                             {exists && <span className="text-[10px] text-emerald-600 font-bold opacity-60">Edited</span>}
+                          </div>
+                        );
+                     })}
                   </div>
                </div>
             </div>
@@ -361,7 +419,7 @@ export default function SiteBuilderEditor() {
                <div className="m-auto text-slate-400 flex flex-col items-center">
                   <Layout className="w-12 h-12 mb-3 opacity-20" />
                   <div className="font-medium">Select a page to edit</div>
-                  <div className="text-sm opacity-60 mt-1">or view system pages in the sidebar</div>
+                  <div className="text-sm opacity-60 mt-1">or fork a system page to customize it.</div>
                </div>
             )}
             
@@ -556,6 +614,15 @@ function BlockFields({ block, onChange, onLink, onAsset }) {
    const Input = (p) => <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" {...p} />;
    const Area = (p) => <textarea className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none min-h-[80px]" {...p} />;
    
+   if (block.type === "component") {
+      return (
+         <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-800">
+            <strong>System Component:</strong> {block.componentName} <br/>
+            This block renders a complex coded component. You can change its position, but content editing is limited to its props (if exposed).
+         </div>
+      );
+   }
+
    if (block.type === "section" || block.type === "split") {
       return (
          <div className="space-y-4">

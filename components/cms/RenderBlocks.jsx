@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Check, Play } from "lucide-react";
 
+// Import System Components for re-use in CMS
+import MarketingHero from "@/components/marketing/MarketingHero";
+import { FeatureGrid, SubjectTiles, CTA, LogoStrip } from "@/components/marketing/LandingSections";
+import ScreenshotsShowcase from "@/components/marketing/ScreenshotsShowcase";
+import FAQAccordion from "@/components/marketing/FAQAccordion";
+
 // --- Style System ---
 
 const BG_MAP = {
@@ -117,6 +123,26 @@ export function RenderBlocks({ content, selectable = false, selectedBlockId = nu
         const s = b.style || {};
 
         switch (b.type) {
+          case "component":
+            // Render specialized React components from the codebase
+            // These allow "High Fidelity" blocks in the visual editor
+            const Component = {
+              MarketingHero,
+              FeatureGrid,
+              SubjectTiles,
+              CTA,
+              LogoStrip,
+              ScreenshotsShowcase
+            }[b.componentName];
+
+            if (!Component) return <div {...selectProps} className="p-4 bg-rose-50 text-rose-600 border border-rose-200">Unknown Component: {b.componentName}</div>;
+            
+            return (
+              <div key={b.id} {...selectProps}>
+                <Component {...(b.props || {})} />
+              </div>
+            );
+
           case "hero":
             return (
               <SectionWrapper key={b.id} style={s} {...selectProps}>
