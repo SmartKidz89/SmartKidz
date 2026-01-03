@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Download, RefreshCw, Search, Shield } from "lucide-react";
-import AdminNotice from "@/components/admin/AdminNotice";
-import { cx } from "@/components/admin/adminUi";
-import { useAdminMe } from "@/components/admin/useAdminMe";
+// Use relative imports to avoid build failures if the "@" path alias is not
+// correctly configured in the deployment environment.
+import AdminNotice from "../../../../components/admin/AdminNotice";
+import { cx } from "../../../../components/admin/adminUi";
+import { useAdminMe } from "../../../../components/admin/useAdminMe";
 
 
 function safeJson(v) {
