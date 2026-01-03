@@ -26,6 +26,8 @@ import RenderBlocks from "@/components/cms/RenderBlocks";
 import { useUndoRedoState } from "@/components/cms/builder/useUndoRedo";
 import LinkPickerModal from "@/components/cms/builder/LinkPickerModal";
 import AssetPickerModal from "@/components/cms/builder/AssetPickerModal";
+import AdminNotice from "@/components/admin/AdminNotice";
+import AdminModal from "@/components/admin/AdminModal";
 
 import {
   ChevronDown,
@@ -74,6 +76,19 @@ export default function SiteBuilderEditor() {
 
   const [versions, setVersions] = useState([]);
   const [scheduleAt, setScheduleAt] = useState("");
+
+  const [dirty, setDirty] = useState(false);
+  const [pageQuery, setPageQuery] = useState("");
+  const [scopeFilter, setScopeFilter] = useState("all"); // all | marketing | app
+  const [statusFilter, setStatusFilter] = useState("all"); // all | live | draft
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    title: "",
+    slug: "",
+    scope: "marketing",
+    template: "hero", // hero | landing | text
+  });
 
 
   const [content, setContent, history] = useUndoRedoState({ version: 1, blocks: [] }, { limit: 80 });
@@ -141,6 +156,7 @@ async function publishNow() {
     setSelectedMeta((m) => ({ ...m, published: true }));
     await loadVersions(selectedMeta.id);
     await loadSchedule(selectedMeta.id);
+    setDirty(false);
     setMsg("Published.");
   } catch (e) {
     setMsg(e.message);
@@ -167,6 +183,7 @@ async function schedulePublish() {
     const j = await res.json();
     if (!res.ok) throw new Error(j?.error || "Schedule failed");
     await loadSchedule(selectedMeta.id);
+    setDirty(false);
     setMsg(`Scheduled for ${iso}`);
   } catch (e) {
     setMsg(e.message);
@@ -212,6 +229,8 @@ async function rollbackTo(versionId) {
     setSelectedId(page.id);
     setSelectedBlockId(normalized.blocks?.[0]?.id || null);
     history.reset(normalized);
+    setDirty(false);
+    setPreviewMode(false);
   }
 
   useEffect(() => {
@@ -235,16 +254,19 @@ async function rollbackTo(versionId) {
   }, [canUse, pages, selectedId]);
 
   function updateMeta(k, v) {
+    setDirty(true);
     setSelectedMeta((p) => ({ ...p, [k]: v }));
   }
 
   function addBlock(type) {
     const blk = defaultBlock(type);
+    setDirty(true);
     setContent((c) => ({ ...c, blocks: [...(c.blocks || []), blk] }));
     setSelectedBlockId(blk.id);
   }
 
   function updateBlock(blockId, patch) {
+    setDirty(true);
     setContent((c) => ({
       ...c,
       blocks: (c.blocks || []).map((b) => (b.id === blockId ? { ...b, ...patch } : b)),
@@ -252,6 +274,7 @@ async function rollbackTo(versionId) {
   }
 
   function duplicateBlock(blockId) {
+    setDirty(true);
     setContent((c) => {
       const list = [...(c.blocks || [])];
       const idx = list.findIndex((b) => b.id === blockId);
@@ -264,6 +287,7 @@ async function rollbackTo(versionId) {
   }
 
   function removeBlock(blockId) {
+    setDirty(true);
     setContent((c) => ({ ...c, blocks: (c.blocks || []).filter((b) => b.id !== blockId) }));
     if (selectedBlockId === blockId) {
       const next = blocks.find((b) => b.id !== blockId);
@@ -272,6 +296,7 @@ async function rollbackTo(versionId) {
   }
 
   function moveBlock(blockId, dir) {
+    setDirty(true);
     setContent((c) => {
       const list = [...(c.blocks || [])];
       const idx = list.findIndex((b) => b.id === blockId);
@@ -286,14 +311,32 @@ async function rollbackTo(versionId) {
   }
 
   async function createNew() {
-    const title = prompt("Page title?") || "";
-    if (!title.trim()) return;
-    const slug = slugify(prompt("Slug (e.g. marketing/new-page or app/help)?") || title);
-    if (!slug) return;
+    setCreateForm({ title: "", slug: "", scope: "marketing", template: "hero" });
+    setCreateOpen(true);
+  }
 
-    const scope = slug.startsWith("app/") ? "app" : "marketing";
-    const cleanSlug = scope === "app" ? slug.replace(/^app\//, "") : slug.replace(/^marketing\//, "");
+  function templateBlocks(tpl) {
+    if (tpl === "clone") {
+      const base = normalizePageContent(content);
+      const now = Date.now();
+      return (base.blocks || []).map((b, idx) => ({ ...b, id: `${b.id}_copy_${now}_${idx}` }));
+    }
+    if (tpl === "landing") {
+      return [defaultBlock("hero"), defaultBlock("cards"), defaultBlock("section"), defaultBlock("divider"), defaultBlock("markdown")];
+    }
+    if (tpl === "text") {
+      return [defaultBlock("section"), defaultBlock("markdown")];
+    }
+    return [defaultBlock("hero")];
+  }
 
+  async function createFromModal() {
+    const title = (createForm.title || "").trim();
+    const slugRaw = slugify(createForm.slug || title);
+    if (!title) return setMsg("Title is required.");
+    if (!slugRaw) return setMsg("Slug is required.");
+    const scope = createForm.scope || "marketing";
+    const cleanSlug = slugRaw.replace(/^app\//, "").replace(/^marketing\//, "");
     setBusy(true);
     setMsg(null);
     try {
@@ -303,13 +346,14 @@ async function rollbackTo(versionId) {
         body: JSON.stringify({
           scope,
           slug: cleanSlug,
-          title: title.trim(),
+          title,
           published: false,
-          content_json: { version: 1, blocks: [defaultBlock("hero")] },
+          content_json: { version: 1, blocks: templateBlocks(createForm.template) },
         }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || "Create failed");
+      setCreateOpen(false);
       await loadPages();
       await loadPage(j.page.id);
       setMsg("Page created.");
@@ -341,6 +385,7 @@ async function rollbackTo(versionId) {
       if (!res.ok) throw new Error(j?.error || "Save failed");
       await loadPages();
       setSelectedMeta((p) => ({ ...p, updated_at: j.page.updated_at }));
+      setDirty(false);
       setMsg("Saved.");
     } catch (e) {
       setMsg(e?.message || "Save failed");
@@ -364,6 +409,7 @@ async function rollbackTo(versionId) {
       setSelectedId(null);
       history.reset({ version: 1, blocks: [] });
       setSelectedBlockId(null);
+      setDirty(false);
       await loadPages();
       setMsg("Deleted.");
     } catch (e) {
@@ -403,6 +449,18 @@ async function rollbackTo(versionId) {
       : `/app/p/${selectedMeta.slug}`
     : null;
 
+  const filteredPages = useMemo(() => {
+    const q = pageQuery.trim().toLowerCase();
+    return (pages || []).filter((p) => {
+      if (scopeFilter !== "all" && p.scope !== scopeFilter) return false;
+      if (statusFilter === "live" && !p.published) return false;
+      if (statusFilter === "draft" && p.published) return false;
+      if (!q) return true;
+      const hay = `${p.scope}/${p.slug} ${p.title || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [pages, pageQuery, scopeFilter, statusFilter]);
+
   const deviceFrameClass =
     device === "mobile" ? "max-w-[420px]" : device === "tablet" ? "max-w-[860px]" : "max-w-[1200px]";
 
@@ -418,454 +476,563 @@ async function rollbackTo(versionId) {
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Builder</div>
-          <div className="text-2xl font-semibold">Pages</div>
-          <div className="mt-1 text-sm text-slate-600">
-            Edit pages visually, then publish. Live URLs render at <code className="px-1 rounded bg-slate-50 border">/marketing/p/&lt;slug&gt;</code> and <code className="px-1 rounded bg-slate-50 border">/app/p/&lt;slug&gt;</code>.
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="secondary" onClick={createNew} disabled={busy}>
-            <Plus className="w-4 h-4" /> New
-          </Button>
-          <Button variant="secondary" onClick={aiDraft} disabled={busy || !selectedMeta}>
-            <Sparkles className="w-4 h-4" /> AI draft
-          </Button>
-          <Button onClick={save} disabled={busy || !selectedMeta}>
-            <Save className="w-4 h-4" /> Save
-          </Button>
-        </div>
-      </div>
-
-      {msg ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
-          {msg}
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr_360px] gap-4">
-        {/* Left: pages + block library */}
-        <div className="grid gap-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold">Pages</div>
-              <button
-                className="text-xs text-slate-500 hover:text-slate-800"
-                onClick={() => loadPages().catch((e) => setMsg(e.message))}
-                disabled={busy}
-              >
-                Refresh
-              </button>
-            </div>
-            <div className="mt-3 grid gap-2 max-h-[44vh] overflow-auto pr-1">
-              {pages.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => loadPage(p.id).catch((e) => setMsg(e.message))}
+    <>
+      <div className="grid gap-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Builder</div>
+            <div className="mt-1 flex items-center gap-3 flex-wrap">
+              <div className="text-2xl font-semibold">Pages</div>
+              {selectedMeta ? (
+                <span
                   className={cx(
-                    "text-left rounded-2xl border px-3 py-2 transition",
-                    selectedId === p.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white hover:border-slate-300"
+                    "text-xs font-semibold px-2 py-1 rounded-full border",
+                    dirty ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-semibold text-sm truncate">
-                      {p.scope}/{p.slug}
-                    </div>
-                    <div
-                      className={cx(
-                        "text-[10px] font-semibold px-2 py-1 rounded-full",
-                        p.published ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600"
-                      )}
-                    >
-                      {p.published ? "LIVE" : "DRAFT"}
-                    </div>
-                  </div>
-                  <div className={cx("mt-1 text-xs truncate", selectedId === p.id ? "text-white/80" : "text-slate-600")}>
-                    {p.title}
-                  </div>
-                </button>
-              ))}
-              {!pages.length ? <div className="text-sm text-slate-600">No pages yet. Create one.</div> : null}
-            </div>
-</Card>
-
-<Card className="p-4">
-  <div className="flex items-center justify-between gap-2">
-    <div className="text-sm font-semibold">Version history</div>
-    <div className="text-xs text-slate-500">{versions.length} snapshots</div>
-  </div>
-  <div className="mt-3 space-y-2 max-h-[260px] overflow-auto">
-    {versions.length === 0 ? (
-      <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
-    ) : (
-      versions.map((v) => (
-        <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
-          <div className="min-w-0">
-            <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
-            <div className="text-sm truncate">
-              <span className="font-medium">{v.status}</span>
-              <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
-            </div>
-          </div>
-          <div className="shrink-0">
-            <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
-              Rollback
-            </Button>
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-</Card>
-
-<Card className="p-4">
-            <div className="font-semibold">Add blocks</div>
-            <div className="mt-3 grid gap-2">
-              <select
-                className="h-11 rounded-2xl border border-slate-200 px-3 text-sm"
-                disabled={!selectedMeta}
-                onChange={(e) => {
-                  const t = e.target.value;
-                  if (t) addBlock(t);
-                  e.target.value = "";
-                }}
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  Select a block…
-                </option>
-                {Object.keys(BLOCK_TYPES).map((t) => (
-                  <option key={t} value={t}>
-                    {BLOCK_TYPES[t]}
-                  </option>
-                ))}
-              </select>
-              <div className="text-xs text-slate-500">Tip: click any section on the canvas to edit it.</div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Center: canvas */}
-        <Card className="p-0 overflow-hidden">
-          <div className="border-b border-slate-100 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="font-semibold">Canvas</div>
-              {pageUrl ? (
-                <a
-                  href={pageUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-slate-500 hover:text-slate-900 underline"
-                >
-                  Open live
-                </a>
+                  {dirty ? "Unsaved changes" : "Saved"}
+                </span>
+              ) : null}
+              {selectedMeta ? (
+                <span className="text-xs text-slate-500 truncate">
+                  Editing <span className="font-mono">{selectedMeta.scope}/{selectedMeta.slug}</span>
+                </span>
               ) : null}
             </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                className={cx(
-                  "h-9 rounded-xl border px-3 text-sm",
-                  device === "mobile" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
-                )}
-                onClick={() => setDevice("mobile")}
-                disabled={!selectedMeta}
-              >
-                Mobile
-              </button>
-              <button
-                className={cx(
-                  "h-9 rounded-xl border px-3 text-sm",
-                  device === "tablet" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
-                )}
-                onClick={() => setDevice("tablet")}
-                disabled={!selectedMeta}
-              >
-                Tablet
-              </button>
-              <button
-                className={cx(
-                  "h-9 rounded-xl border px-3 text-sm",
-                  device === "desktop" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
-                )}
-                onClick={() => setDevice("desktop")}
-                disabled={!selectedMeta}
-              >
-                Desktop
-              </button>
-
-              <span className="w-px h-7 bg-slate-200 mx-1" />
-
-              <button
-                className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-                onClick={history.undo}
-                disabled={!history.canUndo || !selectedMeta}
-                title="Undo"
-              >
-                <Undo2 className="w-4 h-4 mx-auto" />
-              </button>
-              <button
-                className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-                onClick={history.redo}
-                disabled={!history.canRedo || !selectedMeta}
-                title="Redo"
-              >
-                <Redo2 className="w-4 h-4 mx-auto" />
-              </button>
-
-              <span className="w-px h-7 bg-slate-200 mx-1" />
-
-              <button
-                className={cx(
-                  "h-9 rounded-xl border px-3 text-sm flex items-center gap-2",
-                  previewMode ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
-                )}
-                onClick={() => setPreviewMode((v) => !v)}
-                disabled={!selectedMeta}
-                title="Toggle preview"
-              >
-                <Eye className="w-4 h-4" /> {previewMode ? "Exit preview" : "Preview"}
-              </button>
+            <div className="mt-1 text-sm text-slate-600">
+              Edit pages visually, then publish. Live URLs render at{" "}
+              <code className="px-1 rounded bg-slate-50 border">/marketing/p/&lt;slug&gt;</code> and{" "}
+              <code className="px-1 rounded bg-slate-50 border">/app/p/&lt;slug&gt;</code>.
             </div>
           </div>
 
-          <div className="bg-slate-50 p-4">
-            {!selectedMeta ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6">
-                <div className="font-semibold">Select a page to start</div>
-                <div className="mt-1 text-sm text-slate-600">Choose a page on the left, or create a new one.</div>
-              </div>
-            ) : (
-              <div className={cx("mx-auto rounded-[28px] border border-slate-200 bg-white shadow-sm", deviceFrameClass)}>
-                <RenderBlocks
-                  content={content}
-                  selectable={!previewMode}
-                  selectedBlockId={selectedBlockId}
-                  onSelectBlock={(id) => setSelectedBlockId(id)}
-                />
-              </div>
-            )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="secondary" onClick={createNew} disabled={busy}>
+              <Plus className="w-4 h-4" /> New
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (!selectedMeta) return;
+                setCreateForm({
+                  title: `${selectedMeta.title || "Untitled"} (Copy)`,
+                  slug: `${selectedMeta.slug}-copy`,
+                  scope: selectedMeta.scope || "marketing",
+                  template: "clone",
+                });
+                setCreateOpen(true);
+              }}
+              disabled={busy || !selectedMeta}
+              title="Create a new page with the same blocks"
+            >
+              <Copy className="w-4 h-4" /> Duplicate
+            </Button>
+            <Button variant="secondary" onClick={aiDraft} disabled={busy || !selectedMeta}>
+              <Sparkles className="w-4 h-4" /> AI draft
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (pageUrl) window.open(pageUrl, "_blank", "noopener,noreferrer");
+              }}
+              disabled={!pageUrl}
+            >
+              <Eye className="w-4 h-4" /> Open
+            </Button>
+            <Button onClick={save} disabled={busy || !selectedMeta || !dirty}>
+              <Save className="w-4 h-4" /> Save
+            </Button>
           </div>
-        </Card>
+        </div>
 
-        {/* Right: inspector */}
-        <div className="grid gap-4">
-          <Card className="p-4">
-            <div className="font-semibold">Page settings</div>
-            {!selectedMeta ? (
-              <div className="mt-2 text-sm text-slate-600">Select a page to edit settings.</div>
-            ) : (
-              <div className="mt-3 grid gap-3">
-                <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-slate-500">Scope</span>
+        {msg ? <AdminNotice>{msg}</AdminNotice> : null}
+
+        <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_360px] gap-4">
+          {/* Left */}
+          <div className="grid gap-4">
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-semibold">Pages</div>
+                  <div className="text-xs text-slate-500">{filteredPages.length} of {pages.length}</div>
+                </div>
+                <button
+                  className="text-xs text-slate-500 hover:text-slate-800"
+                  onClick={() => loadPages().catch((e) => setMsg(e.message))}
+                  disabled={busy}
+                >
+                  Refresh
+                </button>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <input
+                  className="h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                  placeholder="Search pages…"
+                  value={pageQuery}
+                  onChange={(e) => setPageQuery(e.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-2">
                   <select
-                    className="h-11 rounded-xl border border-slate-200 px-3 bg-white"
-                    value={selectedMeta.scope}
-                    onChange={(e) => updateMeta("scope", e.target.value)}
+                    className="h-10 rounded-xl border border-slate-200 px-3 bg-white text-sm"
+                    value={scopeFilter}
+                    onChange={(e) => setScopeFilter(e.target.value)}
                   >
-                    <option value="marketing">marketing (public)</option>
-                    <option value="app">app (logged-in)</option>
+                    <option value="all">All scopes</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="app">App</option>
                   </select>
-                </label>
-
-                <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-slate-500">Slug</span>
-                  <input
-                    className="h-11 rounded-xl border border-slate-200 px-3"
-                    value={selectedMeta.slug}
-                    onChange={(e) => updateMeta("slug", slugify(e.target.value))}
-                  />
-                  <span className="text-xs text-slate-500">URL: {pageUrl}</span>
-                </label>
-
-                <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-slate-500">Title</span>
-                  <input
-                    className="h-11 rounded-xl border border-slate-200 px-3"
-                    value={selectedMeta.title || ""}
-                    onChange={(e) => updateMeta("title", e.target.value)}
-                  />
-                </label>
-
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(selectedMeta.published)}
-                    onChange={(e) => updateMeta("published", e.target.checked)}
-                  />
-                  Published
-                </label>
-
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button onClick={publishNow} disabled={busy}>Publish now</Button>
-                </div>
-
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    type="datetime-local"
-                    value={scheduleAt}
-                    onChange={(e) => setScheduleAt(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  />
-                  <Button variant="secondary" onClick={schedulePublish} disabled={busy}>Schedule</Button>
-                </div>
-
-                <div className="pt-2 flex gap-2">
-                  <Button variant="danger" onClick={deletePage} disabled={busy}>
-                    <Trash2 className="w-4 h-4" /> Delete
-                  </Button>
+                  <select
+                    className="h-10 rounded-xl border border-slate-200 px-3 bg-white text-sm"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="live">Live</option>
+                    <option value="draft">Draft</option>
+                  </select>
                 </div>
               </div>
-            )}
-</Card>
 
-<Card className="p-4">
-  <div className="flex items-center justify-between gap-2">
-    <div className="text-sm font-semibold">Version history</div>
-    <div className="text-xs text-slate-500">{versions.length} snapshots</div>
-  </div>
-  <div className="mt-3 space-y-2 max-h-[260px] overflow-auto">
-    {versions.length === 0 ? (
-      <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
-    ) : (
-      versions.map((v) => (
-        <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
-          <div className="min-w-0">
-            <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
-            <div className="text-sm truncate">
-              <span className="font-medium">{v.status}</span>
-              <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
-            </div>
-          </div>
-          <div className="shrink-0">
-            <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
-              Rollback
-            </Button>
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-</Card>
-
-<Card className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="font-semibold">Blocks</div>
-                <div className="text-xs text-slate-500">Drag to reorder. Select to edit.</div>
+              <div className="mt-3 grid gap-2 max-h-[44vh] overflow-auto pr-1">
+                {filteredPages.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => loadPage(p.id).catch((e) => setMsg(e.message))}
+                    className={cx(
+                      "text-left rounded-2xl border px-3 py-2 transition",
+                      selectedId === p.id
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-sm truncate">
+                        {p.scope}/{p.slug}
+                      </div>
+                      <div
+                        className={cx(
+                          "text-[10px] font-semibold px-2 py-1 rounded-full",
+                          p.published ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-700"
+                        )}
+                      >
+                        {p.published ? "LIVE" : "DRAFT"}
+                      </div>
+                    </div>
+                    <div className={cx("mt-1 text-xs truncate", selectedId === p.id ? "text-white/80" : "text-slate-600")}>
+                      {p.title || "Untitled"}
+                    </div>
+                  </button>
+                ))}
+                {!filteredPages.length ? (
+                  <div className="text-sm text-slate-600">No pages match the current filters.</div>
+                ) : null}
               </div>
-            </div>
+            </Card>
 
-            {!selectedMeta ? (
-              <div className="mt-2 text-sm text-slate-600">Select a page first.</div>
-            ) : (
-              <div className="mt-3">
-                <BlocksSortableList
-                  sensors={sensors}
-                  blocks={blocks}
-                  selectedBlockId={selectedBlockId}
-                  onSelect={(id) => setSelectedBlockId(id)}
-                  onReorder={(activeId, overId) => {
-                    const oldIndex = blocks.findIndex((b) => b.id === activeId);
-                    const newIndex = blocks.findIndex((b) => b.id === overId);
-                    if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
-                    setContent((c) => ({ ...c, blocks: arrayMove(c.blocks || [], oldIndex, newIndex) }));
+            <Card className="p-4">
+              <div className="font-semibold">Add blocks</div>
+              <div className="mt-3 grid gap-2">
+                <select
+                  className="h-11 rounded-2xl border border-slate-200 px-3 text-sm bg-white"
+                  disabled={!selectedMeta}
+                  onChange={(e) => {
+                    const t = e.target.value;
+                    if (t) addBlock(t);
+                    e.target.value = "";
                   }}
-                />
-              </div>
-            )}
-</Card>
-
-<Card className="p-4">
-  <div className="flex items-center justify-between gap-2">
-    <div className="text-sm font-semibold">Version history</div>
-    <div className="text-xs text-slate-500">{versions.length} snapshots</div>
-  </div>
-  <div className="mt-3 space-y-2 max-h-[260px] overflow-auto">
-    {versions.length === 0 ? (
-      <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
-    ) : (
-      versions.map((v) => (
-        <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
-          <div className="min-w-0">
-            <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
-            <div className="text-sm truncate">
-              <span className="font-medium">{v.status}</span>
-              <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
-            </div>
-          </div>
-          <div className="shrink-0">
-            <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
-              Rollback
-            </Button>
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-</Card>
-
-<Card className="p-4">
-            <div className="font-semibold">Inspector</div>
-            {!selectedBlock ? (
-              <div className="mt-2 text-sm text-slate-600">Select a block on the canvas or in the list.</div>
-            ) : (
-              <div className="mt-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold">
-                    {BLOCK_TYPES[selectedBlock.type] || selectedBlock.type}
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50"
-                      title="Move up"
-                      onClick={() => moveBlock(selectedBlock.id, -1)}
-                    >
-                      <ChevronUp className="w-4 h-4 mx-auto" />
-                    </button>
-                    <button
-                      className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50"
-                      title="Move down"
-                      onClick={() => moveBlock(selectedBlock.id, 1)}
-                    >
-                      <ChevronDown className="w-4 h-4 mx-auto" />
-                    </button>
-                    <button
-                      className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50"
-                      title="Duplicate"
-                      onClick={() => duplicateBlock(selectedBlock.id)}
-                    >
-                      <Copy className="w-4 h-4 mx-auto" />
-                    </button>
-                    <button
-                      className="h-9 w-9 rounded-xl border border-slate-200 hover:border-rose-300 hover:text-rose-700"
-                      title="Delete"
-                      onClick={() => removeBlock(selectedBlock.id)}
-                    >
-                      <Trash2 className="w-4 h-4 mx-auto" />
-                    </button>
-                  </div>
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select a block…
+                  </option>
+                  {Object.keys(BLOCK_TYPES).map((t) => (
+                    <option key={t} value={t}>
+                      {BLOCK_TYPES[t]}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-xs text-slate-500">
+                  Tip: click any section on the canvas to edit it. Use Preview to see the page without selection chrome.
                 </div>
+              </div>
+            </Card>
+          </div>
 
-                <div className="mt-3">
-                  <BlockFields
-                    block={selectedBlock}
-                    pages={pages}
-                    assets={assets}
-                    onChange={(patch) => updateBlock(selectedBlock.id, patch)}
-                    onPickLink={(current, onPick) => setLinkPicker({ open: true, value: current || "", onPick })}
-                    onPickAsset={(onPick) => setAssetPicker({ open: true, onPick })}
+          {/* Center */}
+          <Card className="p-0 overflow-hidden">
+            <div className="border-b border-slate-100 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <div className="font-semibold">Canvas</div>
+                {pageUrl ? (
+                  <div className="text-xs text-slate-500 truncate">
+                    Live: <span className="font-mono">{pageUrl}</span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500">Select a page to render the canvas.</div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  className={cx(
+                    "h-9 rounded-xl border px-3 text-sm",
+                    device === "mobile" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
+                  )}
+                  onClick={() => setDevice("mobile")}
+                  disabled={!selectedMeta}
+                >
+                  Mobile
+                </button>
+                <button
+                  className={cx(
+                    "h-9 rounded-xl border px-3 text-sm",
+                    device === "tablet" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
+                  )}
+                  onClick={() => setDevice("tablet")}
+                  disabled={!selectedMeta}
+                >
+                  Tablet
+                </button>
+                <button
+                  className={cx(
+                    "h-9 rounded-xl border px-3 text-sm",
+                    device === "desktop" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
+                  )}
+                  onClick={() => setDevice("desktop")}
+                  disabled={!selectedMeta}
+                >
+                  Desktop
+                </button>
+
+                <span className="w-px h-7 bg-slate-200 mx-1" />
+
+                <button
+                  className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                  onClick={history.undo}
+                  disabled={!history.canUndo || !selectedMeta}
+                  title="Undo"
+                >
+                  <Undo2 className="w-4 h-4 mx-auto" />
+                </button>
+                <button
+                  className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                  onClick={history.redo}
+                  disabled={!history.canRedo || !selectedMeta}
+                  title="Redo"
+                >
+                  <Redo2 className="w-4 h-4 mx-auto" />
+                </button>
+
+                <span className="w-px h-7 bg-slate-200 mx-1" />
+
+                <button
+                  className={cx(
+                    "h-9 rounded-xl border px-3 text-sm flex items-center gap-2",
+                    previewMode ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:bg-slate-50"
+                  )}
+                  onClick={() => setPreviewMode((v) => !v)}
+                  disabled={!selectedMeta}
+                >
+                  <Eye className="w-4 h-4" /> {previewMode ? "Exit preview" : "Preview"}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4">
+              {!selectedMeta ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <div className="font-semibold">Select a page to start</div>
+                  <div className="mt-1 text-sm text-slate-600">Choose a page on the left, or create a new one.</div>
+                </div>
+              ) : (
+                <div className={cx("mx-auto rounded-[28px] border border-slate-200 bg-white shadow-sm", deviceFrameClass)}>
+                  <RenderBlocks
+                    content={content}
+                    selectable={!previewMode}
+                    selectedBlockId={selectedBlockId}
+                    onSelectBlock={(id) => setSelectedBlockId(id)}
                   />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </Card>
+
+          {/* Right */}
+          <div className="grid gap-4">
+            <Card className="p-4">
+              <div className="font-semibold">Page settings</div>
+              {!selectedMeta ? (
+                <div className="mt-2 text-sm text-slate-600">Select a page to edit settings.</div>
+              ) : (
+                <div className="mt-3 grid gap-3">
+                  <label className="grid gap-1">
+                    <span className="text-xs font-semibold text-slate-500">Scope</span>
+                    <select
+                      className="h-11 rounded-xl border border-slate-200 px-3 bg-white"
+                      value={selectedMeta.scope}
+                      onChange={(e) => updateMeta("scope", e.target.value)}
+                    >
+                      <option value="marketing">marketing (public)</option>
+                      <option value="app">app (logged-in)</option>
+                    </select>
+                  </label>
+
+                  <label className="grid gap-1">
+                    <span className="text-xs font-semibold text-slate-500">Slug</span>
+                    <input
+                      className="h-11 rounded-xl border border-slate-200 px-3"
+                      value={selectedMeta.slug}
+                      onChange={(e) => updateMeta("slug", slugify(e.target.value))}
+                    />
+                    <span className="text-xs text-slate-500">URL: {pageUrl}</span>
+                  </label>
+
+                  <label className="grid gap-1">
+                    <span className="text-xs font-semibold text-slate-500">Title</span>
+                    <input
+                      className="h-11 rounded-xl border border-slate-200 px-3"
+                      value={selectedMeta.title || ""}
+                      onChange={(e) => updateMeta("title", e.target.value)}
+                    />
+                  </label>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(selectedMeta.published)}
+                        onChange={(e) => updateMeta("published", e.target.checked)}
+                      />
+                      Published
+                    </label>
+                    <Button onClick={publishNow} disabled={busy || !selectedMeta}>
+                      Publish now
+                    </Button>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="text-xs font-semibold text-slate-600">Scheduling</div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="datetime-local"
+                        value={scheduleAt}
+                        onChange={(e) => setScheduleAt(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white"
+                      />
+                      <Button variant="secondary" onClick={schedulePublish} disabled={busy || !selectedMeta}>
+                        Schedule
+                      </Button>
+                    </div>
+                    {scheduleAt ? (
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="text-xs text-slate-500">If scheduled, publishing now cancels the schedule.</div>
+                        <button
+                          className="text-xs font-semibold text-slate-600 hover:text-rose-700"
+                          onClick={cancelSchedule}
+                          disabled={busy || !selectedMeta}
+                        >
+                          Cancel schedule
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-slate-500">No schedule set for this page.</div>
+                    )}
+                  </div>
+
+                  <div className="pt-1 flex gap-2">
+                    <Button variant="danger" onClick={deletePage} disabled={busy}>
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-semibold">Blocks</div>
+                  <div className="text-xs text-slate-500">Drag to reorder. Select to edit.</div>
+                </div>
+              </div>
+
+              {!selectedMeta ? (
+                <div className="mt-2 text-sm text-slate-600">Select a page first.</div>
+              ) : (
+                <div className="mt-3">
+                  <BlocksSortableList
+                    sensors={sensors}
+                    blocks={blocks}
+                    selectedBlockId={selectedBlockId}
+                    onSelect={(id) => setSelectedBlockId(id)}
+                    onReorder={(activeId, overId) => {
+                      const oldIndex = blocks.findIndex((b) => b.id === activeId);
+                      const newIndex = blocks.findIndex((b) => b.id === overId);
+                      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+                      setDirty(true);
+                      setContent((c) => ({ ...c, blocks: arrayMove(c.blocks || [], oldIndex, newIndex) }));
+                    }}
+                  />
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <div className="font-semibold">Inspector</div>
+              {!selectedBlock ? (
+                <div className="mt-2 text-sm text-slate-600">Select a block on the canvas or in the list.</div>
+              ) : (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-semibold">{BLOCK_TYPES[selectedBlock.type] || selectedBlock.type}</div>
+                    <div className="flex gap-1">
+                      <button
+                        className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50"
+                        title="Move up"
+                        onClick={() => moveBlock(selectedBlock.id, -1)}
+                      >
+                        <ChevronUp className="w-4 h-4 mx-auto" />
+                      </button>
+                      <button
+                        className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50"
+                        title="Move down"
+                        onClick={() => moveBlock(selectedBlock.id, 1)}
+                      >
+                        <ChevronDown className="w-4 h-4 mx-auto" />
+                      </button>
+                      <button
+                        className="h-9 w-9 rounded-xl border border-slate-200 hover:bg-slate-50"
+                        title="Duplicate"
+                        onClick={() => duplicateBlock(selectedBlock.id)}
+                      >
+                        <Copy className="w-4 h-4 mx-auto" />
+                      </button>
+                      <button
+                        className="h-9 w-9 rounded-xl border border-slate-200 hover:border-rose-300 hover:text-rose-700"
+                        title="Delete"
+                        onClick={() => removeBlock(selectedBlock.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <BlockFields
+                      block={selectedBlock}
+                      pages={pages}
+                      assets={assets}
+                      onChange={(patch) => updateBlock(selectedBlock.id, patch)}
+                      onPickLink={(current, onPick) => setLinkPicker({ open: true, value: current || "", onPick })}
+                      onPickAsset={(onPick) => setAssetPicker({ open: true, onPick })}
+                    />
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold">Version history</div>
+                <div className="text-xs text-slate-500">{versions.length} snapshots</div>
+              </div>
+              <div className="mt-3 space-y-2 max-h-[260px] overflow-auto pr-1">
+                {versions.length === 0 ? (
+                  <div className="text-sm text-slate-500">No versions yet (save or publish to create snapshots).</div>
+                ) : (
+                  versions.map((v) => (
+                    <div
+                      key={v.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-500">{new Date(v.created_at).toLocaleString()}</div>
+                        <div className="text-sm truncate">
+                          <span className="font-medium">{v.status}</span>
+                          <span className="text-xs text-slate-500"> · {v.created_by || "admin"}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <Button variant="secondary" onClick={() => rollbackTo(v.id)} disabled={busy || !selectedMeta}>
+                          Rollback
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
+
+      <AdminModal
+        open={createOpen}
+        title="Create page"
+        desc="Create a new page and seed it with a starting template."
+        onClose={() => setCreateOpen(false)}
+      >
+        <div className="grid gap-3">
+          <label className="grid gap-1">
+            <span className="text-xs font-semibold text-slate-500">Title</span>
+            <input
+              className="h-11 rounded-xl border border-slate-200 px-3"
+              value={createForm.title}
+              onChange={(e) => setCreateForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="e.g., Home, Pricing, Help"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-xs font-semibold text-slate-500">Slug</span>
+            <input
+              className="h-11 rounded-xl border border-slate-200 px-3"
+              value={createForm.slug}
+              onChange={(e) => setCreateForm((f) => ({ ...f, slug: e.target.value }))}
+              placeholder="e.g., home, pricing, help/getting-started"
+            />
+            <span className="text-xs text-slate-500">The slug is relative to scope. Avoid leading slash.</span>
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-500">Scope</span>
+              <select
+                className="h-11 rounded-xl border border-slate-200 px-3 bg-white"
+                value={createForm.scope}
+                onChange={(e) => setCreateForm((f) => ({ ...f, scope: e.target.value }))}
+              >
+                <option value="marketing">marketing</option>
+                <option value="app">app</option>
+              </select>
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-xs font-semibold text-slate-500">Template</span>
+              <select
+                className="h-11 rounded-xl border border-slate-200 px-3 bg-white"
+                value={createForm.template}
+                onChange={(e) => setCreateForm((f) => ({ ...f, template: e.target.value }))}
+              >
+                <option value="hero">Hero</option>
+                <option value="landing">Landing</option>
+                <option value="text">Text</option>
+                <option value="clone">Clone selected</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <Button variant="secondary" onClick={() => setCreateOpen(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={createFromModal} disabled={busy}>
+              Create
+            </Button>
+          </div>
+        </div>
+      </AdminModal>
 
       <LinkPickerModal
         open={linkPicker.open}
@@ -881,9 +1048,10 @@ async function rollbackTo(versionId) {
         onPick={(asset) => assetPicker.onPick?.(asset)}
         onClose={() => setAssetPicker({ open: false, onPick: null })}
       />
-    </div>
+    </>
   );
 }
+
 
 function BlocksSortableList({ sensors, blocks, selectedBlockId, onSelect, onReorder }) {
   const ids = blocks.map((b) => b.id);

@@ -1,20 +1,6 @@
-import Link from "next/link";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { redirect } from "next/navigation";
-
-const NAV = [
-  { href: "/admin/builder", label: "Pages" },
-  { href: "/admin/lesson-builder", label: "Lessons" },
-  { href: "/admin/workflows", label: "Workflows" },
-  { href: "/admin/navigation", label: "Navigation" },
-  { href: "/admin/media", label: "Media" },
-  { href: "/admin/theme", label: "Theme" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/database", label: "Database" },
-  { href: "/admin/github", label: "GitHub Sync" },
-  { href: "/admin/audit", label: "Audit Log" },
-  { href: "/admin/settings", label: "Settings" },
-];
+import AdminSidebar from "@/components/admin/AdminSidebar";
 
 export default async function AdminLayout({ children }) {
   const auth = await requireAdminSession();
@@ -46,25 +32,7 @@ export default async function AdminLayout({ children }) {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
-        <aside className="md:sticky md:top-[84px] h-fit rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="p-3 border-b border-slate-100">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Workspace</div>
-          </div>
-          <nav className="p-2">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-xl px-3 py-2 text-sm hover:bg-slate-50"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="p-3 border-t border-slate-100 text-xs text-slate-500">
-            Root-only actions are clearly marked.
-          </div>
-        </aside>
+        <AdminSidebar role={role} />
 
         <main className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           {children}
