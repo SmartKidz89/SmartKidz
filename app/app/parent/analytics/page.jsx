@@ -44,7 +44,7 @@ export default function ParentAnalyticsPage() {
       if (lessonIds.length > 0) {
          const { data: lData } = await supabase
            .from("lesson_editions")
-           .select("id, title, subject_id, topic")
+           .select("edition_id, title, subject_id, topic") // Corrected column
            .in("edition_id", lessonIds);
          lessons = lData || [];
       }

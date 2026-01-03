@@ -59,9 +59,9 @@ export default function ParentInsightsDashboard() {
         if (completedIds.length > 0) {
             const { data: lData } = await supabase
                 .from("lesson_editions")
-                .select("id, subject_id")
-                .in("edition_id", completedIds); // edition_id matches lesson_id
-            (lData || []).forEach(l => { lessonsMap[l.id] = l.subject_id; });
+                .select("edition_id, subject_id") // Corrected column name
+                .in("edition_id", completedIds); 
+            (lData || []).forEach(l => { lessonsMap[l.edition_id] = l.subject_id; });
         }
 
         // 3. Aggregate Summary

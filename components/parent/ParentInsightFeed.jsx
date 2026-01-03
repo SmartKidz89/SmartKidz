@@ -115,14 +115,14 @@ export default function ParentInsightFeed({ childId, childName }) {
 
           const { data: lessons, error: lErr } = await supabase
             .from("lesson_editions")
-            .select("id, title, topic, subject_id, year_level")
-            .in("id", ids); // Use 'id' instead of 'edition_id' to match standard query, assuming they are the same in this context or mapped correctly
+            .select("edition_id, title, topic, subject_id, year_level") // Corrected column
+            .in("edition_id", ids); // Corrected column match
 
           if (!mounted) return;
           if (lErr) throw lErr;
 
           // map by id, keep order of completion
-          const map = new Map((lessons || []).map((l) => [l.id, l]));
+          const map = new Map((lessons || []).map((l) => [l.edition_id, l])); // Map using edition_id
           const recentLessons = progressData
             .slice(0, 10)
             .map((p) => {
@@ -195,7 +195,7 @@ export default function ParentInsightFeed({ childId, childName }) {
         <div className="text-sm font-semibold">Recently completed</div>
         <div className="mt-3 space-y-2">
           {recent.length ? recent.map((l) => (
-            <div key={l.id} className="skz-glass p-4 flex items-start justify-between gap-3">
+            <div key={l.edition_id} className="skz-glass p-4 flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold">{l.title}</div>
                 <div className="text-xs text-slate-500 mt-1">{niceSubject(l.subject_id)} · Year {l.year_level}</div>
