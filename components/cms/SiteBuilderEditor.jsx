@@ -2,27 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  DndContext,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button"; // AdminControls version preferred if available, but UI one is okay
+import { Button } from "@/components/ui/Button"; 
 import { useAdminMe } from "@/components/admin/useAdminMe";
 import { BLOCK_TYPES, defaultBlock, normalizePageContent } from "@/lib/cms/blocks";
-import RenderBlocks from "@/components/cms/RenderBlocks";
+import { RenderBlocks } from "@/components/cms/RenderBlocks"; // Import named export
 import { useUndoRedoState } from "@/components/cms/builder/useUndoRedo";
 import LinkPickerModal from "@/components/cms/builder/LinkPickerModal";
 import AssetPickerModal from "@/components/cms/builder/AssetPickerModal";
@@ -32,20 +22,21 @@ import AdminModal from "@/components/admin/AdminModal";
 import {
   ChevronDown,
   ChevronUp,
-  Copy,
   Eye,
-  GripVertical,
   Plus,
   Redo2,
   Save,
-  Sparkles,
   Trash2,
   Undo2,
   Layout,
   Search,
   Settings,
-  MoreVertical,
-  FileText
+  FileText,
+  Smartphone,
+  Tablet,
+  Monitor,
+  Palette,
+  Type
 } from "lucide-react";
 
 function slugify(input) {
@@ -77,50 +68,39 @@ export default function SiteBuilderEditor() {
 
   const [device, setDevice] = useState("desktop"); // desktop | tablet | mobile
   const [previewMode, setPreviewMode] = useState(false);
+  
+  // Inspector Tabs
+  const [sidebarTab, setSidebarTab] = useState("content"); // content | style
 
   // Pickers
   const [linkPicker, setLinkPicker] = useState({ open: false, value: "", onPick: null });
   const [assetPicker, setAssetPicker] = useState({ open: false, onPick: null });
 
   // Page Data
-  const [versions, setVersions] = useState([]);
   const [scheduleAt, setScheduleAt] = useState("");
+  const [pageSettingsTab, setPageSettingsTab] = useState("general"); // general | seo
 
   const [dirty, setDirty] = useState(false);
   const [pageQuery, setPageQuery] = useState("");
   
   // Create Modal
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    title: "",
-    slug: "",
-    scope: "marketing",
-    template: "hero",
-  });
+  const [createForm, setCreateForm] = useState({ title: "", scope: "marketing" });
 
   // Content State
-  const [content, setContent, history] = useUndoRedoState({ version: 1, blocks: [] }, { limit: 80 });
+  const [content, setContent, history] = useUndoRedoState({ version: 1, seo: {}, blocks: [] }, { limit: 50 });
   const [selectedBlockId, setSelectedBlockId] = useState(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), // Lower distance for snappier feel
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
   const blocks = Array.isArray(content?.blocks) ? content.blocks : [];
   const selectedBlock = useMemo(() => blocks.find((b) => b?.id === selectedBlockId) || null, [blocks, selectedBlockId]);
 
-  // Initial Data Load
+  // Loaders
   async function loadPages() {
-    setMsg(null);
     try {
       const res = await fetch("/api/admin/cms-pages", { cache: "no-store" });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || "Failed to load pages");
-      setPages(j.pages || []);
-    } catch(e) {
-      setMsg("Error loading pages: " + e.message);
-    }
+      if (res.ok) setPages(j.pages || []);
+    } catch {}
   }
 
   async function loadAssets() {
@@ -139,57 +119,23 @@ export default function SiteBuilderEditor() {
     try {
       const res = await fetch(`/api/admin/cms-pages?id=${encodeURIComponent(id)}`, { cache: "no-store" });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || "Failed to load page");
+      if (!res.ok) throw new Error(j?.error || "Failed");
       const page = j.pages?.[0];
-      if (!page) throw new Error("Page not found");
+      if (!page) throw new Error("Not found");
 
       const normalized = normalizePageContent(page.content_json);
       
       setSelectedMeta(page);
       setSelectedId(page.id);
-      
-      // Reset content history
       history.reset(normalized);
-      
-      // Select first block if exists to avoid empty inspector
-      if (normalized.blocks?.length > 0) {
-        setSelectedBlockId(normalized.blocks[0].id);
-      } else {
-        setSelectedBlockId(null);
-      }
-
+      setSelectedBlockId(null);
       setDirty(false);
       setPreviewMode(false);
-      
-      // Load extra metadata in background
-      loadVersions(page.id);
-      loadSchedule(page.id);
-
     } catch (e) {
       setMsg(e.message);
     } finally {
       setBusy(false);
     }
-  }
-
-  async function loadVersions(pageId) {
-    try {
-      const res = await fetch(`/api/admin/cms-pages/versions?page_id=${encodeURIComponent(pageId)}`);
-      if (res.ok) {
-        const j = await res.json();
-        setVersions(j.data || []);
-      }
-    } catch {}
-  }
-
-  async function loadSchedule(pageId) {
-    try {
-      const res = await fetch(`/api/admin/cms-pages/schedule?page_id=${encodeURIComponent(pageId)}`);
-      if (res.ok) {
-        const j = await res.json();
-        setScheduleAt(j?.schedule?.publish_at ? String(j.schedule.publish_at).slice(0, 16) : "");
-      }
-    } catch {}
   }
 
   useEffect(() => {
@@ -199,12 +145,13 @@ export default function SiteBuilderEditor() {
     }
   }, [canUse]);
 
-  // Block Mutations
+  // Mutations
   function addBlock(type) {
     const blk = defaultBlock(type);
     setDirty(true);
     setContent((c) => ({ ...c, blocks: [...(c.blocks || []), blk] }));
     setSelectedBlockId(blk.id);
+    setSidebarTab("content");
   }
 
   function updateBlock(blockId, patch) {
@@ -212,6 +159,14 @@ export default function SiteBuilderEditor() {
     setContent((c) => ({
       ...c,
       blocks: (c.blocks || []).map((b) => (b.id === blockId ? { ...b, ...patch } : b)),
+    }));
+  }
+
+  function updateSeo(patch) {
+    setDirty(true);
+    setContent((c) => ({
+      ...c,
+      seo: { ...c.seo, ...patch }
     }));
   }
 
@@ -255,11 +210,10 @@ export default function SiteBuilderEditor() {
       });
       if (!res.ok) throw new Error("Save failed");
       const j = await res.json();
-      
       setSelectedMeta(prev => ({ ...prev, updated_at: j.page.updated_at }));
       setDirty(false);
       setMsg("Saved successfully.");
-      await loadPages(); // Refresh list to show updated times
+      await loadPages();
     } catch (e) {
       setMsg(e.message);
     } finally {
@@ -267,351 +221,376 @@ export default function SiteBuilderEditor() {
     }
   }
 
-  // Filter Pages
+  async function createPage() {
+    if(!createForm.title) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/cms-pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: createForm.title,
+          slug: slugify(createForm.title),
+          scope: createForm.scope,
+          published: false
+        })
+      });
+      const j = await res.json();
+      if(j.page) {
+        await loadPages();
+        await loadPage(j.page.id);
+        setCreateOpen(false);
+      }
+    } catch(e) {
+      alert(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const filteredPages = useMemo(() => {
     const q = pageQuery.trim().toLowerCase();
-    return pages.filter(p => {
-      if (!q) return true;
-      return (p.title || "").toLowerCase().includes(q) || (p.slug || "").toLowerCase().includes(q);
-    });
+    return pages.filter(p => !q || (p.title || "").toLowerCase().includes(q));
   }, [pages, pageQuery]);
 
-  if (!canUse) return <div className="p-8 text-center text-slate-500">Loading admin privileges...</div>;
+  if (!canUse) return <div className="p-12 text-center text-slate-500">Loading editor...</div>;
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col">
+    <div className="h-[calc(100vh-60px)] flex flex-col bg-white">
       
-      {/* 1. Editor Toolbar */}
-      <div className="flex items-center justify-between bg-white border-b border-slate-200 px-6 py-3 shrink-0">
+      {/* 1. Header */}
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 shrink-0 bg-white z-20">
         <div className="flex items-center gap-4">
-           <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-             <Layout className="w-5 h-5 text-indigo-600" />
-             Site Builder
-           </h2>
+           <div className="flex items-center gap-2 text-slate-900 font-black">
+             <Layout className="w-5 h-5 text-indigo-600" /> Site Builder
+           </div>
            {selectedMeta && (
-             <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-xs font-bold text-slate-500 uppercase">{selectedMeta.scope}</span>
+             <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+                <span className="font-bold text-slate-500 uppercase">{selectedMeta.scope}</span>
                 <span className="text-slate-300">/</span>
-                <span className="text-sm font-semibold text-slate-900">{selectedMeta.slug}</span>
-                {dirty && <span className="w-2 h-2 rounded-full bg-amber-400 ml-2 animate-pulse" title="Unsaved changes" />}
+                <span className="font-mono text-slate-700">{selectedMeta.slug}</span>
+                {dirty && <span className="ml-2 w-2 h-2 rounded-full bg-amber-400" />}
              </div>
            )}
         </div>
-
         <div className="flex items-center gap-2">
-           <button 
-             onClick={() => setCreateOpen(true)}
-             className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition-colors text-sm"
-           >
-             <Plus className="w-4 h-4" /> New Page
-           </button>
-           
-           <div className="h-6 w-px bg-slate-200 mx-2" />
-
-           <button onClick={history.undo} disabled={!history.canUndo} className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30">
-              <Undo2 className="w-5 h-5" />
-           </button>
-           <button onClick={history.redo} disabled={!history.canRedo} className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30">
-              <Redo2 className="w-5 h-5" />
-           </button>
-
-           <div className="h-6 w-px bg-slate-200 mx-2" />
-
-           <button 
-              onClick={() => setPreviewMode(!previewMode)}
-              className={cx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
-                previewMode ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-              )}
-           >
-              <Eye className="w-4 h-4" />
-              {previewMode ? "Edit" : "Preview"}
-           </button>
-
-           <button 
-              onClick={save}
-              disabled={!dirty || busy}
-              className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 transition-all shadow-md active:scale-95"
-           >
-              <Save className="w-4 h-4" />
-              {busy ? "Saving..." : "Save"}
-           </button>
+           <Button variant="ghost" size="sm" onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-1" /> New</Button>
+           <div className="h-6 w-px bg-slate-200 mx-1" />
+           <Button variant="ghost" size="sm" onClick={history.undo} disabled={!history.canUndo}><Undo2 className="w-4 h-4" /></Button>
+           <Button variant="ghost" size="sm" onClick={history.redo} disabled={!history.canRedo}><Redo2 className="w-4 h-4" /></Button>
+           <div className="h-6 w-px bg-slate-200 mx-1" />
+           <Button variant={previewMode ? "secondary" : "ghost"} size="sm" onClick={() => setPreviewMode(!previewMode)}>
+             <Eye className="w-4 h-4 mr-1" /> Preview
+           </Button>
+           <Button onClick={save} disabled={!dirty || busy} size="sm">
+             <Save className="w-4 h-4 mr-1" /> {busy ? "Saving..." : "Save"}
+           </Button>
         </div>
       </div>
 
-      {msg && <div className="bg-amber-50 px-6 py-2 text-xs font-bold text-amber-800 border-b border-amber-100 text-center">{msg}</div>}
+      {msg && <div className="bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 text-center border-b border-emerald-100">{msg}</div>}
 
-      {/* 2. Main Workspace (3-Pane) */}
       <div className="flex-1 flex overflow-hidden">
-         
-         {/* Left: Pages List */}
+         {/* Left: Pages */}
          <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
             <div className="p-3 border-b border-slate-200">
                <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    placeholder="Find page..."
-                    value={pageQuery}
-                    onChange={e => setPageQuery(e.target.value)}
-                  />
+                  <input className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none" placeholder="Find page..." value={pageQuery} onChange={e => setPageQuery(e.target.value)} />
                </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
                {filteredPages.map(p => (
-                 <button
-                   key={p.id}
-                   onClick={() => loadPage(p.id)}
-                   className={cx(
-                     "w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all group relative",
-                     selectedId === p.id 
-                       ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" 
-                       : "text-slate-600 hover:bg-white/50 hover:text-slate-900"
-                   )}
-                 >
+                 <button key={p.id} onClick={() => loadPage(p.id)} className={cx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all", selectedId === p.id ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" : "text-slate-600 hover:text-slate-900")}>
                     <div className="truncate">{p.title || "Untitled"}</div>
-                    <div className="flex items-center justify-between mt-1 opacity-70 group-hover:opacity-100">
-                       <span className="text-[10px] font-mono">{p.slug}</span>
+                    <div className="flex justify-between mt-1 opacity-70 text-[10px]">
+                       <span className="font-mono uppercase">{p.scope}</span>
                        <span className={cx("w-1.5 h-1.5 rounded-full", p.published ? "bg-emerald-400" : "bg-slate-300")} />
                     </div>
                  </button>
                ))}
-               {filteredPages.length === 0 && <div className="p-4 text-xs text-slate-400 text-center">No pages found.</div>}
             </div>
          </div>
 
          {/* Center: Canvas */}
-         <div className="flex-1 bg-slate-100 overflow-y-auto p-8 relative flex flex-col items-center">
+         <div className="flex-1 bg-slate-100/50 overflow-y-auto p-8 relative flex flex-col items-center" onClick={() => setSelectedBlockId(null)}>
             {selectedMeta ? (
-               <div className={cx(
-                  "w-full bg-white shadow-2xl transition-all duration-300 min-h-[800px] flex flex-col",
-                  device === "mobile" ? "max-w-[375px] rounded-3xl border-8 border-slate-800 my-8" : "max-w-[1200px] rounded-xl"
-               )}>
-                  {/* Device Header if mobile */}
-                  {device === "mobile" && <div className="h-6 bg-slate-800 w-full rounded-t-2xl flex justify-center"><div className="w-20 h-4 bg-black rounded-b-xl" /></div>}
-                  
-                  <div className="flex-1 p-8" onClick={() => setSelectedBlockId(null)}>
-                     <RenderBlocks 
-                       content={content} 
-                       selectable={!previewMode}
-                       selectedBlockId={selectedBlockId}
-                       onSelectBlock={setSelectedBlockId}
-                     />
-                     {!content.blocks?.length && (
-                        <div className="text-center py-20 text-slate-400">
-                           <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                           <p>This page is empty.</p>
-                           <p className="text-sm">Use the sidebar to add blocks.</p>
-                        </div>
-                     )}
-                  </div>
+               <div 
+                 className={cx(
+                   "w-full bg-white shadow-2xl transition-all duration-300 min-h-[800px]",
+                   device === "mobile" ? "max-w-[375px] rounded-3xl border-8 border-slate-800 my-8" : 
+                   device === "tablet" ? "max-w-[768px] rounded-xl my-8" : "max-w-full"
+                 )}
+                 onClick={e => e.stopPropagation()}
+               >
+                 <RenderBlocks 
+                   content={content} 
+                   selectable={!previewMode} 
+                   selectedBlockId={selectedBlockId} 
+                   onSelectBlock={(id) => { setSelectedBlockId(id); setSidebarTab("content"); }} 
+                 />
+                 {!content.blocks?.length && <div className="py-32 text-center text-slate-400 italic">Page is empty. Add blocks from the sidebar.</div>}
                </div>
             ) : (
-               <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                  <Layout className="w-16 h-16 mb-4 opacity-20" />
-                  <p>Select a page to edit</p>
-               </div>
+               <div className="m-auto text-slate-400">Select a page to edit</div>
             )}
             
-            {/* Viewport Toggles (Floating) */}
-            <div className="absolute bottom-6 flex gap-1 bg-slate-900/90 backdrop-blur text-white p-1 rounded-full shadow-lg border border-white/10">
-               {["desktop", "tablet", "mobile"].map(d => (
-                 <button 
-                   key={d}
-                   onClick={() => setDevice(d)}
-                   className={cx(
-                     "px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all",
-                     device === d ? "bg-white text-slate-900" : "text-slate-400 hover:text-white"
-                   )}
-                 >
-                   {d}
-                 </button>
-               ))}
+            <div className="absolute bottom-6 flex gap-1 bg-slate-900 text-white p-1 rounded-full shadow-lg z-30">
+               <button onClick={() => setDevice("desktop")} className={cx("p-2 rounded-full", device === "desktop" ? "bg-white text-slate-900" : "text-slate-400 hover:text-white")}><Monitor className="w-4 h-4" /></button>
+               <button onClick={() => setDevice("tablet")} className={cx("p-2 rounded-full", device === "tablet" ? "bg-white text-slate-900" : "text-slate-400 hover:text-white")}><Tablet className="w-4 h-4" /></button>
+               <button onClick={() => setDevice("mobile")} className={cx("p-2 rounded-full", device === "mobile" ? "bg-white text-slate-900" : "text-slate-400 hover:text-white")}><Smartphone className="w-4 h-4" /></button>
             </div>
          </div>
 
          {/* Right: Inspector */}
          <div className="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
-            {!selectedMeta ? (
-               <div className="p-6 text-center text-sm text-slate-400">No selection</div>
-            ) : selectedBlock ? (
-               // BLOCK INSPECTOR
-               <>
-                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <span className="font-bold text-sm uppercase tracking-wider text-slate-500">Edit Block</span>
-                    <button onClick={() => removeBlock(selectedBlock.id)} className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors">
-                       <Trash2 className="w-4 h-4" />
-                    </button>
-                 </div>
-                 <div className="flex-1 overflow-y-auto p-5">
-                    <BlockFields 
-                       block={selectedBlock}
-                       onChange={patch => updateBlock(selectedBlock.id, patch)}
-                       onPickLink={(curr, cb) => setLinkPicker({ open: true, value: curr, onPick: cb })}
-                       onPickAsset={(cb) => setAssetPicker({ open: true, onPick: cb })}
-                    />
-                 </div>
-                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between">
-                    <button onClick={() => moveBlock(selectedBlock.id, -1)} className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200"><ChevronUp className="w-4 h-4" /></button>
-                    <button onClick={() => moveBlock(selectedBlock.id, 1)} className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200"><ChevronDown className="w-4 h-4" /></button>
-                 </div>
-               </>
+            {selectedMeta ? (
+              selectedBlock ? (
+                 <>
+                   {/* Block Inspector Header */}
+                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex gap-4">
+                         <button onClick={() => setSidebarTab("content")} className={cx("text-xs font-bold uppercase pb-1 border-b-2 transition-colors", sidebarTab === "content" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400")}>Content</button>
+                         <button onClick={() => setSidebarTab("style")} className={cx("text-xs font-bold uppercase pb-1 border-b-2 transition-colors", sidebarTab === "style" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400")}>Design</button>
+                      </div>
+                      <button onClick={() => removeBlock(selectedBlock.id)} className="text-rose-500 p-1 hover:bg-rose-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                   </div>
+                   
+                   <div className="flex-1 overflow-y-auto p-5">
+                      {sidebarTab === "content" ? (
+                         <BlockFields 
+                           block={selectedBlock} 
+                           onChange={p => updateBlock(selectedBlock.id, p)}
+                           onLink={(v, cb) => setLinkPicker({ open: true, value: v, onPick: cb })}
+                           onAsset={(cb) => setAssetPicker({ open: true, onPick: cb })}
+                         />
+                      ) : (
+                         <BlockStyles 
+                           style={selectedBlock.style || {}} 
+                           onChange={s => updateBlock(selectedBlock.id, { style: { ...(selectedBlock.style || {}), ...s } })} 
+                         />
+                      )}
+                   </div>
+                   <div className="p-3 border-t border-slate-100 bg-slate-50 flex justify-between">
+                      <button onClick={() => moveBlock(selectedBlock.id, -1)} className="p-2 hover:bg-white rounded border border-transparent hover:border-slate-200"><ChevronUp className="w-4 h-4" /></button>
+                      <button onClick={() => moveBlock(selectedBlock.id, 1)} className="p-2 hover:bg-white rounded border border-transparent hover:border-slate-200"><ChevronDown className="w-4 h-4" /></button>
+                   </div>
+                 </>
+              ) : (
+                 <>
+                   {/* Page Settings & Add Block */}
+                   <div className="px-4 py-3 border-b border-slate-100 flex gap-4">
+                      <button onClick={() => setPageSettingsTab("general")} className={cx("text-xs font-bold uppercase pb-1 border-b-2 transition-colors", pageSettingsTab === "general" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400")}>Add Block</button>
+                      <button onClick={() => setPageSettingsTab("seo")} className={cx("text-xs font-bold uppercase pb-1 border-b-2 transition-colors", pageSettingsTab === "seo" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400")}>Page SEO</button>
+                   </div>
+
+                   <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                      {pageSettingsTab === "general" ? (
+                         <div className="grid grid-cols-2 gap-2">
+                            {Object.keys(BLOCK_TYPES).map(type => (
+                               <button key={type} onClick={() => addBlock(type)} className="p-3 bg-slate-50 border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl text-left transition-all group">
+                                  <div className="font-bold text-xs text-slate-700 group-hover:text-indigo-700">{BLOCK_TYPES[type]}</div>
+                               </button>
+                            ))}
+                         </div>
+                      ) : (
+                         <div className="space-y-4">
+                            <div>
+                               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Page Title</label>
+                               <input className="w-full p-2 border rounded-lg text-sm" value={selectedMeta.title} onChange={e => { setDirty(true); setSelectedMeta(m => ({ ...m, title: e.target.value })) }} />
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">URL Slug</label>
+                               <div className="flex items-center px-2 py-2 border rounded-lg bg-slate-50 text-sm text-slate-500">
+                                  <span>/{selectedMeta.scope}/</span>
+                                  <input className="bg-transparent outline-none w-full ml-1 text-slate-900" value={selectedMeta.slug} onChange={e => { setDirty(true); setSelectedMeta(m => ({ ...m, slug: slugify(e.target.value) })) }} />
+                               </div>
+                            </div>
+                            <hr />
+                            <div>
+                               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Meta Title</label>
+                               <input className="w-full p-2 border rounded-lg text-sm" value={content.seo?.metaTitle || ""} onChange={e => updateSeo({ metaTitle: e.target.value })} placeholder="Browser Tab Title" />
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Meta Description</label>
+                               <textarea className="w-full p-2 border rounded-lg text-sm h-24" value={content.seo?.metaDescription || ""} onChange={e => updateSeo({ metaDescription: e.target.value })} placeholder="Search engine summary..." />
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Social Image (OG)</label>
+                               <div className="flex gap-2">
+                                  <input className="w-full p-2 border rounded-lg text-sm" value={content.seo?.ogImage || ""} onChange={e => updateSeo({ ogImage: e.target.value })} placeholder="https://..." />
+                                  <button onClick={() => setAssetPicker({ open: true, onPick: a => updateSeo({ ogImage: a.public_url }) })} className="px-3 bg-slate-100 border rounded-lg text-xs font-bold">Pick</button>
+                               </div>
+                            </div>
+                            <div className="flex items-center justify-between pt-2">
+                               <span className="text-sm font-medium text-slate-700">No-Index (Hide from Google)</span>
+                               <input type="checkbox" checked={!!content.seo?.noIndex} onChange={e => updateSeo({ noIndex: e.target.checked })} className="w-4 h-4 accent-indigo-600" />
+                            </div>
+                         </div>
+                      )}
+                   </div>
+                 </>
+              )
             ) : (
-               // PAGE SETTINGS & ADD BLOCK
-               <>
-                 <div className="px-5 py-4 border-b border-slate-100">
-                    <span className="font-bold text-sm uppercase tracking-wider text-slate-500">Page Settings</span>
-                 </div>
-                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                    {/* Add Block */}
-                    <div className="space-y-2">
-                       <label className="text-xs font-bold text-slate-700">Add Component</label>
-                       <div className="grid grid-cols-2 gap-2">
-                          {Object.keys(BLOCK_TYPES).map(type => (
-                             <button 
-                               key={type}
-                               onClick={() => addBlock(type)}
-                               className="px-3 py-2 bg-slate-50 border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-lg text-xs font-medium text-left transition-all"
-                             >
-                               + {BLOCK_TYPES[type]}
-                             </button>
-                          ))}
-                       </div>
-                    </div>
-
-                    <hr className="border-slate-100" />
-
-                    <div className="space-y-3">
-                       <label className="block text-xs font-bold text-slate-700">Title</label>
-                       <input 
-                         className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                         value={selectedMeta.title || ""}
-                         onChange={e => { setDirty(true); setSelectedMeta(m => ({...m, title: e.target.value})) }}
-                       />
-                       
-                       <label className="block text-xs font-bold text-slate-700">Slug</label>
-                       <div className="flex items-center px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm text-slate-500">
-                          <span className="shrink-0">/{selectedMeta.scope}/</span>
-                          <input 
-                            className="bg-transparent outline-none text-slate-900 w-full ml-1"
-                            value={selectedMeta.slug}
-                            onChange={e => { setDirty(true); setSelectedMeta(m => ({...m, slug: slugify(e.target.value)})) }}
-                          />
-                       </div>
-
-                       <div className="flex items-center justify-between pt-2">
-                          <label className="text-sm font-medium text-slate-700">Published</label>
-                          <input 
-                            type="checkbox" 
-                            className="w-5 h-5 accent-emerald-500"
-                            checked={!!selectedMeta.published}
-                            onChange={e => { setDirty(true); setSelectedMeta(m => ({...m, published: e.target.checked})) }}
-                          />
-                       </div>
-                    </div>
-                 </div>
-               </>
+              <div className="p-8 text-center text-slate-400 text-sm">No page selected.</div>
             )}
          </div>
       </div>
 
-      {/* Modals */}
-      <AdminModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Create New Page"
-      >
-        <div className="space-y-4">
-           <div>
-             <label className="block text-sm font-bold mb-1">Title</label>
-             <input className="w-full p-2 border rounded-lg" value={createForm.title} onChange={e => setCreateForm({...createForm, title: e.target.value})} autoFocus />
-           </div>
-           <div>
-             <label className="block text-sm font-bold mb-1">Scope</label>
-             <select className="w-full p-2 border rounded-lg" value={createForm.scope} onChange={e => setCreateForm({...createForm, scope: e.target.value})}>
-                <option value="marketing">Marketing (Public)</option>
-                <option value="app">App (Authenticated)</option>
-             </select>
-           </div>
-           <div className="flex justify-end gap-2 mt-4">
-             <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
-             <Button onClick={() => { /* implementation */ }}>Create</Button>
-           </div>
-        </div>
+      {/* Create Modal */}
+      <AdminModal open={createOpen} onClose={() => setCreateOpen(false)} title="New Page">
+         <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
+              <input className="w-full p-2 border rounded-lg" value={createForm.title} onChange={e => setCreateForm({...createForm, title: e.target.value})} autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Scope</label>
+              <select className="w-full p-2 border rounded-lg" value={createForm.scope} onChange={e => setCreateForm({...createForm, scope: e.target.value})}>
+                 <option value="marketing">Marketing (Public)</option>
+                 <option value="app">App (Private)</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+               <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
+               <Button onClick={createPage} disabled={!createForm.title}>Create</Button>
+            </div>
+         </div>
       </AdminModal>
 
-      <LinkPickerModal
-        open={linkPicker.open}
-        pages={pages}
-        value={linkPicker.value}
-        onPick={(href) => linkPicker.onPick?.(href)}
-        onClose={() => setLinkPicker({ open: false, value: "", onPick: null })}
-      />
-
-      <AssetPickerModal
-        open={assetPicker.open}
-        assets={assets}
-        onPick={(asset) => assetPicker.onPick?.(asset)}
-        onClose={() => setAssetPicker({ open: false, onPick: null })}
-      />
+      <LinkPickerModal open={linkPicker.open} value={linkPicker.value} onPick={linkPicker.onPick} onClose={() => setLinkPicker({ open: false, value: "", onPick: null })} pages={pages} />
+      <AssetPickerModal open={assetPicker.open} onPick={assetPicker.onPick} onClose={() => setAssetPicker({ open: false, onPick: null })} assets={assets} />
 
     </div>
   );
 }
 
-// ... [BlockFields, SortableRow, etc. components follow same pattern but styled better] ...
-// Re-implementing BlockFields to use standard HTML inputs with Tailwind classes for reliability
-function BlockFields({ block, onChange, onPickLink, onPickAsset }) {
-  if (!block) return null;
+function BlockStyles({ style, onChange }) {
+   const colors = [
+     { id: "white", bg: "bg-white border border-slate-200" },
+     { id: "light", bg: "bg-slate-50 border border-slate-200" },
+     { id: "dark", bg: "bg-slate-900 border border-slate-900" },
+     { id: "brand", bg: "bg-indigo-600 border border-indigo-600" },
+   ];
+   
+   return (
+     <div className="space-y-6">
+        <div>
+           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Background</label>
+           <div className="flex gap-2">
+              {colors.map(c => (
+                 <button 
+                   key={c.id} 
+                   onClick={() => onChange({ bg: c.id })}
+                   className={cx("w-8 h-8 rounded-full shadow-sm ring-offset-1 transition-all", c.bg, style.bg === c.id ? "ring-2 ring-indigo-500 scale-110" : "")} 
+                 />
+              ))}
+           </div>
+        </div>
 
-  const Field = ({ label, children }) => (
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
+        <div>
+           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Vertical Padding</label>
+           <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
+              {["none", "sm", "md", "lg", "xl"].map(p => (
+                 <button 
+                   key={p} 
+                   onClick={() => onChange({ padding: p })}
+                   className={cx("flex-1 py-1 text-xs font-medium rounded-md transition-all", style.padding === p ? "bg-white shadow text-indigo-600" : "text-slate-500 hover:text-slate-900")}
+                 >
+                   {p}
+                 </button>
+              ))}
+           </div>
+        </div>
 
-  const Input = (props) => <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" {...props} />;
-  const Area = (props) => <textarea className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all min-h-[100px]" {...props} />;
+        <div>
+           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Text Align</label>
+           <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
+              {["left", "center", "right"].map(a => (
+                 <button 
+                   key={a} 
+                   onClick={() => onChange({ align: a })}
+                   className={cx("flex-1 py-1 text-xs font-medium rounded-md transition-all capitalize", style.align === a ? "bg-white shadow text-indigo-600" : "text-slate-500 hover:text-slate-900")}
+                 >
+                   {a}
+                 </button>
+              ))}
+           </div>
+        </div>
+     </div>
+   );
+}
 
-  switch(block.type) {
-    case 'hero':
+function BlockFields({ block, onChange, onLink, onAsset }) {
+   const Input = (p) => <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" {...p} />;
+   const Area = (p) => <textarea className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none min-h-[80px]" {...p} />;
+   
+   if (block.type === "section" || block.type === "split") {
       return (
-        <>
-          <Field label="Headline"><Input value={block.headline || ""} onChange={e => onChange({ headline: e.target.value })} /></Field>
-          <Field label="Subheadline"><Area value={block.subheadline || ""} onChange={e => onChange({ subheadline: e.target.value })} /></Field>
-          <Field label="CTA Text"><Input value={block.ctaText || ""} onChange={e => onChange({ ctaText: e.target.value })} /></Field>
-          <Field label="CTA Link">
-            <div className="flex gap-2">
-               <Input value={block.ctaHref || ""} onChange={e => onChange({ ctaHref: e.target.value })} />
-               <button onClick={() => onPickLink(block.ctaHref, href => onChange({ ctaHref: href }))} className="px-3 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-200">Pick</button>
+         <div className="space-y-4">
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label><Input value={block.title || ""} onChange={e => onChange({ title: e.target.value })} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Body</label><Area value={block.body || ""} onChange={e => onChange({ body: e.target.value })} /></div>
+            {block.type === "split" && (
+               <>
+                  <div>
+                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Image URL</label>
+                     <div className="flex gap-2"><Input value={block.imageUrl || ""} onChange={e => onChange({ imageUrl: e.target.value })} /><button onClick={() => onAsset(a => onChange({ imageUrl: a.public_url }))} className="px-3 bg-slate-100 border rounded-lg text-xs font-bold">Pick</button></div>
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Layout</label>
+                     <select className="w-full p-2 border rounded-lg text-sm" value={block.imagePosition} onChange={e => onChange({ imagePosition: e.target.value })}><option value="right">Text Left / Image Right</option><option value="left">Image Left / Text Right</option></select>
+                  </div>
+               </>
+            )}
+         </div>
+      );
+   }
+
+   if (block.type === "hero") {
+      return (
+         <div className="space-y-4">
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Headline</label><Input value={block.headline || ""} onChange={e => onChange({ headline: e.target.value })} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Subheadline</label><Area value={block.subheadline || ""} onChange={e => onChange({ subheadline: e.target.value })} /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">CTA Text</label><Input value={block.ctaText || ""} onChange={e => onChange({ ctaText: e.target.value })} /></div>
+            <div>
+               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">CTA Link</label>
+               <div className="flex gap-2"><Input value={block.ctaHref || ""} onChange={e => onChange({ ctaHref: e.target.value })} /><button onClick={() => onLink(block.ctaHref, h => onChange({ ctaHref: h }))} className="px-3 bg-slate-100 border rounded-lg text-xs font-bold">Pick</button></div>
             </div>
-          </Field>
-        </>
+         </div>
       );
-    case 'section':
+   }
+
+   if (block.type === "faq") {
       return (
-        <>
-          <Field label="Title"><Input value={block.title || ""} onChange={e => onChange({ title: e.target.value })} /></Field>
-          <Field label="Body"><Area value={block.body || ""} onChange={e => onChange({ body: e.target.value })} /></Field>
-        </>
+         <div className="space-y-4">
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Section Title</label><Input value={block.title || ""} onChange={e => onChange({ title: e.target.value })} /></div>
+            <div className="space-y-3">
+               <label className="block text-xs font-bold text-slate-500 uppercase">Items</label>
+               {(block.items || []).map((item, i) => (
+                  <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 relative group">
+                     <button onClick={() => onChange({ items: block.items.filter((_, idx) => idx !== i) })} className="absolute top-2 right-2 text-slate-400 hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                     <Input placeholder="Question" value={item.question} onChange={e => { const n = [...block.items]; n[i].question = e.target.value; onChange({ items: n }); }} />
+                     <Area placeholder="Answer" value={item.answer} onChange={e => { const n = [...block.items]; n[i].answer = e.target.value; onChange({ items: n }); }} />
+                  </div>
+               ))}
+               <button onClick={() => onChange({ items: [...(block.items || []), { id: Date.now(), question: "", answer: "" }] })} className="w-full py-2 bg-white border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800">+ Add Item</button>
+            </div>
+         </div>
       );
-    case 'markdown':
-      return <Field label="Markdown Content"><Area className="font-mono text-xs min-h-[300px]" value={block.markdown || ""} onChange={e => onChange({ markdown: e.target.value })} /></Field>;
-    case 'image':
+   }
+   
+   if (block.type === "video") {
       return (
-         <>
-           <Field label="Image URL">
-             <div className="flex gap-2">
-               <Input value={block.url || ""} onChange={e => onChange({ url: e.target.value })} />
-               <button onClick={() => onPickAsset(asset => onChange({ url: asset.public_url, alt: asset.alt_text }))} className="px-3 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-200">Pick</button>
-             </div>
-           </Field>
-           {block.url && <img src={block.url} className="w-full h-32 object-cover rounded-lg mb-4 border border-slate-200" />}
-           <Field label="Alt Text"><Input value={block.alt || ""} onChange={e => onChange({ alt: e.target.value })} /></Field>
-         </>
+         <div className="space-y-4">
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">YouTube URL</label><Input value={block.url || ""} onChange={e => onChange({ url: e.target.value })} placeholder="https://youtube.com/watch?v=..." /></div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Caption</label><Input value={block.caption || ""} onChange={e => onChange({ caption: e.target.value })} /></div>
+         </div>
       );
-    default:
-      return <div className="text-sm text-slate-500 italic">No fields for this block type.</div>;
-  }
+   }
+
+   if (block.type === "markdown") {
+      return <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Content</label><Area className="font-mono text-xs min-h-[300px]" value={block.markdown || ""} onChange={e => onChange({ markdown: e.target.value })} /></div>;
+   }
+
+   return <div className="text-sm text-slate-400 italic">No fields configured for this block type.</div>;
 }
