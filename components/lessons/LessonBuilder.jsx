@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
@@ -49,6 +49,7 @@ function toneForStatus(s) {
 export default function LessonBuilder() {
   const [tab, setTab] = useState("interactive"); // interactive | import | jobs | assets | preview
   const [jobs, setJobs] = useState([]);
+  const [existingLessons, setExistingLessons] = useState([]);
   const [assets, setAssets] = useState([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -70,24 +71,56 @@ export default function LessonBuilder() {
     llmModel: "llama3",
   });
 
-  const [selectedJobId, setSelectedJobId] = useState(""); // For picking from spreadsheet
+  const [selectedJobId, setSelectedJobId] = useState(""); 
 
   const [lastResult, setLastResult] = useState(null);
 
   async function refresh() {
     try {
-      const [j, a] = await Promise.all([
+      // Fetch jobs, assets AND existing lessons to check for dupes
+      // We can check lesson_generation_jobs status OR check actual lesson tables
+      const [j, a, l] = await Promise.all([
         fetch("/api/admin/lesson-jobs").then((r) => r.json()),
         fetch("/api/admin/lesson-assets").then((r) => r.json()),
+        // For dupes, we ideally want a lightweight list of existing lessons.
+        // Reusing the content list endpoint or adding a specific check endpoint is best.
+        // For now, let's just use the jobs list statuses if they are marked 'completed'.
+        // Or fetch a lightweight catalog if available.
+        // Let's assume the jobs list has status='completed' for generated ones.
+        Promise.resolve({ data: [] }) 
       ]);
-      if (j?.data) setJobs(j.data);
+      
+      if (j?.data) {
+         setJobs(j.data);
+         // Build a set of "already generated" job IDs based on status
+         const completed = j.data.filter(x => x.status === 'completed');
+         setExistingLessons(completed); 
+      }
       if (a?.data) setAssets(a.data);
+
     } catch (e) {
       setNotice({ tone: "danger", title: "Refresh failed", text: e?.message || String(e) });
     }
   }
 
   useEffect(() => { refresh(); }, []);
+
+  // Check if current form selection matches an existing completed job
+  const isDuplicate = useMemo(() => {
+    if (!selectedJobId) return false;
+    // Check if THIS specific job ID is already marked completed
+    const job = jobs.find(j => j.job_id === selectedJobId || j.id === selectedJobId);
+    if (job && job.status === 'completed') return true;
+    
+    // Fallback: check if we have a completed job with same subject/year/topic/subtopic
+    return existingLessons.some(l => 
+       l.subject === form.subject &&
+       String(l.year_level) === String(form.year) &&
+       l.topic === form.topic &&
+       l.subtopic === form.subtopic
+    );
+  }, [selectedJobId, form, jobs, existingLessons]);
+
 
   // Filter logic for spreadsheet jobs
   const availableSubjects = useMemo(() => [...new Set(jobs.map(j => j.subject).filter(Boolean))].sort(), [jobs]);
@@ -106,9 +139,8 @@ export default function LessonBuilder() {
     if (job) {
       setForm(prev => ({
         ...prev,
-        // Don't overwrite subject/year since we filtered by them
-        strand: job.topic || "",      // Map topic column to strand field if needed, or check schema
-        topic: job.subtopic || job.topic || "", // Heuristic mapping based on likely spreadsheet columns
+        strand: job.topic || "",      
+        topic: job.subtopic || job.topic || "", 
         subtopic: job.subtopic || "", 
       }));
     }
@@ -401,9 +433,14 @@ export default function LessonBuilder() {
                  </div>
 
                  {/* Job Picker */}
-                 <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                 <div className={`mb-6 p-4 rounded-xl border border-slate-200 transition-colors ${isDuplicate ? 'bg-amber-50 border-amber-200' : 'bg-slate-50'}`}>
                     <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
                        <ListFilter className="w-4 h-4" /> Select Pending Job
+                       {isDuplicate && (
+                          <span className="ml-auto flex items-center gap-1 text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full text-xs">
+                             <AlertTriangle className="w-3 h-3" /> Already Generated
+                          </span>
+                       )}
                     </div>
                     {filteredJobs.length > 0 ? (
                        <Select 
@@ -438,17 +475,24 @@ export default function LessonBuilder() {
                     </div>
                  </div>
 
-                 <div className="flex justify-end">
+                 <div className="flex justify-end gap-3">
+                    {isDuplicate && (
+                       <div className="text-xs text-amber-600 font-bold self-center">
+                          Warning: This lesson exists. Generating again will overwrite or create a new edition.
+                       </div>
+                    )}
                     <Button onClick={handleGenerate} disabled={busy} className="h-12 px-6 shadow-md">
                        <Sparkles className="w-5 h-5 mr-2" />
-                       {busy ? "Generating (approx 30s)..." : "Generate & Save"}
+                       {busy ? "Generating (approx 30s)..." : isDuplicate ? "Regenerate" : "Generate & Save"}
                     </Button>
                  </div>
               </Section>
 
               {lastResult && (
                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-6 animate-in fade-in slide-in-from-bottom-2">
-                    <h3 className="font-bold text-emerald-900 text-lg mb-2">Success!</h3>
+                    <h3 className="font-bold text-emerald-900 text-lg mb-2 flex items-center gap-2">
+                       <CheckCircle2 className="w-5 h-5" /> Success!
+                    </h3>
                     <div className="text-sm text-emerald-800 space-y-1">
                        <div><strong>Lesson ID:</strong> {lastResult.lesson_id}</div>
                        <div><strong>Questions:</strong> {lastResult.questions}</div>
