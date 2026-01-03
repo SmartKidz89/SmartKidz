@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validatePrompt } from "@/lib/safety/guardrails";
+import { getOpenAICompatConfig, openaiChatCompletions } from "@/lib/ai/openaiCompat";
 
 export const runtime = "nodejs";
 
@@ -16,30 +17,24 @@ export async function GET(req) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  // 1. Try OpenAI if available
-  if (process.env.OPENAI_API_KEY) {
+  // 1. Try AI (OpenAI cloud or local OpenAI-compatible server) if configured
+  if (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) {
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-          messages: [
-            { 
-              role: "system", 
-              content: "You are a friendly dictionary for a 7-year-old. Return a JSON object with keys: 'word' (the word), 'simple' (a very simple definition), and 'example' (a short, easy sentence using the word). Ensure G-rated content." 
-            },
-            { role: "user", content: `Define: ${term}` }
-          ],
-          temperature: 0.3
-        })
+      const cfg = getOpenAICompatConfig();
+      const data = await openaiChatCompletions({
+        model: cfg.model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a friendly dictionary for a 7-year-old. Return a JSON object with keys: 'word' (the word), 'simple' (a very simple definition), and 'example' (a short, easy sentence using the word). Ensure G-rated content.",
+          },
+          { role: "user", content: `Define: ${term}` },
+        ],
+        temperature: 0.3,
       });
-      
-      if (res.ok) {
-        const data = await res.json();
+
+      if (data) {
         const content = data.choices?.[0]?.message?.content;
         if (content) {
           try {

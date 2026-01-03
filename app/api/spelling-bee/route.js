@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validatePrompt } from "@/lib/safety/guardrails";
+import { getOpenAICompatConfig, openaiChatCompletions } from "@/lib/ai/openaiCompat";
 
 export const runtime = "nodejs";
 
@@ -53,9 +54,10 @@ export async function POST(req) {
     const { year = 3, count = 1 } = await req.json();
     const safeYear = Math.min(Math.max(1, Number(year)), 6);
 
-    // 1. Try OpenAI
-    if (process.env.OPENAI_API_KEY) {
+    // 1. Try AI (OpenAI cloud or local OpenAI-compatible server)
+    if (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) {
       try {
+        const cfg = getOpenAICompatConfig();
         const systemPrompt = `You are a spelling teacher for Year ${safeYear} students (Australia). 
         Generate ${count} spelling word(s).
         Return JSON array of objects: [{ "word": "example", "sentence": "Context sentence using example." }]
@@ -65,32 +67,22 @@ export async function POST(req) {
         - Do NOT include the word in the sentence if possible, or replace it with a blank, OR just provide a context sentence where the word fits naturally. Ideally, the sentence acts as a usage example.
         - JSON only.`;
 
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: "Give me a word." }
-            ],
-            temperature: 0.8
-          })
+        const data = await openaiChatCompletions({
+          model: cfg.model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: "Give me a word." }
+          ],
+          temperature: 0.8
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          const content = data.choices?.[0]?.message?.content;
-          if (content) {
-            // Clean up potentially messy JSON from AI
-            const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim();
-            const result = JSON.parse(jsonStr);
-            const list = Array.isArray(result) ? result : [result];
-            return NextResponse.json({ words: list, source: "ai" });
-          }
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          // Clean up potentially messy JSON from AI
+          const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const result = JSON.parse(jsonStr);
+          const list = Array.isArray(result) ? result : [result];
+          return NextResponse.json({ words: list, source: "ai" });
         }
       } catch (e) {
         console.error("AI Spelling failed:", e);

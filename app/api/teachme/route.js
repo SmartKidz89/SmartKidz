@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validatePrompt } from "@/lib/safety/guardrails";
+import { getOpenAICompatConfig, openaiChatCompletions } from "@/lib/ai/openaiCompat";
 
 export const runtime = "nodejs";
 
@@ -38,11 +39,12 @@ export async function POST(req) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json(
-      { error: "OPENAI_API_KEY is not set on the server." },
-      { status: 500 }
-    );
+  // Allow OpenAI cloud or local OpenAI-compatible servers (llama-server, Ollama).
+  let cfg;
+  try {
+    cfg = getOpenAICompatConfig();
+  } catch (e) {
+    return NextResponse.json({ error: e?.message || "AI config error" }, { status: 500 });
   }
 
   const system = `
@@ -68,7 +70,7 @@ Return ONLY valid JSON (no markdown fences) with this schema:
 `.trim();
 
   const payload = {
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    model: cfg.model,
     temperature: 0.4,
     messages: [
       { role: "system", content: system },
@@ -78,22 +80,7 @@ Return ONLY valid JSON (no markdown fences) with this schema:
   };
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: data?.error?.message || "TeachMe failed" },
-        { status: 500 }
-      );
-    }
+    const data = await openaiChatCompletions(payload);
 
     const content = data?.choices?.[0]?.message?.content;
     const parsed = extractJson(content);
@@ -108,7 +95,7 @@ Return ONLY valid JSON (no markdown fences) with this schema:
     return NextResponse.json(parsed);
   } catch (e) {
     return NextResponse.json(
-      { error: e?.message || "TeachMe request failed" },
+      { error: e?.message || "TeachMe request failed", details: e?.data },
       { status: 500 }
     );
   }

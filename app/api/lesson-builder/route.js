@@ -1,9 +1,13 @@
+import { getOpenAICompatConfig, openaiChatCompletions } from "@/lib/ai/openaiCompat";
+
 export const runtime = "nodejs";
 /**
  * Lesson Builder API
  * - Generates a structured, curriculum-aligned lesson plan from a prompt.
  *
- * NOTE: This endpoint supports an optional OpenAI integration if you set OPENAI_API_KEY.
+ * NOTE: This endpoint supports an optional AI integration.
+ * - OpenAI cloud (default)
+ * - Local OpenAI-compatible servers (llama.cpp llama-server, Ollama) via OPENAI_BASE_URL
  * If not set, it returns a high-quality deterministic template so the app works out-of-the-box.
  */
 
@@ -106,12 +110,38 @@ function templateLesson({ prompt, yearLevel, subject, goalType, style }) {
   };
 }
 
+function extractJson(text) {
+  if (!text) return null;
+  const s = String(text).trim();
+  // Remove common markdown fences
+  const cleaned = s.replace(/```json/gi, "").replace(/```/g, "").trim();
+  // Try direct parse first
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Try to recover first {...} blob
+    const first = cleaned.indexOf("{");
+    const last = cleaned.lastIndexOf("}");
+    if (first === -1 || last === -1 || last <= first) return null;
+    const candidate = cleaned.slice(first, last + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      return null;
+    }
+  }
+}
+
 // Optional OpenAI generation (kept simple, safe defaults)
 async function openAIGenerate(input) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!process.env.OPENAI_API_KEY && !process.env.OPENAI_BASE_URL) return null;
 
-  const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  let cfg;
+  try {
+    cfg = getOpenAICompatConfig();
+  } catch {
+    return null;
+  }
 
   // Minimal OpenAI REST call (no SDK). If you prefer the SDK, replace later.
   const system = `You are Smart Kidz Lesson Builder. Output valid JSON only.
@@ -133,30 +163,18 @@ goal_type: ${input.goalType}
 preferred_style: ${input.style}
 Return JSON only.`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user }
-      ]
-    })
+  const data = await openaiChatCompletions({
+    model: cfg.model,
+    temperature: 0.4,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ]
   });
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`OpenAI error: ${t}`);
-  }
-
-  const data = await res.json();
   const text = data?.choices?.[0]?.message?.content || "";
-  return JSON.parse(text);
+  const parsed = extractJson(text);
+  if (!parsed) throw new Error("AI lesson builder returned an unexpected format.");
+  return parsed;
 }
 
 export async function POST(req) {

@@ -10,12 +10,13 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_STORAGE_BUCKET = "lesson-assets";
 const SUPABASE_TABLE = "lessons";
 const IMAGE_CONCURRENCY = 4;
-const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4-turbo-preview";
+const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "dall-e-3";
 
 // ... [Keep helpers slugify, uid, getCurriculumStandard, styleGuide, baseImageStylePrompt exactly as they were] ...
@@ -103,13 +104,14 @@ async function generateLessonContent({ openai, topic, year, subject, locale, les
 
 // ... [Keep generateImages and POST handler mostly same, just ensuring they use the new content structure] ...
 
-async function generateImages({ openai, supabase, requests, lessonId, sg, locale, subject, topic, year }) {
+async function generateImages({ openaiImages, supabase, requests, lessonId, sg, locale, subject, topic, year }) {
+  if (!openaiImages) return [];
   const limiter = pLimit(IMAGE_CONCURRENCY);
   const promises = requests.map(req => limiter(async () => {
     try {
       const baseStyle = baseImageStylePrompt(sg, locale, subject, topic, year);
       const fullPrompt = `${baseStyle} Scene: ${req.prompt}`;
-      const response = await openai.images.generate({
+      const response = await openaiImages.images.generate({
         model: IMAGE_MODEL, prompt: fullPrompt, size: "1024x1024", response_format: "b64_json", quality: "standard", n: 1
       });
       const b64 = response.data?.[0]?.b64_json;
@@ -128,11 +130,21 @@ async function generateImages({ openai, supabase, requests, lessonId, sg, locale
 
 export async function POST(req) {
   try {
-    if (!OPENAI_API_KEY) return NextResponse.json({ error: "Missing OPENAI_API_KEY" }, { status: 500 });
+    const baseUrl = (OPENAI_BASE_URL || "").trim();
+    const isOpenAICloud = !baseUrl || baseUrl.includes("api.openai.com");
+    let apiKey = OPENAI_API_KEY;
+    if (!apiKey && !isOpenAICloud) apiKey = "local";
+    if (!apiKey && isOpenAICloud) {
+      return NextResponse.json({ error: "Missing OPENAI_API_KEY" }, { status: 500 });
+    }
     const body = await req.json();
     const { topic, year, subject, locale = "Australia" } = body;
 
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+    // Text client (OpenAI cloud or local OpenAI-compatible server)
+    const openai = new OpenAI({ apiKey, baseURL: baseUrl || undefined });
+    // Image client: only supported by OpenAI cloud in this app.
+    const imageKey = process.env.OPENAI_IMAGE_API_KEY || (isOpenAICloud ? apiKey : null);
+    const openaiImages = (isOpenAICloud && imageKey) ? new OpenAI({ apiKey: imageKey }) : null;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const lessonId = `${slugify(subject)}_${slugify(topic)}_y${year}_${uid("v5")}`;
 
@@ -141,7 +153,7 @@ export async function POST(req) {
 
     // 2. Generate Images
     const sg = styleGuide({ locale, subject });
-    const images = await generateImages({ openai, supabase, requests: content.media_requests || [], lessonId, sg, locale, subject, topic, year });
+    const images = await generateImages({ openaiImages, supabase, requests: content.media_requests || [], lessonId, sg, locale, subject, topic, year });
 
     // 3. Link Images
     content.media_library = images;

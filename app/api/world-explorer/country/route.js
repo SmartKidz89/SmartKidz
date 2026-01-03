@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getOpenAICompatConfig, openaiChatCompletions } from "@/lib/ai/openaiCompat";
 
 export const runtime = "nodejs";
 
@@ -110,7 +111,7 @@ export async function GET(req) {
   };
 
   // Only use AI if we don't have curated rich data
-  if (!country.rich && process.env.OPENAI_API_KEY) {
+  if (!country.rich && (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL)) {
     try {
       const prompt = `Create a travel guide for a child visiting ${name}.
       Return valid JSON with fields: 
@@ -129,22 +130,15 @@ export async function GET(req) {
       
       Keep it G-rated, fun, and educational.`;
 
-      const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.5,
-          max_tokens: 450
-        })
+      const cfg = getOpenAICompatConfig();
+      const json = await openaiChatCompletions({
+        model: cfg.model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.5,
+        max_tokens: 450
       });
 
-      if (aiRes.ok) {
-        const json = await aiRes.json();
+      if (json) {
         const content = json.choices?.[0]?.message?.content;
         if (content) {
           try {

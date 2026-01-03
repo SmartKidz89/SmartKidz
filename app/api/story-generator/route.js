@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validatePrompt } from "@/lib/safety/guardrails";
+import { getOpenAICompatConfig, openaiChatCompletions } from "@/lib/ai/openaiCompat";
 
 export const runtime = "nodejs";
 
@@ -31,9 +32,10 @@ export async function POST(req) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
-    // 1. Try OpenAI
-    if (process.env.OPENAI_API_KEY) {
+    // 1. Try AI (OpenAI cloud or local OpenAI-compatible server)
+    if (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) {
       try {
+        const cfg = getOpenAICompatConfig();
         const systemPrompt = `You are a children's book author. Write a story for a ${age}-year-old based on the user's prompt.
         
         Requirements:
@@ -52,30 +54,20 @@ export async function POST(req) {
           ]
         }`;
 
-        const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: `Write a story about: ${prompt}` }
-            ],
-            temperature: 0.7
-          })
+        const data = await openaiChatCompletions({
+          model: cfg.model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Write a story about: ${prompt}` }
+          ],
+          temperature: 0.7
         });
 
-        if (aiRes.ok) {
-          const data = await aiRes.json();
-          const raw = data.choices?.[0]?.message?.content;
-          if (raw) {
-            const jsonStr = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-            const result = JSON.parse(jsonStr);
-            return NextResponse.json(result);
-          }
+        const raw = data.choices?.[0]?.message?.content;
+        if (raw) {
+          const jsonStr = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+          const result = JSON.parse(jsonStr);
+          return NextResponse.json(result);
         }
       } catch (e) {
         console.error("AI Story generation failed", e);
