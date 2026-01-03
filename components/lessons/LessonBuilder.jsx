@@ -68,7 +68,7 @@ export default function LessonBuilder() {
       const res = await fetch("/api/admin/lesson-jobs/import-xlsx", { method: "POST", body: fd });
       const out = await res.json();
       if (!res.ok) throw new Error(out?.error || "Import failed");
-      setMsg(`Imported: jobs=${out.jobs_imported}, prompt_profiles=${out.prompt_profiles_imported}, image_specs=${out.image_specs_imported}`);
+      setMsg(`Imported: jobs=${out.jobs_imported}, prompt_profiles=${out.prompt_profiles_imported}, image_specs=${out.image_specs_imported}, year_profiles=${out.year_profiles_imported || 0}`);
       await refresh();
     } catch (e) {
       setMsg(e.message);

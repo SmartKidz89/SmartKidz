@@ -86,6 +86,37 @@ export async function POST(req) {
     }
   }
 
+
+
+  // Year Profiles
+  let yearProfilesImported = 0;
+  if (wb.Sheets["Year Profiles"]) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets["Year Profiles"], { defval: null });
+    const payload = rows
+      .filter(r => r.year_level)
+      .map(r => ({
+        year_level: String(r.year_level),
+        reading_level: r.reading_level ? String(r.reading_level) : null,
+        autonomy: r.autonomy ? String(r.autonomy) : null,
+        steps_max: r.steps_max ? Number(r.steps_max) : null,
+        language_complexity: r.language_complexity ? String(r.language_complexity) : null,
+        representations: r.representations ? String(r.representations) : null,
+        adaptive_range: r.adaptive_range ? String(r.adaptive_range) : null,
+        interleaving: r.interleaving ? String(r.interleaving) : null,
+        metacognition: r.metacognition ? String(r.metacognition) : null,
+        updated_at: new Date().toISOString(),
+      }));
+
+    for (const c of chunk(payload, 200)) {
+      const { error } = await admin
+        .from("year_profiles")
+        .upsert(c, { onConflict: "year_level" });
+      if (error) return NextResponse.json({ error: `Year Profiles: ${error.message}` }, { status: 500 });
+      yearProfilesImported += c.length;
+    }
+  }
+
+
   // Lesson Jobs
   let jobsImported = 0;
   if (wb.Sheets["Lesson Jobs"]) {
@@ -128,5 +159,6 @@ export async function POST(req) {
     jobs_imported: jobsImported,
     prompt_profiles_imported: promptProfilesImported,
     image_specs_imported: imageSpecsImported,
+    year_profiles_imported: yearProfilesImported,
   });
 }
