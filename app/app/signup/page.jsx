@@ -28,7 +28,7 @@ export default function SignupPage({ searchParams }) {
                Join the club of confident learners.
             </h1>
             <p className="text-xl text-slate-600 font-medium mb-10 leading-relaxed">
-               Start your 7-day free trial. Unlimited access to Maths, English, Science, and creative tools for the whole family.
+               Start your 7-day free trial. Unlimited access to Maths, English, Science, and creative activities for the whole family.
             </p>
 
             <div className="space-y-4 mb-12">

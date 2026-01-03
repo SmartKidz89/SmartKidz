@@ -177,9 +177,9 @@ export default function FeaturesPage() {
         <Container>
           <div className="text-center mb-16">
              <SectionLabel>Creative Studio</SectionLabel>
-             <h2 className="text-4xl font-black text-slate-900 mb-4">Tools for the Imagination</h2>
+             <h2 className="text-4xl font-black text-slate-900 mb-4">Projects for the Imagination</h2>
              <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-               We believe creativity is a core skill. That's why we included a suite of premium tools to help kids express themselves.
+               We believe creativity is a core skill. That’s why SmartKidz includes premium creative projects and guided activities to help kids express themselves.
              </p>
           </div>
 

@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import BrandMark from "./BrandMark";
 import { cn } from "@/lib/utils";
 import { useSession } from "./auth/useSession";
+import { getAppBase } from "@/lib/env/public";
 
 export default function NavBar() {
   const { scrollY } = useScroll();
@@ -22,7 +23,7 @@ export default function NavBar() {
   const headerBorder = useTransform(scrollY, [0, 60], ["rgba(0,0,0,0)", "rgba(0,0,0,0.06)"]);
   const headerShadow = useTransform(scrollY, [0, 60], ["none", "0 4px 30px rgba(0,0,0,0.04)"]);
 
-  const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "https://app.smartkidz.app";
+  const appBase = getAppBase();
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -74,7 +75,7 @@ export default function NavBar() {
         <div className="hidden md:flex items-center gap-3 relative z-20">
           {!loading && session ? (
             <Link
-              href={appOrigin}
+              href={appBase}
               className="group relative inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800 hover:scale-105 active:scale-95 shadow-lg shadow-slate-900/20"
             >
               <span>Dashboard</span>
@@ -83,13 +84,13 @@ export default function NavBar() {
           ) : (
             <>
               <Link
-                href={`${appOrigin}/login`}
+                href={`${appBase}/login`}
                 className="text-sm font-bold text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors"
               >
                 Log in
               </Link>
               <Link
-                href={`${appOrigin}/signup`}
+                href={`${appBase}/signup`}
                 className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/25 transition-all hover:shadow-brand-primary/40 hover:scale-105 active:scale-95"
               >
                 <span>Start Free Trial</span>
@@ -137,7 +138,7 @@ export default function NavBar() {
               
               {!loading && session ? (
                 <Link
-                  href={appOrigin}
+                  href={appBase}
                   onClick={() => setMobileOpen(false)}
                   className="w-full bg-slate-900 text-white p-4 rounded-2xl text-center font-bold text-lg shadow-lg"
                 >
@@ -146,14 +147,14 @@ export default function NavBar() {
               ) : (
                 <div className="grid gap-3">
                   <Link
-                    href={`${appOrigin}/login`}
+                    href={`${appBase}/login`}
                     onClick={() => setMobileOpen(false)}
                     className="w-full bg-slate-100 text-slate-900 p-4 rounded-2xl text-center font-bold text-lg"
                   >
                     Log in
                   </Link>
                   <Link
-                    href={`${appOrigin}/signup`}
+                    href={`${appBase}/signup`}
                     onClick={() => setMobileOpen(false)}
                     className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-4 rounded-2xl text-center font-bold text-lg shadow-lg"
                   >

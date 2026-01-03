@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getEntitlementsForParent } from "../../../lib/entitlements";
 import { rateLimit } from "../../../lib/rateLimit";
+import { getSupabasePublicConfig } from "@/lib/env/public";
 
 export const runtime = "nodejs";
 
@@ -13,8 +14,22 @@ export async function GET() {
   }
 
   const cookieStore = cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "public-anon-key";
+
+  let supabaseUrl;
+  let supabaseAnon;
+  try {
+    const cfg = getSupabasePublicConfig();
+    supabaseUrl = cfg.url;
+    supabaseAnon = cfg.anonKey;
+  } catch (err) {
+    return Response.json(
+      {
+        error: "Supabase is not configured",
+        detail: err instanceof Error ? err.message : String(err),
+      },
+      { status: 500 }
+    );
+  }
 
   const supabase = createServerClient(
     supabaseUrl,

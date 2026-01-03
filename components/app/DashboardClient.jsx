@@ -11,8 +11,8 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { 
   Calculator, BookOpen, FlaskConical, Globe, Palette, Cpu, Activity, Languages, 
-  Wrench, Star, Zap, Map, Sparkles, Heart,
-  Globe2, PenTool, Compass, Plus, Palette as PaletteIcon, Clock, AlertCircle, RotateCcw, Volume2, Type,
+  Star, Zap, Map, Sparkles, Heart,
+  Globe2, PenTool, Compass, Plus, Palette as PaletteIcon, Clock, AlertCircle, RotateCcw,
   Wifi, WifiOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,20 +49,7 @@ function getSubjects(geo) {
   ];
 }
 
-const TOOLS = [
-  { href: "/app/tools/teachme", label: "Teach Me", emoji: "🎓", desc: "AI Tutor", gradient: "from-violet-400 to-indigo-600", icon: null },
-  { href: "/app/tools/spelling-bee", label: "Spelling Bee", emoji: "🐝", desc: "Listen & Spell", gradient: "from-amber-300 to-orange-500", icon: Volume2 },
-  { href: "/app/tools/world-explorer", label: "Explorer", emoji: "🌏", desc: "World Map", gradient: "from-sky-400 to-blue-600", icon: Globe2 },
-  { href: "/app/tools/grammar", label: "Grammar Gym", emoji: "✍️", desc: "Fix Sentences", gradient: "from-emerald-400 to-teal-600", icon: Type },
-  { href: "/app/tools/dictionary", label: "Dictionary", emoji: "📖", desc: "Word Lookup", gradient: "from-cyan-400 to-blue-500", icon: BookOpen },
-  { href: "/app/tools/curiosity", label: "Curiosity", emoji: "🤔", desc: "Ask Why?", gradient: "from-fuchsia-400 to-purple-600", icon: Compass },
-  { href: "/app/tools/homework", label: "Worksheets", emoji: "📄", desc: "Printable", gradient: "from-slate-400 to-slate-600", icon: null },
-  { href: "/app/tools/timeline", label: "Timeline", emoji: "🕰️", desc: "History", gradient: "from-blue-400 to-indigo-500", icon: Clock },
-  { href: "/app/tools/debate", label: "Debate Club", emoji: "🎤", desc: "Speak Up", gradient: "from-rose-400 to-pink-600", icon: Mic },
-  { href: "/app/tools/zen", label: "Zen Zone", emoji: "🧘", desc: "Breathe", gradient: "from-teal-300 to-emerald-500", icon: null },
-  { href: "/app/tools/music-maker", label: "Music Maker", emoji: "🎵", desc: "Make Beats", gradient: "from-pink-400 to-rose-600", icon: null },
-  { href: "/app/tools/pixel-art", title: "Pixel Art", emoji: "🎨", desc: "Draw blocks", gradient: "from-pink-100 to-pink-300", icon: Palette },
-];
+// Note: The student app no longer exposes standalone “Tools”.
 
 function Greeting({ name }) {
   const hour = new Date().getHours();
@@ -233,26 +220,26 @@ export default function DashboardClient() {
         </motion.div>
 
         <div className="lg:col-span-4 flex flex-col gap-4">
-          <Link href="/app/tools/teachme" className="block">
+          <Link href="/app/worlds" className="block">
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="rounded-[2.5rem] bg-gradient-to-br from-violet-100 to-white border border-violet-100 p-6 shadow-lg relative overflow-hidden group"
+              className="rounded-[2.5rem] bg-gradient-to-br from-sky-100 to-white border border-sky-100 p-6 shadow-lg relative overflow-hidden group"
             >
-               <div className="absolute -right-4 -top-4 w-32 h-32 bg-violet-200/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
+               <div className="absolute -right-4 -top-4 w-32 h-32 bg-sky-200/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
                <div className="relative z-10 flex items-center justify-between">
                   <div>
                      <div className="flex items-center gap-2 mb-1">
-                       <Sparkles className="w-5 h-5 text-violet-600 fill-current" />
-                       <span className="text-xs font-black uppercase tracking-wider text-violet-700">Tutor</span>
+                       <Map className="w-5 h-5 text-sky-600" />
+                       <span className="text-xs font-black uppercase tracking-wider text-sky-700">Start</span>
                      </div>
-                     <h3 className="text-2xl font-black text-slate-900">Teach Me</h3>
-                     <p className="text-xs text-slate-600 font-medium mt-1">Ask anything.</p>
+                     <h3 className="text-2xl font-black text-slate-900">Pick a World</h3>
+                     <p className="text-xs text-slate-600 font-medium mt-1">Jump into Maths, English, Science and more.</p>
                   </div>
                   <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-3xl shadow-sm group-hover:rotate-12 transition-transform">
-                     🧠
+                     🌍
                   </div>
                </div>
             </motion.div>
@@ -326,18 +313,16 @@ export default function DashboardClient() {
           </motion.div>
       </section>
 
-      <section>
+      <section className="pb-4">
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-2xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-sm transform rotate-3">
-            <Wrench className="w-5 h-5" />
-          </div>
-          <h2 className="text-2xl font-black text-slate-900">Creative Tools</h2>
+          <h2 className="text-2xl font-black text-slate-900">Quick Links</h2>
+          <div className="h-1.5 w-16 bg-slate-200 rounded-full" />
         </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-          {TOOLS.map((tool, idx) => (
-            <ToolCard key={tool.href} tool={tool} index={idx} />
-          ))}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <QuickLink href="/app/worlds" title="Explore Worlds" subtitle="Start learning" emoji="🧭" />
+          <QuickLink href="/app/rewards" title="Rewards" subtitle="Earn and unlock" emoji="🏆" />
+          <QuickLink href="/app/avatar" title="Avatar" subtitle="Customize your look" emoji="🧑‍🚀" />
         </div>
       </section>
 
@@ -383,20 +368,24 @@ function WorldCard({ subject, index }) {
   );
 }
 
-function ToolCard({ tool, index }) {
-  const Icon = tool.icon;
+function QuickLink({ href, title, subtitle, emoji }) {
   return (
-    <Link href={tool.href} className="group block">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 + (index * 0.05) }}
-        className="flex flex-col items-center gap-3 rounded-[2rem] border border-white/60 bg-white/60 p-4 text-center shadow-sm backdrop-blur-md transition-all hover:bg-white hover:shadow-xl hover:-translate-y-2"
+    <Link href={href} className="group block">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="rounded-[2rem] border border-white/60 bg-white/70 p-5 shadow-sm backdrop-blur-md transition-all hover:bg-white hover:shadow-xl hover:-translate-y-1"
       >
-        <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110", tool.color)}>
-           {Icon ? <Icon className="w-6 h-6 text-slate-800" /> : <span className="drop-shadow-md">{tool.emoji}</span>}
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-2xl shadow-sm group-hover:scale-105 transition-transform">
+            {emoji}
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-black text-slate-900 truncate">{title}</div>
+            <div className="text-xs font-semibold text-slate-500 truncate">{subtitle}</div>
+          </div>
         </div>
-        <div className="text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors line-clamp-1">{tool.label || tool.title}</div>
       </motion.div>
     </Link>
   );

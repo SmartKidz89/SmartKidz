@@ -22,7 +22,7 @@ export default function MarketingHome() {
     { 
       id: "f2", 
       q: "Is the platform safe for children?", 
-      a: "Absolutely. SmartKidz is a walled garden. There are no ads, no external links, and no open chat features. Our AI tools are strictly safety-guarded to ensure age-appropriate content." 
+      a: "Absolutely. SmartKidz is a walled garden. There are no ads, no external links, and no open chat features. Automated features are safety-guarded to keep experiences age-appropriate." 
     },
     { 
       id: "f3", 
@@ -37,7 +37,7 @@ export default function MarketingHome() {
     { 
       id: "f5", 
       q: "Can I print worksheets?", 
-      a: "Yes! The Homework Generator tool lets you create custom, printable PDF worksheets based on the exact lessons your child is working on." 
+      a: "Printable practice sheets are on the roadmap. The current build focuses on interactive lessons and parent visibility into progress." 
     },
     { 
       id: "f6", 

@@ -15,13 +15,11 @@ import { cn } from "@/lib/utils";
 // --- Game Data (10 Total) ---
 const GAMES = [
   { id: "maths-miner", title: "Maths Miner", genre: "Arcade", icon: Pickaxe, color: "from-emerald-400 to-teal-600", href: "/app/games/maths-miner" },
-  { id: "pixel-painter", title: "Pixel Art", genre: "Creative", icon: Palette, color: "from-pink-400 to-rose-600", href: "/app/tools/pixel-art" },
   { id: "retro-runner", title: "Retro Runner", genre: "Action", icon: Joystick, color: "from-orange-400 to-red-500", href: "/app/games/retro-runner" },
   { id: "word-royale", title: "Word Royale", genre: "Battle", icon: Ghost, color: "from-violet-500 to-purple-700", href: "/app/games/word-royale" },
   { id: "logic-loops", title: "Logic Loops", genre: "Puzzle", icon: BrainCircuit, color: "from-blue-400 to-indigo-600", href: "/app/games/logic-loops" },
   { id: "cosmic-tycoon", title: "Cosmic Tycoon", genre: "Strategy", icon: Rocket, color: "from-indigo-500 to-blue-800", href: "/app/games/cosmic-tycoon" },
   { id: "globe-trotter", title: "Globe Trotter", genre: "Adventure", icon: Globe2, color: "from-sky-400 to-cyan-600", href: "/app/games/globe-trotter" },
-  { id: "rhythm-reader", title: "Rhythm Reader", genre: "Music", icon: Music, color: "from-fuchsia-400 to-pink-600", href: "/app/tools/music-maker" },
   { id: "super-streak", title: "Super Streak", genre: "Challenge", icon: Zap, color: "from-yellow-400 to-orange-500", href: "/app/today" },
   { id: "block-builder", title: "Block Builder", genre: "Sandbox", icon: Box, color: "from-slate-400 to-slate-600", href: "/app/games/block-builder" },
 ];

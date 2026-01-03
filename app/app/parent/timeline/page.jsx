@@ -20,14 +20,13 @@ export default function ParentTimelinePage() {
         </div>
       </div>
 
-      {/* Reuse the kid tool page route via iframe-free approach: link to tool with parent context */}
       <div className="skz-card p-6">
         <div className="text-sm text-slate-700">
-          Open the timeline tool for <span className="font-semibold">{activeChild?.display_name || "your child"}</span>.
+          Timeline features are being rebuilt to align with the streamlined learning experience.
         </div>
-        <a className="mt-4 inline-block skz-glass skz-border-animate skz-shine px-4 py-3 skz-press text-sm" href="/app/tools/timeline">
-          Open timeline →
-        </a>
+        <div className="mt-3 text-sm text-slate-500">
+          Check back soon for a printable view of milestones and progress for <span className="font-semibold">{activeChild?.display_name || "your child"}</span>.
+        </div>
       </div>
     </PageMotion>
   );

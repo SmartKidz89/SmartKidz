@@ -17,7 +17,7 @@ export default function EnglishHub() {
               <div className="text-sm font-semibold text-slate-600">English</div>
               <h1 className="text-3xl font-extrabold tracking-tight">English Hub</h1>
               <p className="mt-2 text-slate-700 max-w-2xl">
-                Choose an English learning area. This hub keeps Writing tools inside English (not separate from the curriculum),
+                Choose an English learning area. This hub keeps writing activities inside English (not separate from the curriculum),
                 so progress and practice stay coherent.
               </p>
             </div>

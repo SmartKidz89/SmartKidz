@@ -188,7 +188,7 @@ export default function SafetyPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-bold text-slate-900">Strict Mode</div>
-                <div className="text-sm text-slate-500">Lock "Fun" tools until learning goals met.</div>
+                <div className="text-sm text-slate-500">Lock "Fun" activities until learning goals are met.</div>
               </div>
               <Switch 
                 checked={settings.safety.strictMode} 

@@ -14,14 +14,25 @@ export const metadata = {
   title: "Smart Kidz — Years 1–6 Learning (AU)",
   description:
     "Maths, English & Science that adapts to your child. Calm, structured, mastery-first learning for Australian families.",
-  robots: { index: false, follow: false }
+  // Default to no-index until explicitly enabled in environment.
+  robots:
+    (process.env.NEXT_PUBLIC_ROBOTS_INDEX === "1" || process.env.ROBOTS_INDEX === "1")
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
+  metadataBase: process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL) : undefined,
+  openGraph: {
+    title: "Smart Kidz",
+    description:
+      "Maths, English & Science that adapts to your child. Calm, structured, mastery-first learning for Australian families.",
+    type: "website",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Allow user zoom for accessibility.
+  userScalable: true,
   themeColor: "#ffffff",
 };
 

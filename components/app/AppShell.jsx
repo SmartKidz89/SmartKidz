@@ -1,20 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useFocusMode } from "@/components/ui/FocusModeProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import WelcomeHeader from "./WelcomeHeader";
 import ParentTopBar from "./ParentTopBar";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
 import RouteBackdrop from "@/components/ui/RouteBackdrop";
-import { 
-  Home, Map, Trophy, UserCircle, Grid2X2, X, 
-  Settings
-} from "lucide-react";
-import * as Icons from "lucide-react";
+import { Home, Map, Trophy, UserCircle } from "lucide-react";
 
 const HIDE_SHELL_PATHS = ["/app/login","/app/signup","/app/auth","/login","/signup","/auth"];
 
@@ -23,7 +18,6 @@ const NAV_ITEMS = [
   { label: "Worlds", href: "/app/worlds", icon: Map },
   { label: "Rewards", href: "/app/rewards", icon: Trophy },
   { label: "Home", href: "/app", icon: Home, isCenter: true },
-  { label: "Tools", href: "/app/tools", icon: Grid2X2 },
   { label: "Avatar", href: "/app/avatar", icon: UserCircle },
 ];
 
@@ -36,8 +30,11 @@ function BottomNav() {
 
   return (
     <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-      <nav className="pointer-events-auto flex items-center gap-1 p-2 bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-slate-900/30 rounded-[2.5rem] ring-1 ring-white/10 max-w-lg w-full justify-between">
-          {(dynamicNav || NAV_ITEMS).map((t) => {
+      <nav
+        aria-label="Primary"
+        className="pointer-events-auto flex items-center gap-1 p-2 bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-slate-900/30 rounded-[2.5rem] ring-1 ring-white/10 max-w-lg w-full justify-between"
+      >
+          {NAV_ITEMS.map((t) => {
             const isActive = pathname === t.href || (t.href !== "/app" && pathname?.startsWith(t.href));
             const Icon = t.icon;
             
@@ -48,6 +45,8 @@ function BottomNav() {
                   href="/app"
                   onClick={() => play("click")}
                   className="relative group -mt-8 mx-2"
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label="Home"
                 >
                   <div className={cn(
                     "w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-[4px] border-white transform transition-transform group-hover:scale-110 group-active:scale-95",
@@ -66,6 +65,8 @@ function BottomNav() {
                 key={t.href}
                 href={t.href}
                 onClick={() => play("click")}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={t.label}
                 className={cn(
                   "relative flex flex-col items-center justify-center w-14 h-14 rounded-[1.5rem] transition-all duration-300",
                   isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
