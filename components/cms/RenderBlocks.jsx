@@ -8,11 +8,16 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Check, Play } from "lucide-react";
 
-// Import System Components for re-use in CMS
+// Marketing Components
 import MarketingHero from "@/components/marketing/MarketingHero";
 import { FeatureGrid, SubjectTiles, CTA, LogoStrip } from "@/components/marketing/LandingSections";
 import ScreenshotsShowcase from "@/components/marketing/ScreenshotsShowcase";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
+
+// App Components
+import DashboardClient from "@/components/app/DashboardClient";
+import RewardsClient from "@/components/app/RewardsClient";
+import ParentHomeClient from "@/components/app/ParentHomeClient";
 
 // --- Style System ---
 
@@ -76,7 +81,6 @@ function FaqItem({ question, answer }) {
 }
 
 function VideoEmbed({ url }) {
-  // Simple YouTube parser
   let embedUrl = url;
   if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const id = url.split("v=")[1] || url.split("/").pop();
@@ -124,15 +128,16 @@ export function RenderBlocks({ content, selectable = false, selectedBlockId = nu
 
         switch (b.type) {
           case "component":
-            // Render specialized React components from the codebase
-            // These allow "High Fidelity" blocks in the visual editor
             const Component = {
               MarketingHero,
               FeatureGrid,
               SubjectTiles,
               CTA,
               LogoStrip,
-              ScreenshotsShowcase
+              ScreenshotsShowcase,
+              DashboardClient,
+              RewardsClient,
+              ParentHomeClient
             }[b.componentName];
 
             if (!Component) return <div {...selectProps} className="p-4 bg-rose-50 text-rose-600 border border-rose-200">Unknown Component: {b.componentName}</div>;

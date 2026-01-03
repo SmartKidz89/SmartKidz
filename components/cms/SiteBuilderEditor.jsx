@@ -29,19 +29,25 @@ function cx(...parts) {
 }
 
 const HARDCODED_PAGES = [
+  // Public
   { title: "Home", slug: "/", scope: "public" },
   { title: "Features", slug: "marketing/features", scope: "public" },
   { title: "Pricing", slug: "marketing/pricing", scope: "public" },
   { title: "Curriculum", slug: "marketing/curriculum", scope: "public" },
   { title: "Login", slug: "login", scope: "auth" },
   { title: "Signup", slug: "signup", scope: "auth" },
+  
+  // App
+  { title: "Student Dashboard", slug: "/app", scope: "app" },
+  { title: "Rewards & Shop", slug: "/app/rewards", scope: "app" },
+  { title: "Parent Dashboard", slug: "/app/parent", scope: "app" },
 ];
 
 // Pre-defined block structures for system pages to allow "forking"
 const SYSTEM_TEMPLATES = {
   "/": {
     title: "Home",
-    slug: "home", // internal slug
+    slug: "home",
     scope: "marketing",
     blocks: [
       { id: newId("hero"), type: "component", componentName: "MarketingHero" },
@@ -50,6 +56,30 @@ const SYSTEM_TEMPLATES = {
       { id: newId("subj"), type: "component", componentName: "SubjectTiles" },
       { id: newId("shot"), type: "component", componentName: "ScreenshotsShowcase" },
       { id: newId("cta"),  type: "component", componentName: "CTA" },
+    ]
+  },
+  "/app": {
+    title: "Student Dashboard",
+    slug: "home", // /app -> slug='home' in 'app' scope
+    scope: "app",
+    blocks: [
+      { id: newId("dash"), type: "component", componentName: "DashboardClient" }
+    ]
+  },
+  "/app/rewards": {
+    title: "Rewards",
+    slug: "rewards",
+    scope: "app",
+    blocks: [
+      { id: newId("rew"), type: "component", componentName: "RewardsClient" }
+    ]
+  },
+  "/app/parent": {
+    title: "Parent Dashboard",
+    slug: "parent",
+    scope: "app",
+    blocks: [
+      { id: newId("par"), type: "component", componentName: "ParentHomeClient" }
     ]
   }
 };
@@ -370,7 +400,10 @@ export default function SiteBuilderEditor() {
                      {filteredSystemPages.map(hp => {
                         const canFork = SYSTEM_TEMPLATES[hp.slug];
                         // If page already exists in custom pages (by slug), disable fork
-                        const exists = pages.some(p => p.slug === (canFork ? canFork.slug : hp.slug));
+                        // Match custom pages against template slug
+                        const targetSlug = canFork ? canFork.slug : hp.slug;
+                        const targetScope = canFork ? canFork.scope : hp.scope;
+                        const exists = pages.some(p => p.slug === targetSlug && p.scope === targetScope);
                         
                         return (
                           <div key={hp.slug} className="group flex items-center justify-between py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded px-2 transition-colors">
