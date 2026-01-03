@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
 
 function Pill({ children, tone = "slate" }) {
@@ -46,7 +46,7 @@ function toneForStatus(s) {
 }
 
 export default function LessonBuilder() {
-  const [tab, setTab] = useState("interactive"); // interactive | jobs | assets
+  const [tab, setTab] = useState("interactive"); // interactive | import | jobs | assets
   const [jobs, setJobs] = useState([]);
   const [assets, setAssets] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -95,7 +95,6 @@ export default function LessonBuilder() {
         subtopic: form.subtopic,
       };
 
-      // Add local overrides if enabled
       if (form.useLocalLLM) {
         payload.llmUrl = form.llmUrl;
         payload.llmModel = form.llmModel;
@@ -119,7 +118,7 @@ export default function LessonBuilder() {
         text: `Generated "${data.title}" (${data.lesson_id}) with ${data.questions} questions.` 
       });
       
-      await refresh(); // Refresh asset queue
+      await refresh(); 
 
     } catch (e) {
       setNotice({ tone: "danger", title: "Generation failed", text: e.message });
@@ -128,7 +127,39 @@ export default function LessonBuilder() {
     }
   }
 
-  // ... (Legacy Handlers: importXlsx, runLessonGen, runAssetBatch kept for bulk tab)
+  async function handleFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBusy(true);
+    setNotice(null);
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+       const res = await fetch("/api/admin/lesson-jobs/import-xlsx", {
+         method: "POST",
+         body: fd
+       });
+       const data = await res.json();
+       if(!res.ok) throw new Error(data.error || "Import failed");
+       
+       setNotice({ 
+         tone: "success", 
+         title: "Import Successful", 
+         text: `Imported ${data.jobs_imported} jobs. Check the Jobs tab.` 
+       });
+       setTab("jobs");
+       refresh();
+    } catch(err) {
+       setNotice({ tone: "danger", title: "Import Failed", text: err.message });
+    } finally {
+       setBusy(false);
+       e.target.value = ""; // reset
+    }
+  }
+
   async function runAssetBatch(limit = 25) {
      setBusy(true); setNotice(null);
      try {
@@ -151,7 +182,14 @@ export default function LessonBuilder() {
           onClick={() => setTab("interactive")}
         >
           <Sparkles className="w-4 h-4 inline mr-2" />
-          Interactive Generator
+          Interactive
+        </button>
+        <button
+          className={`rounded-xl px-3 py-2 text-sm border ${tab === "import" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
+          onClick={() => setTab("import")}
+        >
+          <FileSpreadsheet className="w-4 h-4 inline mr-2" />
+          Import
         </button>
         <button
           className={`rounded-xl px-3 py-2 text-sm border ${tab === "jobs" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
@@ -272,21 +310,44 @@ export default function LessonBuilder() {
                                placeholder="llama3"
                              />
                           </div>
-                          <div className="text-xs text-slate-500">
-                             Ensure Ollama is running: <code className="bg-slate-200 px-1 rounded">ollama serve</code>
-                          </div>
-                       </div>
-                    )}
-                    
-                    {!form.useLocalLLM && (
-                       <div className="text-xs text-slate-500">
-                          Using server environment variables (OPENAI_API_KEY).
                        </div>
                     )}
                  </div>
               </Section>
            </div>
         </div>
+      )}
+
+      {/* IMPORT TAB */}
+      {tab === "import" && (
+         <Section title="Import Spreadsheet" desc="Upload Excel (.xlsx) or CSV files containing lesson jobs.">
+             <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-white transition-colors cursor-pointer relative">
+                <input 
+                  type="file" 
+                  accept=".xlsx, .xls, .csv" 
+                  onChange={handleFileUpload} 
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  disabled={busy}
+                />
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 mb-3">
+                   {busy ? <Server className="w-6 h-6 animate-pulse" /> : <UploadCloud className="w-6 h-6" />}
+                </div>
+                <div className="font-bold text-slate-900">
+                   {busy ? "Uploading..." : "Click or Drag File"}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">Supports Excel and CSV</div>
+             </div>
+             <div className="mt-6 text-sm text-slate-600">
+                <p className="font-bold mb-2">Required Columns (Sheet: "Lesson Jobs")</p>
+                <ul className="list-disc pl-5 space-y-1">
+                   <li><code>job_id</code> (Unique ID)</li>
+                   <li><code>subject</code> (Mathematics, English, etc.)</li>
+                   <li><code>year_level</code> (1-6)</li>
+                   <li><code>topic</code></li>
+                   <li><code>subtopic</code></li>
+                </ul>
+             </div>
+         </Section>
       )}
 
       {/* ASSETS TAB */}
@@ -327,10 +388,6 @@ export default function LessonBuilder() {
       {/* JOBS TAB (Read Only / Bulk) */}
       {tab === "jobs" && (
          <Section title="Bulk Jobs" desc="Background processing for spreadsheet imports.">
-             <div className="text-sm text-slate-600">
-                To run bulk jobs, use the "Import" tool or check the status below.
-             </div>
-             {/* Simple table for bulk jobs */}
              <div className="mt-4 overflow-auto max-h-[500px]">
                <table className="w-full text-sm text-left">
                   <thead className="text-xs text-slate-500 border-b border-slate-100">
