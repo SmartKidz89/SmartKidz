@@ -83,7 +83,7 @@ export default function IntegrationsPage() {
             details={[
                { label: "Project URL", value: data?.supabase?.url || "Not Set" },
                { label: "Service Role", value: data?.supabase?.hasServiceRole ? "Configured" : "Missing" },
-               { label: "Region", value: "us-east-1" } // inferred usually
+               { label: "Direct DB (SQL)", value: data?.supabase?.hasDbUrl ? "Configured" : "Missing (Optional)" }
             ]}
             action={
                <Button tone="secondary" className="w-full" onClick={() => window.open("https://supabase.com/dashboard", "_blank")}>

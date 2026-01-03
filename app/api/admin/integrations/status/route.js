@@ -12,6 +12,7 @@ export async function GET() {
   const supabase = {
      url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "Configured" : null,
      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+     hasDbUrl: !!(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL),
      ok: !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY
   };
 
