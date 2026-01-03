@@ -3,49 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
-
-function cx(...parts) {
-  return parts.filter(Boolean).join(" ");
-}
-
-function Button({ children, tone = "primary", className, ...props }) {
-  const base = "rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed";
-  const toneCls =
-    tone === "primary"
-      ? "bg-slate-900 text-white hover:bg-slate-800"
-      : tone === "danger"
-      ? "bg-rose-600 text-white hover:bg-rose-500"
-      : "bg-white border border-slate-200 hover:bg-slate-50";
-  return (
-    <button className={cx(base, toneCls, className)} {...props}>
-      {children}
-    </button>
-  );
-}
-
-function Input({ className, ...props }) {
-  return (
-    <input
-      className={cx(
-        "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-slate-200",
-        className
-      )}
-      {...props}
-    />
-  );
-}
-
-function Select({ className, ...props }) {
-  return (
-    <select
-      className={cx(
-        "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-slate-200",
-        className
-      )}
-      {...props}
-    />
-  );
-}
+import { cx } from "@/components/admin/adminUi";
+import { Button, Input, Select } from "@/components/admin/AdminControls";
 
 function Pill({ tone = "neutral", children }) {
   const cls =

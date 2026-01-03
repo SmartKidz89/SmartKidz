@@ -12,11 +12,9 @@ import {
 } from "lucide-react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
+import { cx } from "@/components/admin/adminUi";
 import { useAdminMe } from "@/components/admin/useAdminMe";
 
-function cx(...parts) {
-  return parts.filter(Boolean).join(" ");
-}
 
 function bytesToHuman(n) {
   const num = Number(n || 0);

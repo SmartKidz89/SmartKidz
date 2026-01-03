@@ -2,10 +2,7 @@
 
 import { useMemo } from "react";
 import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
-
-function cx(...parts) {
-  return parts.filter(Boolean).join(" ");
-}
+import { cx } from "@/components/admin/adminUi";
 
 /**
  * Lightweight, consistent status message surface for admin pages.
@@ -48,9 +45,13 @@ export default function AdminNotice({
   const Icon = cfg.icon;
 
   return (
-    <div className={cx("rounded-2xl border px-4 py-3 text-sm", cfg.wrap, className)}>
+    <div
+      className={cx("rounded-2xl border px-4 py-3 text-sm", cfg.wrap, className)}
+      role="status"
+      aria-live="polite"
+    >
       <div className="flex items-start gap-3">
-        <Icon className={cx("mt-0.5 h-5 w-5", cfg.iconCls)} />
+        <Icon className={cx("mt-0.5 h-5 w-5", cfg.iconCls)} aria-hidden="true" />
         <div className="min-w-0">
           {title ? <div className="font-semibold">{title}</div> : null}
           <div className={title ? "mt-0.5" : ""}>{children}</div>
