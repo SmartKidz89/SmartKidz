@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Plus, Play, Trash2, Wand2, ShieldAlert, History } from "lucide-react";
-// Use relative imports to avoid build failures if the "@" path alias is not
-// correctly configured in the deployment environment.
-import AdminNotice from "../../../../components/admin/AdminNotice";
-import AdminModal from "../../../../components/admin/AdminModal";
-import { cx } from "../../../../components/admin/adminUi";
-import { Button, Input, Textarea } from "../../../../components/admin/AdminControls";
-import { useAdminMe } from "../../../../components/admin/useAdminMe";
+import AdminNotice from "@/components/admin/AdminNotice";
+import AdminModal from "@/components/admin/AdminModal";
+import { cx } from "@/components/admin/adminUi";
+import { Button, Input, Textarea } from "@/components/admin/AdminControls";
+import { useAdminMe } from "@/components/admin/useAdminMe";
 
 function StatusPill({ allowMutations }) {
   if (allowMutations) {

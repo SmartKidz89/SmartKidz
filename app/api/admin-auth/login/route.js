@@ -20,7 +20,12 @@ export async function POST(req) {
       .ilike("username", username)
       .maybeSingle();
 
-    if (error || !user || !user.is_active) {
+    if (error) {
+      console.error("Supabase admin_users lookup failed", error);
+      return jsonError("Auth service misconfigured", 500);
+    }
+
+    if (!user || !user.is_active) {
       return jsonError("Invalid credentials", 401);
     }
 
