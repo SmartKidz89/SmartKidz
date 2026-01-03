@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Activity, Flag, Server, ShieldCheck, Database, Cpu, Globe } from "lucide-react";
-import { Button, Input } from "@/components/admin/AdminControls";
+import { Button } from "@/components/admin/AdminControls";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { cx } from "@/components/admin/adminUi";
 
 const MOCK_FLAGS = [
@@ -13,20 +14,14 @@ const MOCK_FLAGS = [
 ];
 
 export default function SystemPage() {
-  const [tab, setTab] = useState("health"); // health | flags | env
+  const [tab, setTab] = useState("health");
   const [flags, setFlags] = useState(MOCK_FLAGS);
   const [health, setHealth] = useState(null);
 
   useEffect(() => {
     // Simulate health check
     setTimeout(() => {
-       setHealth({
-         database: "healthy",
-         redis: "healthy",
-         storage: "healthy",
-         latency: "45ms",
-         uptime: "99.98%"
-       });
+       setHealth({ database: "healthy", redis: "healthy", storage: "healthy", latency: "45ms", uptime: "99.98%" });
     }, 800);
   }, []);
 
@@ -35,19 +30,13 @@ export default function SystemPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-          <Activity className="w-6 h-6 text-indigo-600" />
-          System & Operations
-        </h1>
-        <p className="text-slate-500">
-          Monitor health, manage feature flags, and view environment configuration.
-        </p>
-      </div>
+    <div>
+      <AdminPageHeader 
+        title="System & Operations" 
+        subtitle="Monitor health, manage feature flags, and view environment configuration."
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 pb-1">
+      <div className="flex gap-2 border-b border-slate-200 pb-1 mb-6">
         {[
           { id: "health", label: "System Health", icon: Server },
           { id: "flags", label: "Feature Flags", icon: Flag },
@@ -67,14 +56,12 @@ export default function SystemPage() {
         ))}
       </div>
 
-      {/* HEALTH TAB */}
       {tab === "health" && (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <HealthCard label="Database" status={health?.database} icon={Database} />
             <HealthCard label="Storage" status={health?.storage} icon={Server} />
             <HealthCard label="Latency" value={health?.latency} icon={Cpu} status="healthy" />
             <HealthCard label="Uptime" value={health?.uptime} icon={ShieldCheck} status="healthy" />
-            
             <div className="col-span-full bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-4">
                <h3 className="font-bold text-slate-900 mb-4">Operational Metrics</h3>
                <div className="h-48 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 text-sm font-mono border border-slate-100 border-dashed">
@@ -84,7 +71,6 @@ export default function SystemPage() {
          </div>
       )}
 
-      {/* FLAGS TAB */}
       {tab === "flags" && (
          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
@@ -109,7 +95,6 @@ export default function SystemPage() {
          </div>
       )}
 
-      {/* ENV TAB */}
       {tab === "env" && (
          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <h3 className="font-bold text-slate-900 mb-4">Environment Config</h3>
@@ -122,7 +107,6 @@ export default function SystemPage() {
             </div>
          </div>
       )}
-
     </div>
   );
 }

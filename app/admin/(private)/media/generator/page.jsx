@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Button } from "@/components/admin/AdminControls";
 import AdminNotice from "@/components/admin/AdminNotice";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { 
-  Sparkles, RefreshCw, Link as LinkIcon, 
+  Link as LinkIcon, 
   Image as ImageIcon, Loader2, CheckCircle, 
-  AlertCircle, Play, Server 
+  AlertCircle, Play, Server, RefreshCw
 } from "lucide-react";
 
 export default function AssetGeneratorPage() {
@@ -59,7 +60,7 @@ export default function AssetGeneratorPage() {
             assetId: asset.asset_id,
             comfyUrl: comfyUrl,
             prompt: asset.alt_text || asset.metadata?.prompt, // Pass prompt hints if available
-            workflow: "basic_text2img" // Could make selectable later
+            workflow: "basic_text2img"
           })
         });
 
@@ -86,18 +87,12 @@ export default function AssetGeneratorPage() {
   }
 
   return (
-    <div className="space-y-6">
-      
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-indigo-600" />
-          Asset Generator
-        </h1>
-        <p className="text-slate-500">
-          Connect your local ComfyUI to generate missing assets automatically.
-        </p>
-      </div>
+    <div>
+      <AdminPageHeader 
+        title="Asset Generator"
+        subtitle="Connect local ComfyUI to batch-generate missing media."
+        backLink="/admin/media"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -121,7 +116,7 @@ export default function AssetGeneratorPage() {
               </div>
               
               <div className="bg-indigo-50 p-3 rounded-xl text-xs text-indigo-800 leading-relaxed border border-indigo-100">
-                <strong>Note:</strong> If running locally, ensure ComfyUI is started with <code className="bg-white/50 px-1 rounded">--listen</code> and your firewall allows connections.
+                <strong>Note:</strong> Ensure ComfyUI is started with <code className="bg-white/50 px-1 rounded">--listen</code>.
               </div>
             </div>
           </div>
@@ -149,7 +144,7 @@ export default function AssetGeneratorPage() {
         {/* Right: Queue & Logs */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Progress Card (Only shows when active) */}
+          {/* Progress Card */}
           {(processing || progress.total > 0) && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex justify-between items-center mb-2">
@@ -183,7 +178,6 @@ export default function AssetGeneratorPage() {
                   <div className="h-full flex flex-col items-center justify-center text-slate-400">
                      <ImageIcon className="w-12 h-12 mb-2 opacity-20" />
                      <p className="text-sm">No assets queued.</p>
-                     <button onClick={scan} className="text-indigo-600 text-xs font-bold hover:underline mt-2">Scan now</button>
                   </div>
                 ) : (
                   queue.map((asset) => (

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button, Input } from "@/components/admin/AdminControls";
 import { THEME_PRESETS } from "@/lib/themePresets";
-import { Palette, Sparkles, Check } from "lucide-react";
+import { Sparkles, Check } from "lucide-react";
 
 function cx(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -48,7 +49,7 @@ const DEFAULT_TOKENS = {
 export default function AdminThemePage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null); // { tone, title, message }
+  const [notice, setNotice] = useState(null);
 
   const [tokens, setTokens] = useState(DEFAULT_TOKENS);
   const baselineRef = useRef(DEFAULT_TOKENS);
@@ -62,7 +63,6 @@ export default function AdminThemePage() {
 
   async function load() {
     setLoading(true);
-    setNotice(null);
     try {
       const res = await fetch("/api/admin/theme", { cache: "no-store" });
       const j = await res.json().catch(() => null);
@@ -78,15 +78,13 @@ export default function AdminThemePage() {
       setTokens(next);
       baselineRef.current = next;
     } catch (e) {
-      setNotice({ tone: "danger", title: "Load failed", message: e.message || String(e) });
+      setNotice({ tone: "danger", title: "Error", message: e.message });
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   function applyPreset(preset) {
     const next = {
@@ -96,7 +94,6 @@ export default function AdminThemePage() {
     };
     setTokens(next);
     setActivePreset(preset.id);
-    setNotice({ tone: "info", title: "Preset applied", message: `Applied colors from ${preset.emoji} ${preset.name}. Save to publish.` });
   }
 
   async function save() {
@@ -111,43 +108,21 @@ export default function AdminThemePage() {
       const j = await res.json().catch(() => null);
       if (!res.ok) throw new Error(j?.error || "Save failed.");
 
-      const t = j?.theme?.tokens || tokens;
-      const next = {
-        primary: t.primary || DEFAULT_TOKENS.primary,
-        accent: t.accent || DEFAULT_TOKENS.accent,
-        logoUrl: t.logoUrl || "",
-        faviconUrl: t.faviconUrl || "",
-      };
-      setTokens(next);
-      baselineRef.current = next;
+      baselineRef.current = tokens;
       setNotice({ tone: "success", title: "Saved", message: "Global theme updated." });
     } catch (e) {
-      setNotice({ tone: "danger", title: "Save failed", message: e.message || String(e) });
+      setNotice({ tone: "danger", title: "Error", message: e.message });
     } finally {
       setBusy(false);
     }
   }
 
-  function resetToDefault() {
-    setTokens(DEFAULT_TOKENS);
-    setResetOpen(false);
-    setActivePreset(null);
-    setNotice({ tone: "info", title: "Reset staged", message: "Defaults applied locally. Click Save to persist." });
-  }
-
   return (
-    <div className="space-y-6">
-      
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-          <Palette className="w-6 h-6 text-indigo-600" />
-          Brand & Theme
-        </h1>
-        <p className="text-slate-500">
-          Control the look and feel of your app globally.
-        </p>
-      </div>
+    <div>
+      <AdminPageHeader 
+        title="Theme & Brand" 
+        subtitle="Control the look and feel of the platform."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -215,51 +190,31 @@ export default function AdminThemePage() {
 
         {/* Right: Theme Gallery & Preview */}
         <div className="lg:col-span-8 space-y-6">
-           
            {/* Preview Card */}
            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-32 bg-slate-50 border-b border-slate-100" />
-              
               <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
-                 {/* Live Component Preview */}
                  <div className="w-full md:w-1/2 space-y-4">
                     <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Live Preview</div>
-                    
                     <div className="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md" style={{ background: tokens.primary }}>
-                             SK
-                          </div>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md" style={{ background: tokens.primary }}>SK</div>
                           <div>
                              <div className="h-3 w-24 bg-slate-100 rounded-full mb-1.5" />
                              <div className="h-2 w-16 bg-slate-100 rounded-full" />
                           </div>
                        </div>
-                       
                        <div className="h-24 rounded-2xl mb-4 relative overflow-hidden">
                           <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(135deg, ${tokens.primary}, ${tokens.accent})` }} />
                           <div className="absolute inset-0 flex items-center justify-center">
                              <Sparkles className="w-8 h-8 text-slate-900/20" />
                           </div>
                        </div>
-
                        <div className="flex gap-2">
-                          <button className="flex-1 h-10 rounded-xl text-white font-bold text-sm shadow-md transition-transform active:scale-95" style={{ background: tokens.primary }}>
-                             Primary
-                          </button>
-                          <button className="flex-1 h-10 rounded-xl text-white font-bold text-sm shadow-md transition-transform active:scale-95" style={{ background: tokens.accent }}>
-                             Accent
-                          </button>
+                          <button className="flex-1 h-10 rounded-xl text-white font-bold text-sm shadow-md" style={{ background: tokens.primary }}>Primary</button>
+                          <button className="flex-1 h-10 rounded-xl text-white font-bold text-sm shadow-md" style={{ background: tokens.accent }}>Accent</button>
                        </div>
                     </div>
-                 </div>
-
-                 {/* Text Info */}
-                 <div className="w-full md:w-1/2 pt-4 md:pt-10">
-                    <h2 className="text-3xl font-black text-slate-900 mb-2">The Vibe</h2>
-                    <p className="text-slate-600 font-medium leading-relaxed">
-                       This configuration controls the global brand colors used on buttons, highlights, and key UI elements across the kid and parent dashboards.
-                    </p>
                  </div>
               </div>
            </div>
@@ -268,15 +223,12 @@ export default function AdminThemePage() {
            <div className="space-y-4">
               <div className="flex items-center justify-between">
                  <h3 className="font-bold text-slate-900 text-lg">Theme Gallery</h3>
-                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">One-click apply</span>
               </div>
-              
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                  {THEME_PRESETS.map(p => {
                     const isSelected = activePreset === p.id;
                     const p1 = rgbToHex(p.colors.a);
                     const p2 = rgbToHex(p.colors.b);
-                    
                     return (
                       <button
                         key={p.id}
@@ -288,9 +240,7 @@ export default function AdminThemePage() {
                       >
                          <div className="w-full aspect-[4/3] rounded-xl mb-3 relative overflow-hidden">
                             <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${p1}, ${p2})` }} />
-                            <div className="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-md group-hover:scale-110 transition-transform">
-                               {p.emoji}
-                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-md group-hover:scale-110 transition-transform">{p.emoji}</div>
                          </div>
                          <div className="font-bold text-slate-700 text-sm">{p.name}</div>
                          {isSelected && (
@@ -303,23 +253,20 @@ export default function AdminThemePage() {
                  })}
               </div>
            </div>
-
         </div>
       </div>
 
-      {/* Reset Modal */}
       <AdminModal
         open={resetOpen}
         title="Reset to Defaults?"
-        desc="This will discard all customizations and revert to the factory standard theme."
+        desc="This will discard all customizations."
         onClose={() => setResetOpen(false)}
       >
          <div className="flex justify-end gap-2 mt-4">
             <Button tone="secondary" onClick={() => setResetOpen(false)}>Cancel</Button>
-            <Button tone="danger" onClick={resetToDefault}>Confirm Reset</Button>
+            <Button tone="danger" onClick={() => { setTokens(DEFAULT_TOKENS); setResetOpen(false); }}>Confirm Reset</Button>
          </div>
       </AdminModal>
-
     </div>
   );
 }
