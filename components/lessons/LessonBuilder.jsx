@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
@@ -91,20 +91,8 @@ export default function LessonBuilder() {
     if (!searchQuery) return;
     setBusy(true);
     try {
-      // Reusing the general content API or hitting DB directly via a new endpoint would be best
-      // For now, we reuse the /api/admin/content logic but filtered
-      const res = await fetch("/api/admin/cms-pages"); // Placeholder, ideally a dedicated search endpoint
-      // Actually let's use the content endpoint if available, or just fetch lesson_editions
-      // We'll add a quick search fetch here
-      const searchRes = await fetch(`/api/admin/lesson-jobs`); // reusing job list for now as proxy or implement real search
-      // Real implementation:
-      const { data, error } = await (await fetch("/api/admin/lesson-jobs")).json(); // This is jobs, not lessons.
-      
-      // Let's implement a real search call to Supabase via existing API if possible or just use what we have.
-      // Since we don't have a dedicated search API exposed here yet, I'll use the job list as a proxy for "recent generations".
-      // A better approach is to use the /api/admin/content endpoint if it supports search.
-      // Let's assume we want to search `lesson_editions`. I'll use the /api/admin/content endpoint I saw earlier? No that was for CMS pages.
-      // I will add a direct fetch to /api/admin/lesson-jobs but filter locally for this MVP.
+      const res = await fetch(`/api/admin/lesson-jobs`); 
+      const { data } = await res.json();
       
       if (data) {
          const filtered = data.filter(j => 
@@ -120,27 +108,11 @@ export default function LessonBuilder() {
     }
   }
   
-  // Actually, to do this properly I need to fetch the FULL lesson content for the previewer.
-  // I'll add a loadLesson function.
   async function loadPreview(jobId) {
      setBusy(true);
      try {
-        // We need the `lesson_editions` row. The job_id usually maps to template_id.
-        // Let's try to fetch via the public lesson API for simplicity, or admin equivalent.
-        // Since /app/lesson/[id] fetches client side, we can replicate that fetch here if we had an endpoint.
-        // I'll use the `lesson_editions` table via admin-auth directly if I can, or use the job data if it has the ID.
-        // The job table has `supabase_lesson_id`.
-        
         const job = jobs.find(j => j.job_id === jobId || j.id === jobId);
-        const editionId = job?.supabase_lesson_id || jobId; // Fallback if user searched exact ID
-
-        // We need an endpoint to get the full lesson JSON. 
-        // I will use a direct call to a new helper or reuse the content manager API.
-        // Let's use the `lesson-editions` table via a direct query in a new route? 
-        // No, let's reuse `/api/admin/content` logic if possible.
-        // Actually, I'll just fetch it directly using the client-side supabase if authenticated, 
-        // BUT this is an admin page, so we should use an API route to avoid RLS issues if the admin isn't the "owner".
-        // I'll add a quick fetcher here.
+        const editionId = job?.supabase_lesson_id || jobId; 
         
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
@@ -236,7 +208,29 @@ export default function LessonBuilder() {
        setNotice({ tone: "danger", title: "Import Failed", text: err.message });
     } finally {
        setBusy(false);
-       e.target.value = ""; // reset
+       e.target.value = ""; 
+    }
+  }
+
+  async function loadPresets() {
+    if(!confirm("Load default lesson jobs into the queue?")) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+       const res = await fetch("/api/admin/lesson-jobs/seed-preset", { method: "POST" });
+       const data = await res.json();
+       if(!res.ok) throw new Error(data.error || "Failed");
+       
+       setNotice({ 
+         tone: "success", 
+         title: "Presets Loaded", 
+         text: `Added ${data.count} jobs to the queue.` 
+       });
+       refresh();
+    } catch(err) {
+       setNotice({ tone: "danger", title: "Error", text: err.message });
+    } finally {
+       setBusy(false);
     }
   }
 
@@ -516,7 +510,15 @@ export default function LessonBuilder() {
 
       {/* JOBS TAB (Read Only / Bulk) */}
       {tab === "jobs" && (
-         <Section title="Bulk Jobs" desc="Background processing for spreadsheet imports.">
+         <Section 
+            title="Bulk Jobs" 
+            desc="Background processing for spreadsheet imports."
+            right={
+               <Button tone="secondary" onClick={loadPresets} disabled={busy}>
+                  <Database className="w-4 h-4 mr-2" /> Load Default Presets
+               </Button>
+            }
+         >
              <div className="mt-4 overflow-auto max-h-[500px]">
                <table className="w-full text-sm text-left">
                   <thead className="text-xs text-slate-500 border-b border-slate-100">
