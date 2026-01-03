@@ -17,7 +17,7 @@ import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
 
 import {
-  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe
+  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe, Code, Info
 } from "lucide-react";
 
 function slugify(input) {
@@ -32,9 +32,12 @@ const HARDCODED_PAGES = [
   { title: "Home", slug: "/", scope: "public" },
   { title: "Features", slug: "marketing/features", scope: "public" },
   { title: "Pricing", slug: "marketing/pricing", scope: "public" },
+  { title: "Curriculum", slug: "marketing/curriculum", scope: "public" },
   { title: "Login", slug: "login", scope: "auth" },
-  { title: "App Dashboard", slug: "app", scope: "app" },
-  { title: "Worlds", slug: "app/worlds", scope: "app" },
+  { title: "Signup", slug: "signup", scope: "auth" },
+  { title: "Student Dashboard", slug: "app", scope: "app" },
+  { title: "Worlds Map", slug: "app/worlds", scope: "app" },
+  { title: "Parent Dashboard", slug: "app/parent", scope: "parent" },
 ];
 
 export default function SiteBuilderEditor() {
@@ -234,6 +237,11 @@ export default function SiteBuilderEditor() {
     return pages.filter(p => !q || (p.title || "").toLowerCase().includes(q));
   }, [pages, pageQuery]);
 
+  const filteredSystemPages = useMemo(() => {
+    const q = pageQuery.trim().toLowerCase();
+    return HARDCODED_PAGES.filter(p => !q || (p.title || "").toLowerCase().includes(q));
+  }, [pageQuery]);
+
   if (!canUse) return <div className="p-12 text-center text-slate-500">Loading editor...</div>;
 
   return (
@@ -285,31 +293,46 @@ export default function SiteBuilderEditor() {
                <div>
                  <div className="px-3 mb-2 text-[10px] font-black uppercase text-slate-400">Custom Pages</div>
                  <div className="space-y-1">
-                   {filteredPages.map(p => (
-                     <button key={p.id} onClick={() => loadPage(p.id)} className={cx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all", selectedId === p.id ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" : "text-slate-600 hover:text-slate-900")}>
-                        <div className="truncate">{p.title || "Untitled"}</div>
-                        <div className="flex justify-between mt-1 opacity-70 text-[10px]">
-                           <span className="font-mono uppercase">{p.scope}</span>
-                           <span className={cx("w-1.5 h-1.5 rounded-full", p.published ? "bg-emerald-400" : "bg-slate-300")} />
-                        </div>
-                     </button>
-                   ))}
+                   {filteredPages.length > 0 ? (
+                     filteredPages.map(p => (
+                       <button key={p.id} onClick={() => loadPage(p.id)} className={cx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all", selectedId === p.id ? "bg-white shadow-sm ring-1 ring-slate-200 text-indigo-700" : "text-slate-600 hover:text-slate-900")}>
+                          <div className="truncate">{p.title || "Untitled"}</div>
+                          <div className="flex justify-between mt-1 opacity-70 text-[10px]">
+                             <span className="font-mono uppercase">{p.scope}</span>
+                             <span className={cx("w-1.5 h-1.5 rounded-full", p.published ? "bg-emerald-400" : "bg-slate-300")} />
+                          </div>
+                       </button>
+                     ))
+                   ) : (
+                     <div className="px-3 py-4 text-center border border-dashed border-slate-200 rounded-lg">
+                       <div className="text-xs text-slate-400 mb-2">No custom pages.</div>
+                       <button onClick={() => setCreateOpen(true)} className="text-xs font-bold text-indigo-600 hover:underline">Create First Page</button>
+                     </div>
+                   )}
                  </div>
                </div>
 
                {/* Hardcoded System Routes - Read Only */}
                <div>
-                  <div className="px-3 mb-2 text-[10px] font-black uppercase text-slate-400">System Pages (Hardcoded)</div>
+                  <div className="px-3 mb-2 text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                    System Pages <Lock className="w-3 h-3 opacity-50" />
+                  </div>
                   <div className="space-y-1 px-3">
-                     {HARDCODED_PAGES.map(hp => (
-                        <div key={hp.slug} className="flex items-center gap-2 py-1.5 text-xs text-slate-500 opacity-60">
-                           {hp.scope === 'public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                           <span className="truncate">{hp.title}</span>
+                     {filteredSystemPages.map(hp => (
+                        <div key={hp.slug} className="group flex items-center justify-between py-1.5 text-xs text-slate-500 opacity-80 hover:opacity-100 transition-opacity">
+                           <div className="flex items-center gap-2 truncate">
+                              <Code className="w-3 h-3 opacity-50" />
+                              <span className="truncate font-medium">{hp.title}</span>
+                           </div>
+                           <a href={hp.slug.startsWith('/') ? hp.slug : `/${hp.slug}`} target="_blank" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded">
+                              <ExternalLinkIcon />
+                           </a>
                         </div>
                      ))}
-                     <div className="mt-2 text-[10px] text-slate-400 italic">
-                        These pages are code-based. To edit content here, you must update the source code or rebuild them as new Custom Pages above.
-                     </div>
+                  </div>
+                  <div className="mt-3 mx-3 p-2 bg-indigo-50 border border-indigo-100 rounded text-[10px] text-indigo-800 leading-tight">
+                     <Info className="w-3 h-3 inline mr-1 mb-0.5" />
+                     <strong>Note:</strong> System pages are built with code (React) and cannot be edited here. Use this builder for landing pages, help docs, and blogs.
                   </div>
                </div>
             </div>
@@ -337,7 +360,8 @@ export default function SiteBuilderEditor() {
             ) : (
                <div className="m-auto text-slate-400 flex flex-col items-center">
                   <Layout className="w-12 h-12 mb-3 opacity-20" />
-                  <div>Select a page to edit</div>
+                  <div className="font-medium">Select a page to edit</div>
+                  <div className="text-sm opacity-60 mt-1">or view system pages in the sidebar</div>
                </div>
             )}
             
@@ -600,4 +624,8 @@ function BlockFields({ block, onChange, onLink, onAsset }) {
    }
 
    return <div className="text-sm text-slate-400 italic">No fields configured for this block type.</div>;
+}
+
+function ExternalLinkIcon() {
+  return <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 2h6v6"/><path d="M10 2 5 7"/><path d="M6 10H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h1"/></svg>
 }
