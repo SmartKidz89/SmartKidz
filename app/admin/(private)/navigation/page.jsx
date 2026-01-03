@@ -6,7 +6,7 @@ import AdminNotice from "@/components/admin/AdminNotice";
 import LinkPickerModal from "@/components/cms/builder/LinkPickerModal";
 import { 
   Plus, Save, Trash2, ArrowUp, ArrowDown, 
-  Globe, Lock, Layout, Link as LinkIcon, ExternalLink 
+  Globe, Lock, Layout, Link as LinkIcon, ExternalLink, RefreshCw
 } from "lucide-react";
 
 function cx(...classes) {
@@ -105,6 +105,24 @@ export default function AdminNavigationPage() {
       visible: true,
       min_role: "public"
     }]);
+  }
+
+  async function seedDefaults() {
+    if (!confirm(`This will reset the "${scope}" menu to system defaults. Continue?`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/navigation/seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope })
+      });
+      if (!res.ok) throw new Error("Seed failed");
+      await load();
+      setMsg({ type: "success", text: "Menu reset to defaults." });
+    } catch (e) {
+      setMsg({ type: "error", text: e.message });
+      setBusy(false);
+    }
   }
 
   async function save() {
@@ -299,8 +317,10 @@ export default function AdminNavigationPage() {
             {items.length === 0 && (
                <div className="p-12 text-center text-slate-400">
                  <Globe className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                 <p>No links found in this menu.</p>
-                 <button onClick={add} className="text-indigo-600 font-bold hover:underline mt-2">Add your first link</button>
+                 <p className="text-sm font-medium">No links found in this menu.</p>
+                 <button onClick={seedDefaults} className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition-all">
+                    <RefreshCw className="w-4 h-4" /> Seed Default Links
+                 </button>
                </div>
             )}
          </div>

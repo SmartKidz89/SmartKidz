@@ -9,22 +9,47 @@ import ParentTopBar from "./ParentTopBar";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
 import RouteBackdrop from "@/components/ui/RouteBackdrop";
-import { Home, Map, Trophy, UserCircle } from "lucide-react";
+import { Home, Map, Trophy, UserCircle, Layout } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const HIDE_SHELL_PATHS = ["/app/login","/app/signup","/app/auth","/login","/signup","/auth"];
 
-// Updated Navigation Items
-const NAV_ITEMS = [
-  { label: "Worlds", href: "/app/worlds", icon: Map },
-  { label: "Rewards", href: "/app/rewards", icon: Trophy },
-  { label: "Home", href: "/app", icon: Home, isCenter: true },
-  { label: "Avatar", href: "/app/avatar", icon: UserCircle },
-];
+// Icon mapping
+const ICONS = {
+  Home, Map, Trophy, UserCircle, Layout
+};
+
+function getIcon(name) {
+  return ICONS[name] || Home;
+}
 
 function BottomNav() {
   const pathname = usePathname();
   const hideShell = !!pathname && HIDE_SHELL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const { play } = useSound();
+  
+  const [items, setItems] = useState([
+    { label: "Worlds", href: "/app/worlds", icon: "Map" },
+    { label: "Rewards", href: "/app/rewards", icon: "Trophy" },
+    { label: "Home", href: "/app", icon: "Home", isCenter: true },
+    { label: "Avatar", href: "/app/avatar", icon: "UserCircle" },
+  ]);
+
+  useEffect(() => {
+    fetch("/api/public/navigation?scope=app")
+      .then(res => res.json())
+      .then(data => {
+        if (data.items && data.items.length > 0) {
+          // Normalize items
+          const mapped = data.items.map(i => ({
+             ...i,
+             isCenter: i.href === "/app" // Center home by default
+          }));
+          setItems(mapped);
+        }
+      })
+      .catch(err => console.warn("Nav load failed, using defaults", err));
+  }, []);
   
   if (hideShell) return null;
 
@@ -34,19 +59,19 @@ function BottomNav() {
         aria-label="Primary"
         className="pointer-events-auto flex items-center gap-1 p-2 bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-slate-900/30 rounded-[2.5rem] ring-1 ring-white/10 max-w-lg w-full justify-between"
       >
-          {NAV_ITEMS.map((t) => {
+          {items.map((t) => {
             const isActive = pathname === t.href || (t.href !== "/app" && pathname?.startsWith(t.href));
-            const Icon = t.icon;
+            const Icon = getIcon(t.icon);
             
             if (t.isCenter) {
               return (
                 <Link
-                  key="home"
-                  href="/app"
+                  key={t.href}
+                  href={t.href}
                   onClick={() => play("click")}
                   className="relative group -mt-8 mx-2"
                   aria-current={isActive ? "page" : undefined}
-                  aria-label="Home"
+                  aria-label={t.label}
                 >
                   <div className={cn(
                     "w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-[4px] border-white transform transition-transform group-hover:scale-110 group-active:scale-95",
