@@ -4,49 +4,37 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
 import { Button, Input } from "@/components/admin/AdminControls";
+import { THEME_PRESETS } from "@/lib/themePresets";
+import { Palette, Sparkles, Check } from "lucide-react";
+
+function cx(...parts) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function rgbToHex(rgb) {
+  return "#" + rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+}
 
 function ColorField({ label, value, onChange, hint }) {
   const v = String(value || "");
   const isHex = /^#([0-9a-fA-F]{6})$/.test(v.trim());
   return (
     <div>
-      <div className="text-sm font-medium">{label}</div>
+      <div className="text-sm font-semibold text-slate-700">{label}</div>
       {hint ? <div className="mt-0.5 text-xs text-slate-500">{hint}</div> : null}
       <div className="mt-2 flex items-center gap-2">
-        <div className="h-10 w-10 rounded-xl border border-slate-200 bg-white p-1">
+        <div className="h-11 w-11 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           <input
             type="color"
-            className="h-full w-full cursor-pointer rounded-lg"
+            className="h-full w-full cursor-pointer rounded-lg border-none p-0"
             value={isHex ? v : "#000000"}
             onChange={(e) => onChange(e.target.value)}
             aria-label={`${label} picker`}
           />
         </div>
-        <Input value={v} onChange={(e) => onChange(e.target.value)} placeholder="#RRGGBB" />
+        <Input value={v} onChange={(e) => onChange(e.target.value)} placeholder="#RRGGBB" className="font-mono" />
       </div>
     </div>
-  );
-}
-
-function StatusPill({ dirty, saving }) {
-  if (saving) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-        Saving…
-      </span>
-    );
-  }
-  if (dirty) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
-        Unsaved changes
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
-      Saved
-    </span>
   );
 }
 
@@ -64,6 +52,7 @@ export default function AdminThemePage() {
 
   const [tokens, setTokens] = useState(DEFAULT_TOKENS);
   const baselineRef = useRef(DEFAULT_TOKENS);
+  const [activePreset, setActivePreset] = useState(null);
 
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -99,6 +88,17 @@ export default function AdminThemePage() {
     load();
   }, []);
 
+  function applyPreset(preset) {
+    const next = {
+      ...tokens,
+      primary: rgbToHex(preset.colors.a),
+      accent: rgbToHex(preset.colors.b),
+    };
+    setTokens(next);
+    setActivePreset(preset.id);
+    setNotice({ tone: "info", title: "Preset applied", message: `Applied colors from ${preset.emoji} ${preset.name}. Save to publish.` });
+  }
+
   async function save() {
     setBusy(true);
     setNotice(null);
@@ -120,7 +120,7 @@ export default function AdminThemePage() {
       };
       setTokens(next);
       baselineRef.current = next;
-      setNotice({ tone: "success", title: "Saved", message: "Theme tokens updated." });
+      setNotice({ tone: "success", title: "Saved", message: "Global theme updated." });
     } catch (e) {
       setNotice({ tone: "danger", title: "Save failed", message: e.message || String(e) });
     } finally {
@@ -131,212 +131,195 @@ export default function AdminThemePage() {
   function resetToDefault() {
     setTokens(DEFAULT_TOKENS);
     setResetOpen(false);
+    setActivePreset(null);
     setNotice({ tone: "info", title: "Reset staged", message: "Defaults applied locally. Click Save to persist." });
   }
 
   return (
-    <div className="p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-xl font-semibold">Theme</div>
-          <div className="mt-1 text-sm text-slate-500">
-            Global brand tokens used across marketing + app surfaces.
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <StatusPill dirty={dirty} saving={busy} />
-          <Button tone="secondary" onClick={load} disabled={busy || loading}>
-            Reload
-          </Button>
-          <Button tone="secondary" onClick={() => setResetOpen(true)} disabled={busy || loading}>
-            Reset
-          </Button>
-          <Button onClick={save} disabled={busy || loading || !dirty}>
-            Save changes
-          </Button>
-        </div>
+    <div className="space-y-6">
+      
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+          <Palette className="w-6 h-6 text-indigo-600" />
+          Brand & Theme
+        </h1>
+        <p className="text-slate-500">
+          Control the look and feel of your app globally.
+        </p>
       </div>
 
-      {notice ? (
-        <AdminNotice className="mt-4" tone={notice.tone} title={notice.title}>
-          {notice.message}
-        </AdminNotice>
-      ) : null}
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold">Brand tokens</div>
-              <div className="mt-1 text-xs text-slate-500">
-                Use hex colors for consistency. URLs may point to public assets or Supabase Storage.
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-5">
-            <ColorField
-              label="Primary color"
-              value={tokens.primary}
-              onChange={(v) => setTokens((t) => ({ ...t, primary: v }))}
-              hint="Used for primary buttons and emphasis."
-            />
-            <ColorField
-              label="Accent color"
-              value={tokens.accent}
-              onChange={(v) => setTokens((t) => ({ ...t, accent: v }))}
-              hint="Used for borders, highlights, and secondary accents."
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <div className="text-sm font-medium">Logo URL</div>
-                <div className="mt-0.5 text-xs text-slate-500">Displayed in header and admin surfaces.</div>
-                <div className="mt-2">
-                  <Input
-                    placeholder="https://…"
-                    value={tokens.logoUrl || ""}
-                    onChange={(e) => setTokens((t) => ({ ...t, logoUrl: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium">Favicon URL</div>
-                <div className="mt-0.5 text-xs text-slate-500">Browser tab icon for the public site.</div>
-                <div className="mt-2">
-                  <Input
-                    placeholder="https://…"
-                    value={tokens.faviconUrl || ""}
-                    onChange={(e) => setTokens((t) => ({ ...t, faviconUrl: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-semibold">Notes</div>
-              <div className="mt-1 text-sm text-slate-600">
-                These values are stored in <span className="font-medium">cms_theme</span> (scope: global). The runtime
-                wiring (e.g., CSS variables) can be added later without changing the admin model.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="text-sm font-semibold">Preview</div>
-          <div className="mt-1 text-xs text-slate-500">Representative UI elements rendered with current tokens.</div>
-
-          <div className="mt-4 rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3" style={{ background: tokens.primary }}>
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-9 w-9 rounded-xl border border-white/20 bg-white/10 flex items-center justify-center overflow-hidden"
-                  aria-label="Logo preview"
-                >
-                  {tokens.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={tokens.logoUrl} alt="Logo" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-xs font-semibold text-white/80">LOGO</span>
-                  )}
-                </div>
-                <div className="text-sm font-semibold text-white">Brand Header</div>
-              </div>
-              <div className="text-xs text-white/70">Preview</div>
-            </div>
-
-            <div className="p-4 bg-white">
-              <div className="text-sm text-slate-700">Buttons</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  className="h-10 rounded-xl px-4 text-sm font-medium text-white"
-                  style={{ background: tokens.primary }}
-                >
-                  Primary
-                </button>
-                <button
-                  className="h-10 rounded-xl px-4 text-sm font-medium text-white"
-                  style={{ background: tokens.accent }}
-                >
-                  Accent
-                </button>
-                <button className="h-10 rounded-xl px-4 text-sm font-medium border border-slate-200 bg-white">
-                  Secondary
-                </button>
-              </div>
-
-              <div className="mt-5 text-sm text-slate-700">Card + Accent</div>
-              <div className="mt-2 rounded-2xl border border-slate-200 p-4" style={{ borderColor: tokens.accent }}>
-                <div className="text-sm font-semibold">Example card</div>
-                <div className="mt-1 text-sm text-slate-600">
-                  Accent border demonstrates how highlight surfaces will render.
-                </div>
-              </div>
-
-              <div className="mt-5 text-sm text-slate-700">Favicon</div>
-              <div className="mt-2 flex items-center gap-2">
-                <div className="h-10 w-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
-                  {tokens.faviconUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={tokens.faviconUrl} alt="Favicon" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-xs text-slate-500">N/A</span>
-                  )}
-                </div>
-                {tokens.faviconUrl ? (
-                  <a
-                    href={tokens.faviconUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500"
-                  >
-                    Open
-                  </a>
-                ) : (
-                  <span className="text-sm text-slate-500">No favicon URL set</span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left: Token Editor */}
+        <div className="lg:col-span-4 space-y-6">
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-slate-900 text-lg">Colors</h3>
+                {dirty && (
+                   <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full animate-pulse">Unsaved</span>
                 )}
               </div>
-            </div>
-          </div>
+              
+              <div className="space-y-5">
+                <ColorField
+                  label="Primary Brand"
+                  value={tokens.primary}
+                  onChange={(v) => { setTokens((t) => ({ ...t, primary: v })); setActivePreset(null); }}
+                  hint="Buttons, active states, key highlights."
+                />
+                <ColorField
+                  label="Secondary Accent"
+                  value={tokens.accent}
+                  onChange={(v) => { setTokens((t) => ({ ...t, accent: v })); setActivePreset(null); }}
+                  hint="Gradients, secondary actions, fun pops."
+                />
+              </div>
 
-          {dirty ? (
-            <div className="mt-4 text-xs text-slate-500">
-              Preview reflects local edits. Save changes to update what the public site reads from the database.
-            </div>
-          ) : null}
+              <hr className="my-6 border-slate-100" />
+
+              <h3 className="font-bold text-slate-900 text-lg mb-4">Assets</h3>
+              <div className="space-y-4">
+                 <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Logo URL</label>
+                    <Input 
+                      placeholder="https://..." 
+                      value={tokens.logoUrl} 
+                      onChange={(e) => setTokens(t => ({ ...t, logoUrl: e.target.value }))}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Favicon URL</label>
+                    <Input 
+                      placeholder="https://..." 
+                      value={tokens.faviconUrl} 
+                      onChange={(e) => setTokens(t => ({ ...t, faviconUrl: e.target.value }))}
+                    />
+                 </div>
+              </div>
+
+              <div className="mt-8 flex gap-2">
+                 <Button onClick={save} disabled={busy || !dirty} className="w-full h-12 shadow-md">
+                   {busy ? "Saving..." : "Save Changes"}
+                 </Button>
+                 <Button onClick={() => setResetOpen(true)} tone="ghost" disabled={busy} className="w-auto h-12 border-2">
+                   Reset
+                 </Button>
+              </div>
+           </div>
+           
+           {notice && (
+             <AdminNotice tone={notice.tone} title={notice.title}>{notice.message}</AdminNotice>
+           )}
+        </div>
+
+        {/* Right: Theme Gallery & Preview */}
+        <div className="lg:col-span-8 space-y-6">
+           
+           {/* Preview Card */}
+           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-32 bg-slate-50 border-b border-slate-100" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
+                 {/* Live Component Preview */}
+                 <div className="w-full md:w-1/2 space-y-4">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Live Preview</div>
+                    
+                    <div className="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
+                       <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md" style={{ background: tokens.primary }}>
+                             SK
+                          </div>
+                          <div>
+                             <div className="h-3 w-24 bg-slate-100 rounded-full mb-1.5" />
+                             <div className="h-2 w-16 bg-slate-100 rounded-full" />
+                          </div>
+                       </div>
+                       
+                       <div className="h-24 rounded-2xl mb-4 relative overflow-hidden">
+                          <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(135deg, ${tokens.primary}, ${tokens.accent})` }} />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                             <Sparkles className="w-8 h-8 text-slate-900/20" />
+                          </div>
+                       </div>
+
+                       <div className="flex gap-2">
+                          <button className="flex-1 h-10 rounded-xl text-white font-bold text-sm shadow-md transition-transform active:scale-95" style={{ background: tokens.primary }}>
+                             Primary
+                          </button>
+                          <button className="flex-1 h-10 rounded-xl text-white font-bold text-sm shadow-md transition-transform active:scale-95" style={{ background: tokens.accent }}>
+                             Accent
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Text Info */}
+                 <div className="w-full md:w-1/2 pt-4 md:pt-10">
+                    <h2 className="text-3xl font-black text-slate-900 mb-2">The Vibe</h2>
+                    <p className="text-slate-600 font-medium leading-relaxed">
+                       This configuration controls the global brand colors used on buttons, highlights, and key UI elements across the kid and parent dashboards.
+                    </p>
+                 </div>
+              </div>
+           </div>
+
+           {/* Gallery */}
+           <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                 <h3 className="font-bold text-slate-900 text-lg">Theme Gallery</h3>
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">One-click apply</span>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                 {THEME_PRESETS.map(p => {
+                    const isSelected = activePreset === p.id;
+                    const p1 = rgbToHex(p.colors.a);
+                    const p2 = rgbToHex(p.colors.b);
+                    
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => applyPreset(p)}
+                        className={cx(
+                           "group relative flex flex-col items-center p-3 rounded-2xl border-2 transition-all hover:-translate-y-1",
+                           isSelected ? "border-slate-900 bg-slate-50 shadow-md" : "border-slate-100 bg-white hover:border-slate-300 hover:shadow-sm"
+                        )}
+                      >
+                         <div className="w-full aspect-[4/3] rounded-xl mb-3 relative overflow-hidden">
+                            <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${p1}, ${p2})` }} />
+                            <div className="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-md group-hover:scale-110 transition-transform">
+                               {p.emoji}
+                            </div>
+                         </div>
+                         <div className="font-bold text-slate-700 text-sm">{p.name}</div>
+                         {isSelected && (
+                            <div className="absolute top-2 right-2 w-5 h-5 bg-slate-900 rounded-full flex items-center justify-center">
+                               <Check className="w-3 h-3 text-white" />
+                            </div>
+                         )}
+                      </button>
+                    );
+                 })}
+              </div>
+           </div>
+
         </div>
       </div>
 
+      {/* Reset Modal */}
       <AdminModal
         open={resetOpen}
-        title="Reset theme tokens?"
-        desc="This will revert local values back to defaults. You can still cancel by closing this modal."
+        title="Reset to Defaults?"
+        desc="This will discard all customizations and revert to the factory standard theme."
         onClose={() => setResetOpen(false)}
       >
-        <div className="text-sm text-slate-600">
-          Defaults:
-          <div className="mt-2 grid gap-1 text-xs text-slate-700">
-            <div>
-              Primary: <span className="font-mono">{DEFAULT_TOKENS.primary}</span>
-            </div>
-            <div>
-              Accent: <span className="font-mono">{DEFAULT_TOKENS.accent}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-end gap-2">
-          <Button tone="secondary" onClick={() => setResetOpen(false)}>
-            Cancel
-          </Button>
-          <Button tone="danger" onClick={resetToDefault}>
-            Reset
-          </Button>
-        </div>
+         <div className="flex justify-end gap-2 mt-4">
+            <Button tone="secondary" onClick={() => setResetOpen(false)}>Cancel</Button>
+            <Button tone="danger" onClick={resetToDefault}>Confirm Reset</Button>
+         </div>
       </AdminModal>
+
     </div>
   );
 }
