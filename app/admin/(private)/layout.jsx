@@ -1,6 +1,7 @@
 import { requireAdminSession } from "@/lib/admin/auth";
 import { redirect } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AdminAssistant from "@/components/admin/AdminAssistant";
 
 export default async function AdminLayout({ children }) {
   const auth = await requireAdminSession();
@@ -49,7 +50,7 @@ export default async function AdminLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 relative">
         {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
            <div className="font-bold">SmartKidz Admin</div>
@@ -61,6 +62,9 @@ export default async function AdminLayout({ children }) {
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
           {children}
         </div>
+
+        {/* Global Floating Assistant */}
+        <AdminAssistant />
       </main>
     </div>
   );
