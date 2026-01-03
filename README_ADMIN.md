@@ -25,6 +25,11 @@ Required for admin console data access:
 - `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`)
 - `SUPABASE_SERVICE_ROLE_KEY` (**server-only**, never expose to the browser)
 
+Important:
+- `admin_users` and `admin_sessions` are created with RLS enabled and **no policies** by design (service-role only).
+  If `SUPABASE_SERVICE_ROLE_KEY` is set to the anon key (or the Authorization header is not using the service key),
+  admin login will fail because the API cannot read from `admin_users`.
+
 For the SQL editor:
 
 - `SUPABASE_DB_URL` (or `DATABASE_URL` / `POSTGRES_URL`) — a Postgres connection string
