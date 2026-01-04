@@ -75,29 +75,45 @@ export async function GET() {
 
   // 5. Check LLM (Ollama/OpenAI)
   const llmConfig = getOpenAICompatConfig();
+  const hasCfAccess = !!(llmConfig.cfClientId && llmConfig.cfClientSecret);
+  
   const llm = {
       provider: llmConfig.isOpenAICloud ? "OpenAI Cloud" : "Local/Custom",
       baseUrl: llmConfig.baseUrl,
       model: llmConfig.model,
+      cfAccess: hasCfAccess,
       status: "unknown",
       latency: 0
   };
 
   try {
       const start = Date.now();
+      
+      const headers = { Authorization: `Bearer ${llmConfig.apiKey}` };
+      if (hasCfAccess) {
+        headers["CF-Access-Client-Id"] = llmConfig.cfClientId;
+        headers["CF-Access-Client-Secret"] = llmConfig.cfClientSecret;
+      }
+
       // Try to list models (standard OpenAI endpoint supported by Ollama/vLLM)
       const res = await fetch(`${llmConfig.baseUrl}/models`, {
-          headers: { Authorization: `Bearer ${llmConfig.apiKey}` },
+          headers,
           signal: AbortSignal.timeout(3000)
       });
+      
       if (res.ok) {
           llm.status = "connected";
           llm.latency = Date.now() - start;
       } else {
-          // If 404, the base URL might be right but /models isn't supported. 
-          // Treat 4xx as 'reachable but errored' which is better than network failure.
-          llm.status = res.status < 500 ? "connected_with_error" : "error";
-          llm.error = `HTTP ${res.status}`;
+          const type = res.headers.get("content-type") || "";
+          if (type.includes("text/html")) {
+             llm.status = "error";
+             llm.error = "Blocked by Access/Auth (HTML returned)";
+          } else {
+             // If 404, the base URL might be right but /models isn't supported. 
+             llm.status = res.status < 500 ? "connected_with_error" : "error";
+             llm.error = `HTTP ${res.status}`;
+          }
       }
   } catch (e) {
       llm.status = "error";
@@ -105,7 +121,6 @@ export async function GET() {
   }
 
   // 6. Check ComfyUI / Forge (Default: 8000)
-  // We treat it as configured if we have an Env Var OR if we can reach the default local instance.
   const comfyUrl = process.env.COMFYUI_BASE_URL || process.env.SD_API_URL || "http://127.0.0.1:8000";
   const comfy = {
       configured: true, 
