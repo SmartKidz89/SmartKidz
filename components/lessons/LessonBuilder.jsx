@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play, HelpCircle, Code, RotateCcw } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play, HelpCircle, Code, RotateCcw, BarChart3, Image as ImageIcon } from "lucide-react";
 import { Button, Input, Select, Textarea } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
@@ -39,6 +39,39 @@ function Section({ title, desc, children, right }) {
   );
 }
 
+function ProgressHeader({ title, stats, icon: Icon }) {
+  if (!stats) return null;
+  const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  
+  return (
+    <div className="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm mb-6">
+       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${pct === 100 ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600"}`}>
+          <Icon className="w-6 h-6" />
+       </div>
+       <div className="flex-1">
+          <div className="flex justify-between items-end mb-2">
+             <div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title} Progress</div>
+                <div className="text-lg font-black text-slate-900">
+                   {stats.completed} <span className="text-slate-400 font-medium">/ {stats.total}</span>
+                </div>
+             </div>
+             <div className="text-right">
+                <div className="text-lg font-bold text-indigo-600">{pct}%</div>
+             </div>
+          </div>
+          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+             <div className="h-full bg-indigo-600 transition-all duration-500" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-2 flex gap-4 text-xs font-medium text-slate-500">
+             <span>🕒 {stats.queued || 0} Queued</span>
+             {stats.failed > 0 && <span className="text-rose-600">⚠️ {stats.failed} Failed</span>}
+          </div>
+       </div>
+    </div>
+  );
+}
+
 function toneForStatus(s) {
   if (!s) return "slate";
   const v = String(s).toLowerCase();
@@ -50,17 +83,21 @@ function toneForStatus(s) {
 }
 
 export default function LessonBuilder() {
-  const [tab, setTab] = useState("interactive"); // interactive | import | jobs | assets | preview
+  const [tab, setTab] = useState("interactive"); 
   const [jobs, setJobs] = useState([]);
   const [existingLessons, setExistingLessons] = useState([]);
   const [assets, setAssets] = useState([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
 
+  // Stats
+  const [jobStats, setJobStats] = useState(null);
+  const [assetStats, setAssetStats] = useState(null);
+
   // Preview / Editor State
   const [searchQuery, setSearchQuery] = useState("");
   const [previewLesson, setPreviewLesson] = useState(null);
-  const [viewMode, setViewMode] = useState("player"); // player | json
+  const [viewMode, setViewMode] = useState("player"); 
   const [jsonContent, setJsonContent] = useState("");
 
   // Interactive Form State
@@ -87,10 +124,14 @@ export default function LessonBuilder() {
       
       if (j?.data) {
          setJobs(j.data);
+         if (j.stats) setJobStats(j.stats);
          const completed = j.data.filter(x => x.status === 'completed');
          setExistingLessons(completed); 
       }
-      if (a?.data) setAssets(a.data);
+      if (a?.data) {
+         setAssets(a.data);
+         if (a.stats) setAssetStats(a.stats);
+      }
 
     } catch (e) {
       setNotice({ tone: "danger", title: "Refresh failed", text: e?.message || String(e) });
@@ -166,7 +207,7 @@ export default function LessonBuilder() {
      setNotice(null);
 
      try {
-        const parsed = JSON.parse(jsonContent); // Validate JSON first
+        const parsed = JSON.parse(jsonContent); 
         
         const res = await fetch("/api/admin/lesson/update", {
            method: "POST",
@@ -236,7 +277,6 @@ export default function LessonBuilder() {
     }
   }
 
-  // ... (keep handleFileUpload, runLessonBatch, runAssetBatch same as before) ...
   async function handleFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -292,9 +332,6 @@ export default function LessonBuilder() {
      setBusy(false);
   }
 
-  const queuedAssets = assets.filter(a => (a.status || "").toLowerCase() === "queued");
-  const queuedJobsCount = jobs.filter(j => (j.status || "").toLowerCase() === "queued").length;
-
   return (
     <div className="space-y-6">
       {/* Tabs */}
@@ -309,10 +346,10 @@ export default function LessonBuilder() {
           <FileSpreadsheet className="w-4 h-4 inline mr-2" /> Import
         </button>
         <button className={`rounded-xl px-3 py-2 text-sm border ${tab === "jobs" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`} onClick={() => setTab("jobs")}>
-          Bulk Jobs {queuedJobsCount > 0 && <span className="ml-1 bg-amber-100 text-amber-700 px-1.5 rounded-full text-xs">{queuedJobsCount}</span>}
+          Bulk Jobs {jobStats?.queued > 0 && <span className="ml-1 bg-amber-100 text-amber-700 px-1.5 rounded-full text-xs">{jobStats.queued}</span>}
         </button>
         <button className={`rounded-xl px-3 py-2 text-sm border ${tab === "assets" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`} onClick={() => setTab("assets")}>
-          Asset Queue {queuedAssets.length > 0 && <span className="ml-1 bg-amber-100 text-amber-700 px-1.5 rounded-full text-xs">{queuedAssets.length}</span>}
+          Asset Queue {assetStats?.queued > 0 && <span className="ml-1 bg-amber-100 text-amber-700 px-1.5 rounded-full text-xs">{assetStats.queued}</span>}
         </button>
         <div className="ml-auto"><Button tone="secondary" onClick={refresh} disabled={busy}>Refresh</Button></div>
       </div>
@@ -385,7 +422,6 @@ export default function LessonBuilder() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
            <div className="lg:col-span-2 space-y-6">
               <Section title="Lesson Parameters" desc="Create manually.">
-                 {/* ... (Existing form inputs - kept same) ... */}
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Subject</label>
@@ -462,10 +498,28 @@ export default function LessonBuilder() {
         </div>
       )}
 
-      {/* OTHER TABS (Import, Assets, Jobs - kept consistent) */}
+      {/* IMPORT TAB */}
       {tab === "import" && <Section title="Import Spreadsheet" desc="Upload Excel (.xlsx) or CSV files."><div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 relative"><input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" disabled={busy} /><UploadCloud className="w-6 h-6 mb-2 text-slate-400" /><div className="font-bold text-slate-900">{busy ? "Uploading..." : "Click or Drag File"}</div></div></Section>}
-      {tab === "assets" && <Section title="Generate Assets" desc="Process queued image requests." right={<Button onClick={() => runAssetBatch(25)} disabled={busy}>Run Batch</Button>}><div className="overflow-auto max-h-[600px]"><table className="w-full text-sm text-left"><thead className="text-xs text-slate-500 border-b border-slate-100"><tr><th className="py-2">Lesson</th><th className="py-2">Prompt</th><th className="py-2">Status</th></tr></thead><tbody>{assets.map(a => (<tr key={a.id} className="border-b border-slate-50 last:border-0"><td className="py-3 font-mono text-xs">{a.edition_id}</td><td className="py-3 truncate max-w-xs text-slate-600">{a.prompt}</td><td className="py-3"><Pill tone={toneForStatus(a.status)}>{a.status}</Pill></td></tr>))}</tbody></table></div></Section>}
-      {tab === "jobs" && <Section title="Bulk Jobs" desc="Background processing." right={<div className="flex gap-2"><Button tone="secondary" onClick={loadPresets} disabled={busy}><Database className="w-4 h-4 mr-2" /> Load Defaults</Button><Button onClick={runLessonBatch} disabled={busy}><Play className="w-4 h-4 mr-2" /> Run Next 25</Button></div>}><div className="mt-4 overflow-auto max-h-[500px]"><table className="w-full text-sm text-left"><thead className="text-xs text-slate-500 border-b border-slate-100"><tr><th className="py-2">Job ID</th><th className="py-2">Subject</th><th className="py-2">Topic</th><th className="py-2">Status</th></tr></thead><tbody>{jobs.map(j => (<tr key={j.id} className="border-b border-slate-50 last:border-0"><td className="py-3 font-mono text-xs">{j.job_id}</td><td className="py-3">{j.subject}</td><td className="py-3">{j.topic}</td><td className="py-3"><Pill tone={toneForStatus(j.status)}>{j.status}</Pill></td></tr>))}</tbody></table></div></Section>}
+      
+      {/* ASSETS TAB */}
+      {tab === "assets" && (
+         <div className="space-y-6">
+           <ProgressHeader title="Image Queue" stats={assetStats} icon={ImageIcon} />
+           <Section title="Generate Assets" desc="Process queued image requests." right={<Button onClick={() => runAssetBatch(25)} disabled={busy}>Run Batch</Button>}>
+              <div className="overflow-auto max-h-[600px]"><table className="w-full text-sm text-left"><thead className="text-xs text-slate-500 border-b border-slate-100"><tr><th className="py-2">Lesson</th><th className="py-2">Prompt</th><th className="py-2">Status</th></tr></thead><tbody>{assets.map(a => (<tr key={a.id} className="border-b border-slate-50 last:border-0"><td className="py-3 font-mono text-xs">{a.edition_id}</td><td className="py-3 truncate max-w-xs text-slate-600">{a.prompt}</td><td className="py-3"><Pill tone={toneForStatus(a.status)}>{a.status}</Pill></td></tr>))}</tbody></table></div>
+           </Section>
+         </div>
+      )}
+      
+      {/* JOBS TAB */}
+      {tab === "jobs" && (
+         <div className="space-y-6">
+           <ProgressHeader title="Lesson Jobs" stats={jobStats} icon={BarChart3} />
+           <Section title="Bulk Jobs" desc="Background processing." right={<div className="flex gap-2"><Button tone="secondary" onClick={loadPresets} disabled={busy}><Database className="w-4 h-4 mr-2" /> Load Defaults</Button><Button onClick={runLessonBatch} disabled={busy}><Play className="w-4 h-4 mr-2" /> Run Next 25</Button></div>}>
+              <div className="mt-4 overflow-auto max-h-[500px]"><table className="w-full text-sm text-left"><thead className="text-xs text-slate-500 border-b border-slate-100"><tr><th className="py-2">Job ID</th><th className="py-2">Subject</th><th className="py-2">Topic</th><th className="py-2">Status</th></tr></thead><tbody>{jobs.map(j => (<tr key={j.id} className="border-b border-slate-50 last:border-0"><td className="py-3 font-mono text-xs">{j.job_id}</td><td className="py-3">{j.subject}</td><td className="py-3">{j.topic}</td><td className="py-3"><Pill tone={toneForStatus(j.status)}>{j.status}</Pill></td></tr>))}</tbody></table></div>
+           </Section>
+         </div>
+      )}
     </div>
   );
 }

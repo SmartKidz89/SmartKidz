@@ -10,14 +10,30 @@ export async function GET() {
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin
-    .from("lesson_generation_jobs")
-    .select("id,job_id,subject,year_level,topic,subtopic,locale_code,status,image_status,supabase_lesson_id,error_message,updated_at,created_at")
-    .order("updated_at", { ascending: false })
-    .limit(50);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ data: data || [] });
+  // Parallel queries for stats
+  const [totalRes, completedRes, queuedRes, failedRes, listRes] = await Promise.all([
+    admin.from("lesson_generation_jobs").select("*", { count: "exact", head: true }),
+    admin.from("lesson_generation_jobs").select("*", { count: "exact", head: true }).eq("status", "completed"),
+    admin.from("lesson_generation_jobs").select("*", { count: "exact", head: true }).eq("status", "queued"),
+    admin.from("lesson_generation_jobs").select("*", { count: "exact", head: true }).eq("status", "failed"),
+    admin.from("lesson_generation_jobs")
+      .select("id,job_id,subject,year_level,topic,subtopic,locale_code,status,image_status,supabase_lesson_id,error_message,updated_at,created_at")
+      .order("updated_at", { ascending: false })
+      .limit(50)
+  ]);
+
+  if (listRes.error) return NextResponse.json({ error: listRes.error.message }, { status: 500 });
+  
+  return NextResponse.json({ 
+    data: listRes.data || [],
+    stats: {
+      total: totalRes.count || 0,
+      completed: completedRes.count || 0,
+      queued: queuedRes.count || 0,
+      failed: failedRes.count || 0
+    }
+  });
 }
 
 export async function POST(req) {
