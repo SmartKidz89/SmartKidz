@@ -46,12 +46,15 @@ export async function POST(req) {
     // Questions
     if (Array.isArray(content_json.questions)) {
       content_json.questions.forEach((q, i) => {
+        // Map progressive hints to UI ladder
+        q.hint_ladder = q.hint_progressive || [];
+        
         const type = q.question_format === "multiple_choice" ? "multiple_choice" : "fill_blank";
         contentItems.push({
           content_id: `${edition_id}_q${i + 1}`,
           edition_id,
           activity_order: i + 1,
-          phase: "independent_practice", // Simplified phase logic for manual edits
+          phase: "independent_practice", // Default phase for manual edits
           type,
           title: `Question ${i + 1}`,
           content_json: q

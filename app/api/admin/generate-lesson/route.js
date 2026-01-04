@@ -9,17 +9,17 @@ export const dynamic = 'force-dynamic';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// --- MASTER LEARNING DESIGNER PROMPT (v2.0) ---
+// --- MASTER LEARNING DESIGNER PROMPT (v3.0 - Strict) ---
 
-const SYSTEM_PROMPT = `Act as a Senior Learning Designer and Data Architect for "SmartKidz," an Australian K-6 EdTech platform.
+const SYSTEM_PROMPT = `Act as a Senior Learning Designer for "SmartKidz," an Australian K-6 EdTech platform.
 
 **OBJECTIVE:**
 Generate a rich, curriculum-aligned lesson JSON object with high engagement mechanics, pedagogical depth, and specific feedback logic.
 
 **CRITICAL RULES:**
-1. **Output:** Valid JSON only. Start with { and end with }. No markdown fences, no preamble.
-2. **Locale:** en-AU (British spelling: colour, maths, centimetre, litre). Currency: AUD ($). Units: Metric. Use culturally relevant examples (e.g., vegemit toast, gumtrees, cricket).
-3. **Curriculum:** Align strictly with ACARA (Australian Curriculum) standards.
+1. **Output:** Valid JSON only. Start with { and end with }. No markdown fences.
+2. **Locale:** en-AU (British spelling: colour, maths, centimetre, litre). Currency: AUD ($). Units: Metric. Use culturally relevant examples (e.g., Vegemite toast, gumtrees, cricket).
+3. **Curriculum:** Align strictly with ACARA standards.
 4. **Structure:** You MUST generate EXACTLY 10 questions in the 'questions' array.
 
 **JSON SCHEMA:**
@@ -53,31 +53,27 @@ Generate a rich, curriculum-aligned lesson JSON object with high engagement mech
     }
   },
   "questions": [
+    // EXACTLY 10 ITEMS REQUIRED
     {
       "question_index": 1,
       "question_format": "multiple_choice", // or 'fill_blank'
       "question": "Question text...",
       "tts_override_string": "Audio version if different (e.g. 'three quarters' for 3/4)",
-      "story_context": "Help the astronaut count the stars...",
+      "story_context": "Scenario context...",
       "options": ["A", "B", "C"],
       "answer": "A",
-      "explanation": "Why A is correct (encouraging tone)...",
+      "explanation": "Why A is correct (encouraging)...",
       "hint_progressive": ["Hint 1 (General)", "Hint 2 (Specific)"],
       "distractors": [
         { "text": "B", "misconception": "Added instead of multiplied", "feedback": "Did you add? Try multiplying." },
         { "text": "C", "misconception": "Guess", "feedback": "Look at the diagram again." }
       ],
-      "visual_aid": {
-        "description": "Image prompt description for this specific question...",
-        "asset_type": "illustration"
-      },
       "pedagogy": {
         "cognitive_level": "application", // recall, application, conceptual_understanding
         "difficulty": 0.5
       },
       "gamification": { "xp": 10 }
     }
-    // ... MUST HAVE 10 ITEMS ...
   ],
   "lesson_outro": {
     "performance_narrative": "You conquered the fractions!",
@@ -92,11 +88,12 @@ Generate a rich, curriculum-aligned lesson JSON object with high engagement mech
   }
 }
 
-**PEDAGOGY & DESIGN GUIDELINES:**
-- **Smart Distractors:** Do not generate random wrong answers. Create "plausible distractors" that reveal specific misconceptions.
-- **Scaffolding:** Use 'hint_progressive' to guide, not give answers.
+**DESIGN GUIDELINES:**
+- **Smart Distractors:** Generate "plausible distractors" that reveal specific misconceptions.
+- **Scaffolding:** Use 'hint_progressive' to guide.
 - **Emotion & Tone:** Encouraging, warm, 'positive' emotional valence.
-- **Accessibility:** Use 'tts_override_string' for mathematical notation or complex words.
+- **Cognitive Taxonomy:** Start with recall, move to application, then conceptual understanding.
+- **Input Methods:** Use 'multiple_choice' or 'fill_blank' primarily for compatibility.
 
 Generate the full lesson now.`;
 
@@ -111,7 +108,7 @@ Strand: ${vars.strand}
 Target Duration: ${vars.duration_target} minutes.
 Difficulty: ${vars.difficulty_band}.
 
-Ensure EXACTLY 10 questions are included.`;
+Ensure EXACTLY 10 questions are included in the 'questions' array.`;
 }
 
 // --- Helpers ---
@@ -182,7 +179,7 @@ export async function POST(req) {
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.4, // Slightly higher for creativity in distractors
+      temperature: 0.4,
       response_format: { type: "json_object" }
     });
 
@@ -200,8 +197,14 @@ export async function POST(req) {
     if (!jsonContent.questions || !Array.isArray(jsonContent.questions)) {
        jsonContent.questions = [];
     }
+
+    // STRICT CHECK: Fail if too few questions (avoids the 2-page ghost lesson)
+    if (jsonContent.questions.length < 5) {
+      console.error("Lesson Validation Failed: Too few questions.", jsonContent);
+      return NextResponse.json({ error: "AI generated an incomplete lesson (< 5 questions). Please try again." }, { status: 500 });
+    }
     
-    // Ensure we have at least Intro/Outro if questions failed
+    // Ensure we have at least Intro/Outro
     if (!jsonContent.lesson_intro) jsonContent.lesson_intro = { narrative_setup: { text: `Welcome to ${topic}` } };
     if (!jsonContent.lesson_outro) jsonContent.lesson_outro = { performance_summary: { text: "Lesson complete." } };
 
@@ -260,6 +263,9 @@ export async function POST(req) {
 
     // 2. Questions
     questions.forEach((q, i) => {
+      // Map AI fields to UI fields
+      q.hint_ladder = q.hint_progressive || [];
+      
       contentItems.push({
         content_id: `${edition_id}_q${i + 1}`,
         edition_id,
