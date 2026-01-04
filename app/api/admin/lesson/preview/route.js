@@ -15,20 +15,15 @@ export async function GET(req) {
   if (!editionId) return NextResponse.json({ error: "Missing edition_id" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin
-     .from("lesson_editions")
-     .select("*, lesson_content_items(*)")
-     .eq("edition_id", editionId)
-     .single();
+  
+  // Use RPC to bypass RLS reliability issues with the service role
+  const { data, error } = await admin.rpc("get_lesson_preview_data", { p_edition_id: editionId });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   
-  if (data) {
-     // Alias for component compatibility
-     data.content_items = data.lesson_content_items || [];
-     // Sort by activity_order if present
-     data.content_items.sort((a, b) => (a.activity_order || 0) - (b.activity_order || 0));
-  }
+  // Reshape to match expected format
+  const edition = data.edition || {};
+  edition.content_items = data.content_items || [];
   
-  return NextResponse.json({ data });
+  return NextResponse.json({ data: edition });
 }
