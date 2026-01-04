@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 import { Button } from "@/components/ui/Button"; 
 import { useAdminMe } from "@/components/admin/useAdminMe";
@@ -17,7 +16,7 @@ import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
 
 import {
-  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe, Code, Info, Copy
+  ChevronDown, ChevronUp, Eye, Plus, Redo2, Save, Trash2, Undo2, Layout, Search, Settings, FileText, Smartphone, Tablet, Monitor, Lock, Globe, Code, Info, Copy, AlertTriangle
 } from "lucide-react";
 
 function slugify(input) {
@@ -43,7 +42,6 @@ const HARDCODED_PAGES = [
   { title: "Parent Dashboard", slug: "/app/parent", scope: "app" },
 ];
 
-// Pre-defined block structures for system pages to allow "forking"
 const SYSTEM_TEMPLATES = {
   "/": {
     title: "Home",
@@ -60,7 +58,7 @@ const SYSTEM_TEMPLATES = {
   },
   "/app": {
     title: "Student Dashboard",
-    slug: "home", // /app -> slug='home' in 'app' scope
+    slug: "home", 
     scope: "app",
     blocks: [
       { id: newId("dash"), type: "component", componentName: "DashboardClient" }
@@ -91,6 +89,7 @@ export default function SiteBuilderEditor() {
   const [pages, setPages] = useState([]);
   const [loadingPages, setLoadingPages] = useState(true);
   const [assets, setAssets] = useState([]);
+  const [configError, setConfigError] = useState(null);
   
   // Selection State
   const [selectedId, setSelectedId] = useState(null);
@@ -121,12 +120,18 @@ export default function SiteBuilderEditor() {
 
   async function loadPages() {
     setLoadingPages(true);
+    setConfigError(null);
     try {
       const res = await fetch("/api/admin/cms-pages", { cache: "no-store" });
+      if (!res.ok) {
+        if (res.status === 500) throw new Error("Database connection failed. Check SUPABASE_SERVICE_ROLE_KEY.");
+        throw new Error(`API Error ${res.status}`);
+      }
       const j = await res.json();
-      if (res.ok) setPages(j.pages || []);
+      setPages(j.pages || []);
     } catch (e) {
       console.error("Failed to load pages", e);
+      setConfigError(e.message);
     } finally {
       setLoadingPages(false);
     }
@@ -167,7 +172,6 @@ export default function SiteBuilderEditor() {
     }
   }
 
-  // Fork a system page into the database
   async function forkPage(sysPage) {
     if(!confirm(`This will create a editable copy of "${sysPage.title}" in the database. It will override the hardcoded version. Continue?`)) return;
     
@@ -183,13 +187,13 @@ export default function SiteBuilderEditor() {
           title: template.title,
           slug: template.slug,
           scope: template.scope,
-          published: true, // Auto-publish to take effect immediately
+          published: true, 
           content_json: { version: 1, blocks: template.blocks }
         })
       });
       
       const j = await res.json();
-      if (!res.ok) throw new Error(j.error || "Fork failed");
+      if (!res.ok) throw new Error(j.error || "Fork failed. Check server logs.");
       
       setMsg(`Forked ${sysPage.title}. You can now edit it.`);
       await loadPages();
@@ -303,6 +307,8 @@ export default function SiteBuilderEditor() {
         await loadPages();
         await loadPage(j.page.id);
         setCreateOpen(false);
+      } else {
+        throw new Error(j.error || "Create failed");
       }
     } catch(e) {
       alert(e.message);
@@ -325,8 +331,7 @@ export default function SiteBuilderEditor() {
 
   return (
     <div className="h-[calc(100vh-60px)] flex flex-col bg-white">
-      
-      {/* 1. Header */}
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 shrink-0 bg-white z-20">
         <div className="flex items-center gap-4">
            <div className="flex items-center gap-2 text-slate-900 font-black">
@@ -361,6 +366,13 @@ export default function SiteBuilderEditor() {
       <div className="flex-1 flex overflow-hidden">
          {/* Left: Pages */}
          <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
+            {configError && (
+               <div className="p-3 m-3 mb-0 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700">
+                  <div className="font-bold flex items-center gap-1 mb-1"><AlertTriangle className="w-3 h-3" /> Config Error</div>
+                  {configError}
+               </div>
+            )}
+            
             <div className="p-3 border-b border-slate-200">
                <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -399,8 +411,6 @@ export default function SiteBuilderEditor() {
                   <div className="space-y-1 px-3">
                      {filteredSystemPages.map(hp => {
                         const canFork = SYSTEM_TEMPLATES[hp.slug];
-                        // If page already exists in custom pages (by slug), disable fork
-                        // Match custom pages against template slug
                         const targetSlug = canFork ? canFork.slug : hp.slug;
                         const targetScope = canFork ? canFork.scope : hp.scope;
                         const exists = pages.some(p => p.slug === targetSlug && p.scope === targetScope);
@@ -823,8 +833,4 @@ function BlockFields({ block, onChange, onLink, onAsset }) {
    }
 
    return <div className="text-sm text-slate-400 italic">No fields configured for this block type.</div>;
-}
-
-function ExternalLinkIcon() {
-  return <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 2h6v6"/><path d="M10 2 5 7"/><path d="M6 10H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h1"/></svg>
 }
