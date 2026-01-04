@@ -12,7 +12,7 @@ export async function GET() {
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
     .from("lesson_generation_jobs")
-    .select("id,job_id,subject,year_level,topic,subtopic,locale_code,status,image_status,supabase_lesson_id,updated_at,created_at")
+    .select("id,job_id,subject,year_level,topic,subtopic,locale_code,status,image_status,supabase_lesson_id,error_message,updated_at,created_at")
     .order("updated_at", { ascending: false })
     .limit(50);
 

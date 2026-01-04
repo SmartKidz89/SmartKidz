@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play, HelpCircle } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
-function Pill({ children, tone = "slate" }) {
+function Pill({ children, tone = "slate", title }) {
   const toneMap = {
     slate: "bg-slate-100 text-slate-700",
     green: "bg-emerald-100 text-emerald-700",
@@ -15,7 +15,10 @@ function Pill({ children, tone = "slate" }) {
     blue: "bg-blue-100 text-blue-700",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${toneMap[tone] || toneMap.slate}`}>
+    <span 
+      title={title}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium cursor-help ${toneMap[tone] || toneMap.slate}`}
+    >
       {children}
     </span>
   );
@@ -673,7 +676,16 @@ export default function LessonBuilder() {
                            <td className="py-3 font-mono text-xs">{j.job_id}</td>
                            <td className="py-3">{j.subject}</td>
                            <td className="py-3">{j.topic}</td>
-                           <td className="py-3"><Pill tone={toneForStatus(j.status)}>{j.status}</Pill></td>
+                           <td className="py-3">
+                              <Pill tone={toneForStatus(j.status)} title={j.error_message || "No errors"}>
+                                {j.status}
+                              </Pill>
+                              {j.status === 'failed' && (
+                                <div className="text-xs text-rose-500 mt-1 truncate max-w-[200px]" title={j.error_message}>
+                                   {j.error_message || "Unknown error"}
+                                </div>
+                              )}
+                           </td>
                         </tr>
                      ))}
                      {jobs.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-400">No bulk jobs.</td></tr>}
