@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "../../../../lib/supabaseAdmin";
 import { forgeTxt2Img, checkForgeConnection } from "../../../../lib/forgeImageProvider";
+import { buildPrompt, MASTER_NEGATIVE_PROMPT } from "@/lib/image/prompts";
 
 export const runtime = "nodejs";
 
@@ -63,28 +64,28 @@ export async function POST(req) {
       
       const uri = asset?.uri || "";
       const logical = uri.startsWith("asset://") ? uri.replace("asset://", "") : "";
-      const theme = (logical || id || "")
-        .replace(/^image\//, "")
-        .replaceAll("_", " ")
-        .replaceAll("-", " ")
-        .trim();
+      
+      // Determine the core subject
+      let theme = asset.alt_text;
+      if (!theme || theme.length < 5) {
+         theme = (logical || id || "")
+          .replace(/^image\//, "")
+          .replaceAll("_", " ")
+          .replaceAll("-", " ")
+          .trim();
+      }
 
-      const prompt = [
-        "A cute, bright, kid-friendly educational illustration.",
-        `Subject: ${theme || "learning background"}.`,
-        "Style: flat vector art, vibrant colors, clean lines, minimalist, joyful.",
-        "No text, no letters, no watermarks, no blur.",
-        "High quality, 4k."
-      ].join(" ");
+      // Use the Master Style builder
+      const prompt = buildPrompt(theme);
 
       try {
         const buffer = await forgeTxt2Img({
           prompt,
-          negative_prompt: "text, watermark, logo, blurry, distorted, scary, ugly, photo, realistic",
+          negative_prompt: MASTER_NEGATIVE_PROMPT,
           width: 1024,
           height: 576,
           sdApiUrl: activeSdUrl,
-          steps: 20
+          steps: 25 // Increased slightly for higher fidelity
         });
 
         const storagePath = `image/${id}.png`;
@@ -107,6 +108,7 @@ export async function POST(req) {
           public_url: publicUrl,
           prompt,
           provider: "forge",
+          style: "paper_cutout_v1",
           generated_at: new Date().toISOString(),
           ext: "png"
         };

@@ -2,6 +2,7 @@
 import { loadEnv } from "./load-env.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { forgeTxt2Img } from "../lib/forgeImageProvider.js";
+import { buildPrompt, MASTER_NEGATIVE_PROMPT } from "../lib/image/prompts.js";
 
 function requireEnv(name) {
   const v = process.env[name];
@@ -32,6 +33,7 @@ function parseArgs(argv) {
 function help() {
   console.log(`
 Generate missing image assets locally using WebUI Forge/A1111 SDAPI and upload to Supabase Storage.
+Now enforces "SmartKidz Paper Cutout" Master Style.
 
 Usage:
   node scripts/generate-assets-local.mjs --limit 50
@@ -43,17 +45,14 @@ Env (required):
   SUPABASE_SERVICE_ROLE_KEY
   SUPABASE_ASSETS_BUCKET (optional; default "assets")
   SD_API_URL (optional; default "http://127.0.0.1:7860")
-
-Notes:
-  - Forge must be running with --api enabled.
-  - This script finds rows in public.assets where asset_type='image' and metadata.public_url is null.
-  - It expects a prompt in metadata.prompt; if missing, it will synthesize a basic prompt from alt_text/uri.
 `);
 }
 
-function synthPrompt(asset) {
+function synthSubject(asset) {
+  // Return the raw subject. The buildPrompt function will wrap it.
   const meta = asset?.metadata || {};
   if (meta?.prompt) return String(meta.prompt);
+  
   const uri = asset?.uri || "";
   const logical = uri.startsWith("asset://") ? uri.replace("asset://", "") : "";
   const theme = (logical || asset.asset_id || "")
@@ -62,8 +61,7 @@ function synthPrompt(asset) {
     .replaceAll("-", " ")
     .trim();
   const alt = asset?.alt_text ? String(asset.alt_text) : "";
-  const base = alt || theme || "kid friendly educational illustration";
-  return `A kid-friendly, high-quality illustration: ${base}. Flat, clean, vibrant, no text.`;
+  return alt || theme || "kid friendly educational illustration";
 }
 
 async function main() {
@@ -96,15 +94,17 @@ async function main() {
   for (const asset of assets) {
     const id = asset.asset_id;
     try {
-      const prompt = synthPrompt(asset);
+      const subject = synthSubject(asset);
+      const prompt = buildPrompt(subject);
+
       const uri = asset?.uri || "";
       const logical = uri.startsWith("asset://") ? uri.replace("asset://", "") : "";
       const basePath = logical || `image/${id}`;
       const storagePath = `${basePath}.png`;
 
       console.log(`\n[asset] ${id}`);
-      console.log(`  prompt: ${prompt.slice(0, 140)}${prompt.length > 140 ? "..." : ""}`);
-      console.log(`  storagePath: ${storagePath}`);
+      console.log(`  subject: ${subject}`);
+      // console.log(`  full prompt: ${prompt.slice(0, 100)}...`);
 
       if (args.dryRun) {
         ok++;
@@ -113,7 +113,7 @@ async function main() {
 
       const buffer = await forgeTxt2Img({
         prompt,
-        negative_prompt: "text, watermark, logo, brand marks, letters, numbers, scary, gore",
+        negative_prompt: MASTER_NEGATIVE_PROMPT,
         width: args.width,
         height: args.height,
         sdApiUrl,
@@ -134,6 +134,7 @@ async function main() {
         public_url: publicUrl,
         storage_path: storagePath,
         provider: "forge",
+        style: "paper_cutout_v1",
         ext: "png",
         status: "ready",
         generated_at: new Date().toISOString(),

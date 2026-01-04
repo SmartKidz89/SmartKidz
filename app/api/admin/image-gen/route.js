@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { runComfyWorkflow, fetchComfyImageBuffer } from "@/lib/comfyui/client";
+import { buildPrompt, MASTER_NEGATIVE_PROMPT } from "@/lib/image/prompts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,23 +10,26 @@ export async function POST(req) {
   const auth = await requireAdminSession();
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
-  const { prompt, comfyUrl, workflow = "basic_text2img" } = await req.json().catch(() => ({}));
+  const { prompt: subject, comfyUrl, workflow = "basic_text2img" } = await req.json().catch(() => ({}));
 
-  if (!prompt || !comfyUrl) {
+  if (!subject || !comfyUrl) {
     return NextResponse.json({ error: "Missing prompt or comfyUrl" }, { status: 400 });
   }
 
   try {
+    // Apply Master Style
+    const finalPrompt = buildPrompt(subject);
+
     // 1. Run ComfyUI
     const { image } = await runComfyWorkflow({
       workflowName: workflow,
       comfyUrl,
       vars: {
-        prompt,
-        negative_prompt: "text, watermark, ugly, blurry, distorted, nsfw",
+        prompt: finalPrompt,
+        negative_prompt: MASTER_NEGATIVE_PROMPT,
         width: 1024,
         height: 576,
-        steps: 20,
+        steps: 25,
         cfg_scale: 7
       }
     });

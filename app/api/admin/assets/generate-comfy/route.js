@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { runComfyWorkflow, fetchComfyImageBuffer } from "@/lib/comfyui/client";
 import { logAudit } from "@/lib/admin/audit";
+import { buildPrompt, MASTER_NEGATIVE_PROMPT } from "@/lib/image/prompts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,11 +33,14 @@ export async function POST(req) {
     
     if (getErr || !asset) throw new Error("Asset not found");
 
-    // 2. Determine Prompt (override provided > metadata > alt_text)
-    const finalPrompt = prompt || asset.metadata?.prompt || asset.alt_text || "A friendly educational illustration";
-    const negativePrompt = asset.metadata?.negative_prompt || "text, watermark, ugly, blurry";
+    // 2. Determine Subject (override provided > metadata > alt_text)
+    const subject = prompt || asset.metadata?.prompt || asset.alt_text || "A friendly educational illustration";
+    
+    // 3. Construct Style-Locked Prompt
+    const finalPrompt = buildPrompt(subject);
+    const negativePrompt = MASTER_NEGATIVE_PROMPT;
 
-    // 3. Run ComfyUI
+    // 4. Run ComfyUI
     const { image } = await runComfyWorkflow({
       workflowName: workflow,
       comfyUrl,
@@ -45,14 +49,14 @@ export async function POST(req) {
         negative_prompt: negativePrompt,
         width: 1024,
         height: 576,
-        steps: 20,
+        steps: 25,
         cfg_scale: 7
       }
     });
 
     if (!image) throw new Error("No image returned from ComfyUI");
 
-    // 4. Download Image
+    // 5. Download Image
     const buffer = await fetchComfyImageBuffer({
       filename: image.filename,
       subfolder: image.subfolder,
@@ -60,7 +64,7 @@ export async function POST(req) {
       comfyUrl
     });
 
-    // 5. Upload to Supabase Storage
+    // 6. Upload to Supabase Storage
     const ext = "png";
     const storagePath = `generated/${assetId}_${Date.now()}.${ext}`;
     
@@ -76,12 +80,13 @@ export async function POST(req) {
     const { data: pubData } = admin.storage.from(BUCKET).getPublicUrl(storagePath);
     const publicUrl = pubData.publicUrl;
 
-    // 6. Update Asset Record
+    // 7. Update Asset Record
     const nextMeta = {
       ...asset.metadata,
       public_url: publicUrl,
       storage_path: storagePath,
       provider: "comfyui",
+      style: "paper_cutout_v1",
       generated_at: new Date().toISOString()
     };
 
