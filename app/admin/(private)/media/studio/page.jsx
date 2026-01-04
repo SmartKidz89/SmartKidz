@@ -5,7 +5,7 @@ import {
   Folder, Image as ImageIcon, ChevronRight, ChevronDown, 
   Sparkles, Save, Github, Loader2, Link as LinkIcon, AlertCircle, Home, Download, FileJson
 } from "lucide-react";
-import { Button, Input, Textarea } from "@/components/admin/AdminControls";
+import { Button, Input, Textarea, Select } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminNotice from "@/components/admin/AdminNotice";
 import { cx } from "@/components/admin/adminUi";
@@ -128,6 +128,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
 export default function ImageStudioPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [comfyUrl, setComfyUrl] = useState("https://comfy.smartkidz.app");
+  const [workflow, setWorkflow] = useState("sdxl_standard");
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState(null); // data url
@@ -163,7 +164,7 @@ export default function ImageStudioPage() {
         const res = await fetch("/api/admin/image-gen", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt, negativePrompt, comfyUrl })
+            body: JSON.stringify({ prompt, negativePrompt, comfyUrl, workflow })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -253,10 +254,21 @@ export default function ImageStudioPage() {
                      </div>
                      
                      <div className="grid gap-4">
-                        <div>
-                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">ComfyUI URL</label>
-                           <Input value={comfyUrl} onChange={e => setComfyUrl(e.target.value)} />
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">ComfyUI URL</label>
+                              <Input value={comfyUrl} onChange={e => setComfyUrl(e.target.value)} />
+                           </div>
+                           <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Workflow</label>
+                              <Select value={workflow} onChange={e => setWorkflow(e.target.value)}>
+                                 <option value="sdxl_standard">SDXL Standard</option>
+                                 <option value="basic_text2img">SD 1.5 Basic</option>
+                                 <option value="custom">Custom (DB)</option>
+                              </Select>
+                           </div>
                         </div>
+
                         <div>
                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Positive Prompt</label>
                            <Textarea 

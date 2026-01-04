@@ -12,6 +12,7 @@ import {
 
 export default function AssetGeneratorPage() {
   const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8000");
+  const [workflow, setWorkflow] = useState("sdxl_standard");
   const [queue, setQueue] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -65,7 +66,7 @@ export default function AssetGeneratorPage() {
             assetId: asset.asset_id,
             comfyUrl: comfyUrl,
             prompt: asset.alt_text || asset.metadata?.prompt, 
-            workflow: "basic_text2img"
+            workflow: workflow
           })
         });
 
@@ -118,6 +119,18 @@ export default function AssetGeneratorPage() {
                   className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-indigo-500/20 outline-none"
                   placeholder="http://127.0.0.1:8000"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Workflow</label>
+                <select 
+                   value={workflow} 
+                   onChange={e => setWorkflow(e.target.value)}
+                   className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white"
+                >
+                   <option value="sdxl_standard">SDXL Standard (Recommended)</option>
+                   <option value="basic_text2img">SD 1.5 Basic</option>
+                </select>
               </div>
               
               <div className="bg-indigo-50 p-3 rounded-xl text-xs text-indigo-800 leading-relaxed border border-indigo-100">
