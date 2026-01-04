@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { CheckCircle2, AlertTriangle, ExternalLink, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ExternalLink, RefreshCw, Cloud } from "lucide-react";
 import { Button } from "@/components/admin/AdminControls";
 
-function StatusCard({ title, icon, status, details, action }) {
+function StatusCard({ title, icon, status, details, action, isImage = true }) {
   const isOk = status === "connected";
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between h-full">
@@ -13,7 +13,11 @@ function StatusCard({ title, icon, status, details, action }) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2">
-                <img src={icon} alt={title} className="w-full h-full object-contain" />
+                {isImage ? (
+                  <img src={icon} alt={title} className="w-full h-full object-contain" />
+                ) : (
+                  icon
+                )}
              </div>
              <div>
                 <h3 className="font-bold text-slate-900">{title}</h3>
@@ -28,8 +32,10 @@ function StatusCard({ title, icon, status, details, action }) {
         <div className="space-y-3 mb-6">
            {details.map((d, i) => (
              <div key={i} className="flex justify-between text-sm border-b border-slate-50 pb-2 last:border-0 last:pb-0">
-                <span className="text-slate-500 font-medium">{d.label}</span>
-                <span className="text-slate-900 font-mono text-xs">{d.value}</span>
+                <span className="text-slate-500 font-medium truncate pr-2">{d.label}</span>
+                <span className={`font-mono text-xs truncate ${d.highlight ? "text-emerald-600 font-bold" : "text-slate-900"}`}>
+                  {d.value}
+                </span>
              </div>
            ))}
         </div>
@@ -62,6 +68,18 @@ export default function IntegrationsPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Build tunnel details for the card
+  const cfTunnels = data?.cloudflare?.tunnels || [];
+  const cfDetails = [
+    { label: "Configuration", value: data?.cloudflare?.configured ? "Set" : "Missing Token/ID" },
+    { label: "Active Tunnels", value: cfTunnels.filter(t => t.status === 'healthy').length, highlight: true },
+  ];
+  
+  // Add first few tunnels to the list
+  cfTunnels.slice(0, 3).forEach(t => {
+    cfDetails.push({ label: t.name, value: t.status, highlight: t.status === 'healthy' });
+  });
+
   return (
     <div>
       <AdminPageHeader 
@@ -88,6 +106,20 @@ export default function IntegrationsPage() {
             action={
                <Button tone="secondary" className="w-full" onClick={() => window.open("https://supabase.com/dashboard", "_blank")}>
                   Open Dashboard <ExternalLink className="w-3 h-3 ml-2" />
+               </Button>
+            }
+         />
+
+         {/* CLOUDFLARE */}
+         <StatusCard 
+            title="Cloudflare"
+            icon={<Cloud className="w-6 h-6 text-orange-500" />}
+            isImage={false}
+            status={data?.cloudflare?.status || "unknown"}
+            details={cfDetails}
+            action={
+               <Button tone="secondary" className="w-full" onClick={() => window.open("https://dash.cloudflare.com/", "_blank")}>
+                  Manage Tunnels <ExternalLink className="w-3 h-3 ml-2" />
                </Button>
             }
          />

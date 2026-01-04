@@ -31,5 +31,46 @@ export async function GET() {
      ok: !!process.env.GITHUB_SYNC_TOKEN && !!process.env.GITHUB_SYNC_REPO
   };
 
-  return NextResponse.json({ supabase, vercel, github });
+  // Check Cloudflare
+  const cfToken = process.env.CLOUDFLARE_API_TOKEN;
+  const cfAccount = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const cloudflare = {
+    configured: !!(cfToken && cfAccount),
+    tunnels: [],
+    status: "missing_config"
+  };
+
+  if (cfToken && cfAccount) {
+    try {
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cfAccount}/tunnels?is_deleted=false`, {
+        headers: {
+          "Authorization": `Bearer ${cfToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+           cloudflare.status = "connected";
+           cloudflare.tunnels = (data.result || []).map(t => ({
+             id: t.id,
+             name: t.name,
+             status: t.status, // healthy, down, etc
+           }));
+        } else {
+           cloudflare.status = "error";
+           cloudflare.error = data.errors?.[0]?.message || "API Error";
+        }
+      } else {
+        cloudflare.status = "error";
+        cloudflare.error = `HTTP ${res.status}`;
+      }
+    } catch (e) {
+      cloudflare.status = "error";
+      cloudflare.error = e.message;
+    }
+  }
+
+  return NextResponse.json({ supabase, vercel, github, cloudflare });
 }
