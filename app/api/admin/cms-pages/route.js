@@ -42,12 +42,13 @@ export async function POST(req) {
 
   if (!payload.slug) return NextResponse.json({ error: "slug is required" }, { status: 400 });
 
-  // Upsert by id if present; else upsert by slug
+  // Upsert by id if present; else upsert by (scope, slug) composite key
   let resp;
   if (payload.id) {
     resp = await admin.from("cms_pages").upsert(payload, { onConflict: "id" }).select("*").single();
   } else {
-    resp = await admin.from("cms_pages").upsert(payload, { onConflict: "slug" }).select("*").single();
+    // FIX: Constraint is typically unique(scope, slug)
+    resp = await admin.from("cms_pages").upsert(payload, { onConflict: "scope,slug" }).select("*").single();
   }
 
   if (resp.error) return NextResponse.json({ error: resp.error.message || "Save failed" }, { status: 500 });

@@ -11,20 +11,24 @@ import {
 } from "lucide-react";
 
 export default function AssetGeneratorPage() {
-  // Updated default port to 8000
   const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8000");
   const [queue, setQueue] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, fail: 0 });
   const [logs, setLogs] = useState([]);
+  const [scanMode, setScanMode] = useState("system"); // system | lessons
 
   // Scan for missing assets
   async function scan() {
     setScanning(true);
-    setLogs(prev => ["Scanning for missing assets...", ...prev]);
+    setLogs(prev => [`Scanning ${scanMode} assets...`, ...prev]);
     try {
-      const res = await fetch("/api/admin/assets/scan", { method: "POST" });
+      const res = await fetch("/api/admin/assets/scan", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: scanMode })
+      });
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.error || "Scan failed");
@@ -60,7 +64,7 @@ export default function AssetGeneratorPage() {
           body: JSON.stringify({
             assetId: asset.asset_id,
             comfyUrl: comfyUrl,
-            prompt: asset.alt_text || asset.metadata?.prompt, // Pass prompt hints if available
+            prompt: asset.alt_text || asset.metadata?.prompt, 
             workflow: "basic_text2img"
           })
         });
@@ -117,7 +121,7 @@ export default function AssetGeneratorPage() {
               </div>
               
               <div className="bg-indigo-50 p-3 rounded-xl text-xs text-indigo-800 leading-relaxed border border-indigo-100">
-                <strong>Note:</strong> Ensure <code>--listen</code> is used if running inside Docker.
+                <strong>Note:</strong> Ensure <code>--listen</code> is used if running inside Docker. Default port is 8000.
               </div>
             </div>
           </div>
@@ -128,9 +132,21 @@ export default function AssetGeneratorPage() {
             </div>
             
             <div className="space-y-3">
+              <div>
+                 <label className="block text-xs font-semibold text-slate-500 mb-1">Scan Target</label>
+                 <select 
+                   value={scanMode} 
+                   onChange={e => setScanMode(e.target.value)}
+                   className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white"
+                 >
+                    <option value="system">System Assets (Games/Tools)</option>
+                    <option value="lessons">Lesson Covers</option>
+                 </select>
+              </div>
+
               <Button onClick={scan} disabled={scanning || processing} tone="ghost" className="w-full border-2 border-slate-100">
                 {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Scan Missing Assets
+                Scan Missing
               </Button>
               
               <Button onClick={generateAll} disabled={processing || queue.length === 0} className="w-full">
@@ -188,7 +204,7 @@ export default function AssetGeneratorPage() {
                        </div>
                        <div className="min-w-0">
                           <div className="text-xs font-bold text-slate-900 truncate">{asset.asset_id}</div>
-                          <div className="text-[10px] text-slate-500 truncate">{asset.alt_text || "No prompt hint"}</div>
+                          <div className="text-[10px] text-slate-500 truncate">{asset.alt_text || asset.metadata?.prompt || "No prompt hint"}</div>
                        </div>
                     </div>
                   ))

@@ -104,10 +104,11 @@ export async function GET() {
       llm.error = e.message;
   }
 
-  // 6. Check ComfyUI / Forge (with fallback to 8000)
+  // 6. Check ComfyUI / Forge (Default: 8000)
+  // We treat it as configured if we have an Env Var OR if we can reach the default local instance.
   const comfyUrl = process.env.COMFYUI_BASE_URL || process.env.SD_API_URL || "http://127.0.0.1:8000";
   const comfy = {
-      configured: !!(process.env.COMFYUI_BASE_URL || process.env.SD_API_URL), // Only flag as 'configured' if env is set
+      configured: true, 
       url: comfyUrl,
       status: "missing_config",
       backend: "unknown"
