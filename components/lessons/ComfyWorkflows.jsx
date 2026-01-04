@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
+import { Upload } from "lucide-react";
 
 function cx(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
 function Button({ children, tone = "primary", className, ...props }) {
-  const base = "rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed";
+  const base = "rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2";
   const toneCls =
     tone === "primary"
       ? "bg-slate-900 text-white hover:bg-slate-800"
@@ -62,7 +63,7 @@ export default function ComfyWorkflows() {
   const [listLoading, setListLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  const [notice, setNotice] = useState(null); // { tone, title, message }
+  const [notice, setNotice] = useState(null); 
 
   const [workflows, setWorkflows] = useState([]);
   const [query, setQuery] = useState("");
@@ -229,7 +230,6 @@ export default function ComfyWorkflows() {
       return;
     }
 
-    // Create as a minimal valid workflow JSON.
     const starter = {};
     try {
       const res = await fetch("/api/admin/comfy-workflows", {
@@ -250,6 +250,26 @@ export default function ComfyWorkflows() {
     }
   }
 
+  // Import Handler
+  function handleImport(e) {
+     const file = e.target.files?.[0];
+     if (!file) return;
+     
+     const reader = new FileReader();
+     reader.onload = (evt) => {
+        try {
+           // Validate JSON
+           const parsed = JSON.parse(evt.target.result);
+           setJsonText(JSON.stringify(parsed, null, 2));
+           setNotice({ tone: "success", title: "Imported", message: "JSON loaded into editor. Click Save to persist." });
+        } catch (err) {
+           setNotice({ tone: "danger", title: "Import Failed", message: "Invalid JSON file." });
+        }
+     };
+     reader.readAsText(file);
+     e.target.value = ""; // Reset input
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-4">
@@ -257,7 +277,7 @@ export default function ComfyWorkflows() {
           <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-900">Workflow Templates</div>
             <div className="mt-0.5 text-xs text-slate-500">
-              Create, edit, and store ComfyUI workflows in the database for server-side generation.
+              Create, edit, and store ComfyUI workflows in the database.
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -287,19 +307,9 @@ export default function ComfyWorkflows() {
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Search workflows"
             />
-            {query ? (
-              <Button tone="secondary" onClick={() => setQuery("")}>
-                Clear
-              </Button>
-            ) : null}
           </div>
 
-          <div className="mt-2 text-xs text-slate-500">
-            Showing <span className="font-medium text-slate-700">{filtered.length}</span> of{" "}
-            <span className="font-medium text-slate-700">{workflows.length}</span>
-          </div>
-
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 space-y-2 max-h-[600px] overflow-y-auto">
             {listLoading ? (
               <div className="text-sm text-slate-500">Loading workflows…</div>
             ) : filtered.length ? (
@@ -319,18 +329,13 @@ export default function ComfyWorkflows() {
                         <div className="truncate text-sm font-semibold text-slate-900">{w.workflow_name}</div>
                         {w.notes ? <div className="mt-0.5 truncate text-xs text-slate-500">{w.notes}</div> : null}
                       </div>
-                      <div className="shrink-0 text-[11px] text-slate-400">{formatDate(w.updated_at)}</div>
                     </div>
                   </button>
                 );
               })
-            ) : workflows.length ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                No matches for your current search.
-              </div>
             ) : (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                No workflows yet. Create one to get started.
+                No workflows found.
               </div>
             )}
           </div>
@@ -380,7 +385,7 @@ export default function ComfyWorkflows() {
                   <div>
                     <div className="mb-1 text-xs font-semibold text-slate-700">Notes</div>
                     <Textarea
-                      rows={3}
+                      rows={2}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Optional notes for admins (e.g., where this workflow is used)"
@@ -391,19 +396,26 @@ export default function ComfyWorkflows() {
                   <div>
                     <div className="mb-1 flex items-center justify-between gap-3">
                       <div className="text-xs font-semibold text-slate-700">Workflow JSON</div>
-                      <Button
-                        tone="secondary"
-                        onClick={() => {
-                          try {
-                            const pretty = JSON.stringify(JSON.parse(jsonText), null, 2);
-                            setJsonText(pretty);
-                          } catch (e) {
-                            setNotice({ tone: "warning", title: "Invalid JSON", message: e.message || "Cannot format invalid JSON." });
-                          }
-                        }}
-                      >
-                        Format
-                      </Button>
+                      <div className="flex gap-2">
+                        <label className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-600">
+                           <Upload className="w-3 h-3" /> Import
+                           <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                        </label>
+                        <Button
+                          tone="secondary"
+                          className="!py-1 !px-2 !text-xs !h-auto"
+                          onClick={() => {
+                            try {
+                              const pretty = JSON.stringify(JSON.parse(jsonText), null, 2);
+                              setJsonText(pretty);
+                            } catch (e) {
+                              setNotice({ tone: "warning", title: "Invalid JSON", message: e.message || "Cannot format invalid JSON." });
+                            }
+                          }}
+                        >
+                          Format
+                        </Button>
+                      </div>
                     </div>
                     <Textarea
                       rows={18}
@@ -411,9 +423,6 @@ export default function ComfyWorkflows() {
                       onChange={(e) => setJsonText(e.target.value)}
                       spellCheck={false}
                     />
-                    <div className="mt-2 text-xs text-slate-500">
-                      Tip: this should be the raw ComfyUI workflow JSON. Keep it valid and deterministic for reproducible generation.
-                    </div>
                   </div>
                 </>
               )}
@@ -426,7 +435,7 @@ export default function ComfyWorkflows() {
         open={newOpen}
         onClose={() => setNewOpen(false)}
         title="Create workflow"
-        desc="Create a new workflow template in the database. You can edit the JSON after creation."
+        desc="Create a new workflow template."
       >
         <div className="space-y-3">
           <div>
@@ -440,7 +449,7 @@ export default function ComfyWorkflows() {
               rows={3}
               value={newNotes}
               onChange={(e) => setNewNotes(e.target.value)}
-              placeholder="Where is this used? Any constraints?"
+              placeholder="Description..."
               className="font-sans"
             />
           </div>
@@ -457,7 +466,7 @@ export default function ComfyWorkflows() {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         title="Delete workflow?"
-        desc="This cannot be undone. Any jobs referencing this workflow may fail until updated."
+        desc="This cannot be undone."
       >
         <div className="space-y-4">
           <div className="text-sm text-slate-700">

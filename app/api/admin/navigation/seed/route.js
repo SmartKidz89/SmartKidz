@@ -29,23 +29,35 @@ export async function POST(req) {
 
   const items = scope === "marketing" ? MARKETING_DEFAULTS : APP_DEFAULTS;
   
-  // Clear existing items for this scope to prevent duplicates
-  await admin.from("cms_navigation_items").delete().eq("scope", scope);
+  try {
+    // Clear existing items for this scope
+    const { error: delErr } = await admin.from("cms_navigation_items").delete().eq("scope", scope);
+    if (delErr) {
+       console.error("Seed delete error:", delErr);
+       // continue if delete fails (e.g. permission or not exists), but report it
+       // Actually if table doesn't exist, insert will also fail.
+       throw new Error(`Delete failed: ${delErr.message}`);
+    }
 
-  const rows = items.map(item => ({
-    scope,
-    label: item.label,
-    href: item.href,
-    icon: item.icon || null,
-    sort: item.sort,
-    is_active: true,
-    min_role: "public",
-    updated_at: new Date().toISOString()
-  }));
+    const rows = items.map(item => ({
+      scope,
+      label: item.label,
+      href: item.href,
+      icon: item.icon || null,
+      sort: item.sort,
+      is_active: true,
+      min_role: "public",
+      updated_at: new Date().toISOString()
+    }));
 
-  const { error } = await admin.from("cms_navigation_items").insert(rows);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { error: insErr } = await admin.from("cms_navigation_items").insert(rows);
+    if (insErr) {
+        console.error("Seed insert error:", insErr);
+        throw new Error(`Insert failed: ${insErr.message}`);
+    }
   
-  return NextResponse.json({ ok: true, count: rows.length });
+    return NextResponse.json({ ok: true, count: rows.length });
+  } catch (e) {
+    return NextResponse.json({ error: e.message || "Seed failed" }, { status: 500 });
+  }
 }

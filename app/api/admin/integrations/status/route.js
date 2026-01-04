@@ -94,7 +94,9 @@ export async function GET() {
           llm.status = "connected";
           llm.latency = Date.now() - start;
       } else {
-          llm.status = "error";
+          // If 404, the base URL might be right but /models isn't supported. 
+          // Treat 4xx as 'reachable but errored' which is better than network failure.
+          llm.status = res.status < 500 ? "connected_with_error" : "error";
           llm.error = `HTTP ${res.status}`;
       }
   } catch (e) {
@@ -102,11 +104,11 @@ export async function GET() {
       llm.error = e.message;
   }
 
-  // 6. Check ComfyUI / Forge
-  const comfyUrl = process.env.COMFYUI_BASE_URL || process.env.SD_API_URL;
+  // 6. Check ComfyUI / Forge (with fallback to 8000)
+  const comfyUrl = process.env.COMFYUI_BASE_URL || process.env.SD_API_URL || "http://127.0.0.1:8000";
   const comfy = {
-      configured: !!comfyUrl,
-      url: comfyUrl || "Not Set",
+      configured: !!(process.env.COMFYUI_BASE_URL || process.env.SD_API_URL), // Only flag as 'configured' if env is set
+      url: comfyUrl,
       status: "missing_config",
       backend: "unknown"
   };
@@ -114,17 +116,17 @@ export async function GET() {
   if (comfyUrl) {
       try {
           const clean = comfyUrl.replace(/\/$/, "");
-          // Try Comfy specific endpoint first
-          const comfyRes = await fetch(`${clean}/system_stats`, { signal: AbortSignal.timeout(3000) });
-          if (comfyRes.ok) {
+          // Try SDAPI (Forge/A1111)
+          const sdRes = await fetch(`${clean}/sdapi/v1/options`, { signal: AbortSignal.timeout(3000) });
+          if (sdRes.ok) {
               comfy.status = "connected";
-              comfy.backend = "ComfyUI";
+              comfy.backend = "Forge/A1111";
           } else {
-              // Try SDAPI (Forge/A1111)
-              const sdRes = await fetch(`${clean}/sdapi/v1/options`, { signal: AbortSignal.timeout(3000) });
-              if (sdRes.ok) {
+              // Try Comfy specific endpoint
+              const comfyRes = await fetch(`${clean}/system_stats`, { signal: AbortSignal.timeout(3000) });
+              if (comfyRes.ok) {
                   comfy.status = "connected";
-                  comfy.backend = "Forge/A1111";
+                  comfy.backend = "ComfyUI";
               } else {
                    comfy.status = "error";
                    comfy.error = "Unreachable";

@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 
 export default function AssetGeneratorPage() {
-  const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8188");
+  // Updated default port to 8000
+  const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8000");
   const [queue, setQueue] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -111,12 +112,12 @@ export default function AssetGeneratorPage() {
                   value={comfyUrl}
                   onChange={(e) => setComfyUrl(e.target.value)}
                   className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                  placeholder="http://127.0.0.1:8188"
+                  placeholder="http://127.0.0.1:8000"
                 />
               </div>
               
               <div className="bg-indigo-50 p-3 rounded-xl text-xs text-indigo-800 leading-relaxed border border-indigo-100">
-                <strong>Note:</strong> Standard ComfyUI port is 8188. If running inside Docker or on another machine, ensure <code>--listen</code> is used.
+                <strong>Note:</strong> Ensure <code>--listen</code> is used if running inside Docker.
               </div>
             </div>
           </div>

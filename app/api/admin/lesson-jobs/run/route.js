@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic";
 
 /**
  * Map human subject to subject_id codes used by the app.
- * Adjust these mappings to match your subjects table.
  */
 function subjectToCode(subject) {
   const s = String(subject || "").toLowerCase();
@@ -129,8 +128,6 @@ function buildContentItems(wrapper) {
  * - job.asset_plan_json
  * - wrapper.asset_plan
  * - fallback to job.image_types + lesson_image_specs templates
- *
- * Returns: Array<{ image_type, prompt, negative_prompt, workflow, width, height, steps, cfg_scale, sampler, scheduler, usage }>
  */
 function extractAssetRequests({ job, wrapper, specByType }) {
   const out = [];
@@ -138,9 +135,6 @@ function extractAssetRequests({ job, wrapper, specByType }) {
   // 1) Explicit job-provided asset_plan_json
   const plan = job.asset_plan_json ? (typeof job.asset_plan_json === "string" ? safeJsonParse(job.asset_plan_json) : job.asset_plan_json) : null;
   if (plan) {
-    // Accept several shapes:
-    // - { items: [{image_type, prompt, negative_prompt, ...}] }
-    // - [{...}]
     const items = Array.isArray(plan) ? plan : Array.isArray(plan.items) ? plan.items : [];
     for (const it of items) {
       if (!it) continue;
@@ -199,6 +193,7 @@ function extractAssetRequests({ job, wrapper, specByType }) {
   }
 
   // 3) Fallback: image_types list + specs
+  // If generate_images=true AND image_types is set (comma list)
   if (out.length === 0 && normalizeBool(job.generate_images) && job.image_types) {
     const types = String(job.image_types)
       .split(",")
@@ -207,9 +202,19 @@ function extractAssetRequests({ job, wrapper, specByType }) {
 
     for (const image_type of types) {
       const spec = specByType[image_type] || null;
+      // Default to job title if no template, or use template if available
+      const promptTemplate = spec?.positive_prompt_template || "{{subject}} {{topic}}";
+      const vars = {
+        subject: job.subject || "",
+        year_level: job.year_level || "",
+        topic: job.topic || "",
+        subtopic: job.subtopic || ""
+      };
+      const finalPrompt = job.comfyui_prompt_override || fillTemplate(promptTemplate, vars);
+
       out.push({
         image_type,
-        prompt: job.comfyui_prompt_override || spec?.positive_prompt_template || `${job.subject || ""} ${job.year_level || ""} ${job.topic || ""} ${job.subtopic || ""}`.trim(),
+        prompt: finalPrompt,
         negative_prompt: job.comfyui_negative_prompt_override || spec?.negative_prompt || "",
         workflow: job.comfyui_workflow_override || spec?.comfyui_workflow || "basic_text2img",
         width: spec?.width ?? 1024,
@@ -239,7 +244,6 @@ async function repairWithLlm({ systemPrompt, userPrompt, temperature = 0.2 }) {
 }
 
 async function upsertContentItems({ admin, edition_id, items }) {
-  // Replace content items for edition_id (idempotent)
   await admin.from("lesson_content_items").delete().eq("edition_id", edition_id);
 
   const payload = items.map((it, idx) => ({
@@ -253,7 +257,6 @@ async function upsertContentItems({ admin, edition_id, items }) {
     updated_at: new Date().toISOString(),
   }));
 
-  // Insert in chunks to avoid request size limits
   const chunkSize = 200;
   for (let i = 0; i < payload.length; i += chunkSize) {
     const c = payload.slice(i, i + chunkSize);
@@ -294,28 +297,19 @@ export async function POST(req) {
         .update({ status: "running", attempts: attempt, last_error: null, updated_at: new Date().toISOString() })
         .eq("id", job.id);
 
-      // Prompt profile (optional)
+      // 1. Fetch Prompt Profile & Year Profile
       let profile = null;
       if (job.prompt_profile) {
-        const { data: p } = await admin
-          .from("lesson_prompt_profiles")
-          .select("*")
-          .eq("prompt_profile", job.prompt_profile)
-          .maybeSingle();
+        const { data: p } = await admin.from("lesson_prompt_profiles").select("*").eq("prompt_profile", job.prompt_profile).maybeSingle();
         profile = p || null;
       }
-
-      // Year profile (optional)
       let yearProfile = null;
       if (job.year_level) {
-        const { data: yp } = await admin
-          .from("year_profiles")
-          .select("*")
-          .eq("year_level", String(job.year_level))
-          .maybeSingle();
+        const { data: yp } = await admin.from("year_profiles").select("*").eq("year_level", String(job.year_level)).maybeSingle();
         yearProfile = yp || null;
       }
 
+      // 2. Generate Lesson Content via LLM
       const vars = {
         subject: job.subject,
         year_level: job.year_level,
@@ -324,27 +318,15 @@ export async function POST(req) {
         lesson_number: job.lesson_number,
         locale_code: job.locale_code,
         question_count: job.question_count,
-        engagement_theme: job.engagement_theme,
-        challenge_format: job.challenge_format,
-        interaction_palette: job.interaction_palette,
-        visual_style_pack: job.visual_style_pack,
-        asset_plan_level: job.asset_plan_level,
         ...yearProfile,
       };
 
-      const systemPrompt =
-        profile?.system_prompt ||
-        "You are a senior learning designer. Output must be valid JSON only. Do not include markdown or commentary.";
-      const userTemplate =
-        profile?.user_prompt_template ||
-        "Generate ONE lesson JSON object for {{subject}} Year {{year_level}} about {{topic}} - {{subtopic}}. Include objective, explanation, scenarios (array), and quiz (array). Output JSON only.";
+      const systemPrompt = profile?.system_prompt || "You are a senior learning designer. Output must be valid JSON only. No markdown.";
+      const userTemplate = profile?.user_prompt_template || "Generate a lesson JSON for {{subject}} Year {{year_level}} about {{topic}}. Include explanation, scenarios, and quiz.";
       const userPrompt = fillTemplate(userTemplate, vars);
 
       const { text: rawText } = await llmChatComplete({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
         temperature: 0.4,
         max_tokens: 2800,
       });
@@ -355,99 +337,72 @@ export async function POST(req) {
       if (!v.ok) {
         const errText = formatAjvErrors(v.errors);
         const repaired = await repairWithLlm({
-          systemPrompt:
-            "You repair and normalize lesson JSON. Return a single JSON object only. No markdown. No commentary.",
-          userPrompt: `The JSON does not match required minimum fields.\n\nValidation errors:\n${errText}\n\nOriginal JSON/text:\n${rawText}\n\nRules:\n- Must be valid JSON object\n- Must include objective (string) and explanation (string)\n- If activities is present, each item should have type, phase, and prompt/question\n- If quiz is present, each item should include question, options, answer, explanation\n\nReturn the repaired JSON object only.`,
+          systemPrompt: "Repair JSON to match schema. Return valid JSON only.",
+          userPrompt: `Errors:\n${errText}\n\nOriginal:\n${rawText}\n\nRules: Fix syntax, ensure required fields (objective, explanation).`,
         });
-
         wrapper = repaired;
         v = validateLessonWrapper(wrapper);
       }
 
       if (!v.ok) {
-        await admin
-          .from("lesson_generation_jobs")
-          .update({
+        await admin.from("lesson_generation_jobs").update({
             status: "failed",
             validation_errors: v.errors || [],
             last_error: "Validation failed after repair",
             error_message: "Validation failed after repair",
             updated_at: new Date().toISOString(),
-          })
-          .eq("id", job.id);
+          }).eq("id", job.id);
         failedCount += 1;
         continue;
       }
 
-      // Upsert lesson records
+      // 3. Upsert DB Records
       const subject_id = subjectToCode(job.subject);
       const yearLevelInt = Number(String(job.year_level).replace(/[^\d]/g, "")) || 0;
-
       const template_id = job.job_id;
       const edition_id = `${job.job_id}_${job.locale_code || "en-AU"}`;
       const title = wrapper?.title || job.subtopic || job.topic || "Lesson";
 
-      const { error: tErr } = await admin
-        .from("lesson_templates")
-        .upsert(
-          {
-            template_id,
-            subject_id,
-            year_level: yearLevelInt,
-            topic: job.topic || "General",
-            title,
-            canonical_tags: [],
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "template_id" }
-        );
-      if (tErr) throw new Error(`Template upsert failed: ${tErr.message}`);
+      await admin.from("lesson_templates").upsert({
+          template_id,
+          subject_id,
+          year_level: yearLevelInt,
+          topic: job.topic || "General",
+          title,
+          canonical_tags: [],
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "template_id" });
 
       const country_code = (job.locale_code || "").toUpperCase().includes("AU") ? "AU" : "US";
+      await admin.from("lesson_editions").upsert({
+          edition_id,
+          template_id,
+          country_code,
+          locale_code: job.locale_code || "en-AU",
+          curriculum_id: "AC9",
+          version: 1,
+          status: "published",
+          title,
+          wrapper_json: wrapper,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "edition_id" });
 
-      const { error: eErr } = await admin
-        .from("lesson_editions")
-        .upsert(
-          {
-            edition_id,
-            template_id,
-            country_code,
-            locale_code: job.locale_code || "en-AU",
-            curriculum_id: "AC9",
-            version: 1,
-            status: "published",
-            title,
-            wrapper_json: wrapper,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "edition_id" }
-        );
-      if (eErr) throw new Error(`Edition upsert failed: ${eErr.message}`);
-
-      // Normalize into lesson_content_items for the app UI
       const contentItems = buildContentItems(wrapper);
       const inserted = await upsertContentItems({ admin, edition_id, items: contentItems });
 
-      // Load image specs for this job's image_pack once
+      // 4. Asset Generation Queue
       const specByType = {};
       if (job.image_pack) {
-        const { data: specs } = await admin
-          .from("lesson_image_specs")
-          .select("*")
-          .eq("image_pack", job.image_pack);
+        // Only fetch specs if pack is defined
+        const { data: specs } = await admin.from("lesson_image_specs").select("*").eq("image_pack", job.image_pack);
         (specs || []).forEach((s) => {
           if (s?.image_type) specByType[String(s.image_type)] = s;
         });
       }
 
-      // Create asset queue
-      let assetCount = 0;
       const requests = extractAssetRequests({ job, wrapper, specByType });
-
-      // Choose a sensible default content target for hero-type assets
-      const defaultTargetContentId =
-        inserted?.[0]?.content_id ||
-        (inserted && inserted.length > 0 ? inserted[0].content_id : null);
+      let assetCount = 0;
+      const defaultTargetContentId = inserted?.[0]?.content_id || null;
 
       for (const req2 of requests) {
         const image_type = String(req2.image_type);
@@ -481,31 +436,25 @@ export async function POST(req) {
         assetCount += 1;
       }
 
-      await admin
-        .from("lesson_generation_jobs")
-        .update({
+      await admin.from("lesson_generation_jobs").update({
           status: "completed",
           supabase_lesson_id: edition_id,
           image_status: assetCount > 0 ? "queued" : "none",
           validation_errors: [],
           last_error: null,
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", job.id);
+        }).eq("id", job.id);
 
       okCount += 1;
     } catch (e) {
       failedCount += 1;
       try {
-        await admin
-          .from("lesson_generation_jobs")
-          .update({
+        await admin.from("lesson_generation_jobs").update({
             status: "failed",
             last_error: e?.message || "Failed",
             error_message: e?.message || "Failed",
             updated_at: new Date().toISOString(),
-          })
-          .eq("id", job.id);
+          }).eq("id", job.id);
       } catch {}
     }
   }
