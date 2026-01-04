@@ -157,6 +157,11 @@ export async function GET(req) {
 
   // 6. Check ComfyUI / Forge
   const comfyUrl = process.env.COMFYUI_BASE_URL || process.env.SD_API_URL || "http://127.0.0.1:8000";
+  
+  // Add Cloudflare Access keys from env
+  const cfClientId = process.env.CF_ACCESS_CLIENT_ID;
+  const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET;
+
   const comfy = {
       configured: !!(process.env.COMFYUI_BASE_URL || process.env.SD_API_URL),
       url: comfyUrl,
@@ -167,14 +172,30 @@ export async function GET(req) {
   if (mode === "deep" && comfyUrl) {
       try {
           const clean = comfyUrl.replace(/\/$/, "");
-          const sdRes = await fetch(`${clean}/sdapi/v1/options`, { signal: AbortSignal.timeout(5000) });
+          const headers = {};
+          if (cfClientId && cfClientSecret) {
+             headers["CF-Access-Client-Id"] = cfClientId;
+             headers["CF-Access-Client-Secret"] = cfClientSecret;
+          }
+          
+          const sdRes = await fetch(`${clean}/sdapi/v1/options`, { 
+              headers,
+              signal: AbortSignal.timeout(5000) 
+          });
+          
           if (sdRes.ok) {
               comfy.status = "connected";
               comfy.backend = "Forge/A1111";
           } else {
                comfy.status = "error";
-               comfy.error = `HTTP ${sdRes.status}`;
-               if (sdRes.status === 404) comfy.fix = "Endpoint not found. Ensure --api flag is used.";
+               const text = await sdRes.text();
+               if (text.includes("Cloudflare Access")) {
+                  comfy.error = "Blocked by Cloudflare Access";
+                  comfy.fix = "Check CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET env vars.";
+               } else {
+                  comfy.error = `HTTP ${sdRes.status}`;
+                  if (sdRes.status === 404) comfy.fix = "Endpoint not found. Ensure --api flag is used.";
+               }
           }
       } catch (e) {
           comfy.status = "error";
