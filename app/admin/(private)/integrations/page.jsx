@@ -33,7 +33,10 @@ function StatusCard({ title, icon, status, details, action, isImage = true }) {
            {details.map((d, i) => (
              <div key={i} className="flex justify-between text-sm border-b border-slate-50 pb-2 last:border-0 last:pb-0">
                 <span className="text-slate-500 font-medium truncate pr-2">{d.label}</span>
-                <span className={`font-mono text-xs truncate max-w-[140px] ${d.highlight ? "text-emerald-600 font-bold" : "text-slate-900"}`}>
+                <span 
+                  className={`font-mono text-xs truncate max-w-[140px] ${d.isError ? "text-rose-600 font-bold" : d.highlight ? "text-emerald-600 font-bold" : "text-slate-900"}`}
+                  title={String(d.value)}
+                >
                   {d.value}
                 </span>
              </div>
@@ -68,15 +71,20 @@ export default function IntegrationsPage() {
 
   useEffect(() => { load(); }, []);
 
-  // Build tunnel details for the card
+  // Build Cloudflare details
   const cfTunnels = data?.cloudflare?.tunnels || [];
   const cfDetails = [
     { label: "Configuration", value: data?.cloudflare?.configured ? "Set" : "Missing Token/ID" },
-    { label: "Active Tunnels", value: cfTunnels.filter(t => t.status === 'healthy').length, highlight: true },
   ];
-  cfTunnels.slice(0, 3).forEach(t => {
-    cfDetails.push({ label: t.name, value: t.status, highlight: t.status === 'healthy' });
-  });
+
+  if (data?.cloudflare?.status === 'error') {
+     cfDetails.push({ label: "API Error", value: data.cloudflare.error || "Failed", isError: true });
+  } else {
+     cfDetails.push({ label: "Active Tunnels", value: cfTunnels.filter(t => t.status === 'healthy').length, highlight: true });
+     cfTunnels.slice(0, 2).forEach(t => {
+       cfDetails.push({ label: t.name, value: t.status, highlight: t.status === 'healthy' });
+     });
+  }
 
   return (
     <div>
