@@ -106,7 +106,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
 
 export default function ImageStudioPage() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8188");
+  const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8000");
   const [prompt, setPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState(null); // data url
   const [generatedBase64, setGeneratedBase64] = useState(null); // raw b64
