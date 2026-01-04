@@ -12,93 +12,96 @@ import { cx } from "@/components/admin/adminUi";
 
 function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
   const [items, setItems] = useState([]);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(level === 0); // Auto-expand root
   const [loading, setLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  useEffect(() => {
-    // Auto-expand root
-    if (level === 0) setExpanded(true);
-  }, [level]);
-
-  async function toggle() {
-    if (!expanded && items.length === 0) {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/admin/code?path=${encodeURIComponent(path)}`);
-        const data = await res.json();
-        if (data.type === "dir") {
-            // Filter only dirs and images
-            const filtered = data.entries.filter(e => 
-                e.type === "dir" || 
-                /\.(png|jpg|jpeg|webp|svg)$/i.test(e.name)
-            );
-            setItems(filtered);
-        }
-      } catch {} 
-      setLoading(false);
-    }
-    setExpanded(!expanded);
+  async function loadItems() {
+    if (hasLoaded) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/code?path=${encodeURIComponent(path)}`);
+      const data = await res.json();
+      if (data.type === "dir") {
+          // Filter only dirs and images
+          const filtered = data.entries.filter(e => 
+              e.type === "dir" || 
+              /\.(png|jpg|jpeg|webp|svg)$/i.test(e.name)
+          );
+          setItems(filtered);
+      }
+      setHasLoaded(true);
+    } catch {} 
+    setLoading(false);
   }
 
   // Load root immediately
-  useEffect(() => { if (path === "public") toggle(); }, []);
+  useEffect(() => { 
+    if (level === 0) loadItems(); 
+  }, []);
+
+  function toggle() {
+    const nextState = !expanded;
+    setExpanded(nextState);
+    if (nextState) loadItems();
+  }
 
   const label = path.split('/').pop() || path;
 
-  if (path !== "" && !expanded) {
-    return (
+  // Render entry
+  return (
+    <div>
       <button 
         onClick={toggle}
         className={cx(
-          "w-full flex items-center gap-2 px-2 py-1 text-xs hover:bg-slate-100 rounded text-slate-700",
+          "w-full flex items-center gap-2 px-2 py-1 text-xs hover:bg-slate-100 rounded text-slate-700 mb-0.5",
           selectedPath === path && "bg-indigo-50 text-indigo-700 font-bold"
         )}
         style={{ paddingLeft: level * 12 + 8 }}
       >
-        <ChevronRight className="w-3 h-3 text-slate-400" />
-        <Folder className="w-3.5 h-3.5 text-indigo-400" />
+        {expanded ? (
+           <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+        ) : (
+           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+        )}
+        <Folder className={cx("w-3.5 h-3.5 shrink-0", expanded ? "text-indigo-500" : "text-indigo-400")} />
         <span className="truncate">{label}</span>
       </button>
-    );
-  }
-
-  return (
-    <div>
-      {path !== "" && (
-        <button 
-          onClick={() => setExpanded(false)}
-          className="w-full flex items-center gap-2 px-2 py-1 text-xs hover:bg-slate-100 rounded text-slate-700"
-          style={{ paddingLeft: level * 12 + 8 }}
-        >
-          <ChevronDown className="w-3 h-3 text-slate-400" />
-          <Folder className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="truncate">{label}</span>
-        </button>
-      )}
       
-      {loading ? (
-        <div className="pl-6 text-[10px] text-slate-400">Loading...</div>
-      ) : (
-        items.map(i => (
-          i.type === "dir" ? (
-            <FileTree key={i.path} path={i.path} onSelect={onSelect} selectedPath={selectedPath} level={level + 1} />
+      {expanded && (
+        <div>
+          {loading ? (
+            <div className="pl-6 py-1 text-[10px] text-slate-400 flex items-center gap-2" style={{ paddingLeft: (level + 1) * 12 + 8 }}>
+               <Loader2 className="w-3 h-3 animate-spin" /> Loading...
+            </div>
           ) : (
-            <button
-              key={i.path}
-              onClick={() => onSelect(i.path)}
-              className={cx(
-                "w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-slate-100 rounded",
-                selectedPath === i.path 
-                  ? "bg-indigo-600 text-white font-medium hover:bg-indigo-700" 
-                  : "text-slate-600"
-              )}
-              style={{ paddingLeft: (level + 1) * 12 + 8 }}
-            >
-              <ImageIcon className="w-3.5 h-3.5 opacity-70" />
-              <span className="truncate">{i.name}</span>
-            </button>
-          )
-        ))
+            items.map(i => (
+              i.type === "dir" ? (
+                <FileTree key={i.path} path={i.path} onSelect={onSelect} selectedPath={selectedPath} level={level + 1} />
+              ) : (
+                <button
+                  key={i.path}
+                  onClick={() => onSelect(i.path)}
+                  className={cx(
+                    "w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-slate-100 rounded mb-0.5",
+                    selectedPath === i.path 
+                      ? "bg-indigo-600 text-white font-medium hover:bg-indigo-700" 
+                      : "text-slate-600"
+                  )}
+                  style={{ paddingLeft: (level + 1) * 12 + 8 }}
+                >
+                  <ImageIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                  <span className="truncate">{i.name}</span>
+                </button>
+              )
+            ))
+          )}
+          {!loading && items.length === 0 && (
+             <div className="text-[10px] text-slate-400 py-1" style={{ paddingLeft: (level + 1) * 12 + 8 }}>
+                (empty)
+             </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -106,7 +109,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
 
 export default function ImageStudioPage() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [comfyUrl, setComfyUrl] = useState("http://127.0.0.1:8000");
+  const [comfyUrl, setComfyUrl] = useState("https://comfy.smartkidz.app");
   const [prompt, setPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState(null); // data url
   const [generatedBase64, setGeneratedBase64] = useState(null); // raw b64
