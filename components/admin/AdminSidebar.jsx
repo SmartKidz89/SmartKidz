@@ -20,7 +20,8 @@ import {
   ShieldAlert,
   Blocks,
   Code2,
-  Brush
+  Brush,
+  Stethoscope // New Icon
 } from "lucide-react";
 import { cx } from "@/components/admin/adminUi";
 
@@ -41,6 +42,7 @@ const GROUPS = [
     items: [
       { href: "/admin/communications", label: "Communications", icon: Mail },
       { href: "/admin/system", label: "System & Ops", icon: Activity },
+      { href: "/admin/diagnostics", label: "Diagnostics", icon: Stethoscope }, // Added
       { href: "/admin/users", label: "Users & Roles", icon: Users, minRole: "root" },
       { href: "/admin/audit", label: "Audit Log", icon: ClipboardList, minRole: "root" },
     ],

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play, HelpCircle, Code, RotateCcw, BarChart3, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play, HelpCircle, Code, RotateCcw, BarChart3, Image as ImageIcon, PauseCircle, FastForward } from "lucide-react";
 import { Button, Input, Select, Textarea } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
+
+// ... [Existing Pill, Section, ProgressHeader components remain same] ...
 
 function Pill({ children, tone = "slate", title }) {
   const toneMap = {
@@ -90,6 +92,10 @@ export default function LessonBuilder() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
 
+  // Auto-Run State
+  const [autoRun, setAutoRun] = useState(false);
+  const autoRunRef = useRef(false);
+
   // Stats
   const [jobStats, setJobStats] = useState(null);
   const [assetStats, setAssetStats] = useState(null);
@@ -140,6 +146,46 @@ export default function LessonBuilder() {
 
   useEffect(() => { refresh(); }, []);
 
+  // Auto-Run Loop
+  useEffect(() => {
+    autoRunRef.current = autoRun;
+    if (autoRun) {
+       processQueue();
+    }
+  }, [autoRun]);
+
+  async function processQueue() {
+     if (!autoRunRef.current) return;
+     if (jobStats?.queued === 0) {
+        setAutoRun(false);
+        setNotice({ tone: "success", title: "Queue Complete", text: "All jobs processed." });
+        return;
+     }
+
+     setBusy(true);
+     try {
+        const res = await fetch("/api/admin/lesson-jobs/run", { 
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limit: 5 }) 
+        });
+        const out = await res.json();
+        
+        await refresh();
+        
+        if (out.processed > 0 && autoRunRef.current) {
+           // Continue loop after short delay
+           setTimeout(processQueue, 1000);
+        } else {
+           setBusy(false);
+           setAutoRun(false);
+        }
+     } catch (e) {
+        setNotice({ tone: "danger", title: "Queue Error", text: e.message });
+        setBusy(false);
+        setAutoRun(false);
+     }
+  }
+
+  // [Helper logic: isDuplicate, availableSubjects, etc. - Keep same]
   const isDuplicate = useMemo(() => {
     if (!selectedJobId) return false;
     const job = jobs.find(j => j.job_id === selectedJobId || j.id === selectedJobId);
@@ -154,8 +200,7 @@ export default function LessonBuilder() {
   }, [selectedJobId, form, jobs, existingLessons]);
 
   const availableSubjects = useMemo(() => [...new Set(jobs.map(j => j.subject).filter(Boolean))].sort(), [jobs]);
-  const availableYears = useMemo(() => [...new Set(jobs.map(j => String(j.year_level)).filter(Boolean))].sort(), [jobs]);
-  
+
   const filteredJobs = useMemo(() => {
     return jobs.filter(j => 
        String(j.subject) === form.subject && 
@@ -176,6 +221,7 @@ export default function LessonBuilder() {
     }
   }
 
+  // [loadPreview, saveJsonEdit, handleGenerate functions - Keep same]
   async function loadPreview(jobId) {
      setBusy(true);
      setNotice(null);
@@ -185,15 +231,10 @@ export default function LessonBuilder() {
         
         const res = await fetch(`/api/admin/lesson/preview?edition_id=${encodeURIComponent(editionId)}`);
         const json = await res.json();
-        
-        if (!res.ok) throw new Error(json.error || "Failed to load preview");
-        
+        if (!res.ok) throw new Error(json.error || "Failed");
         setPreviewLesson(json.data);
-        
-        // Prepare JSON editor
         const rawJson = json.data.wrapper_json || json.data.content_json || {};
         setJsonContent(JSON.stringify(rawJson, null, 2));
-
      } catch (e) {
         setNotice({ tone: "danger", title: "Load Failed", text: e.message });
      } finally {
@@ -203,75 +244,34 @@ export default function LessonBuilder() {
 
   async function saveJsonEdit() {
      if (!previewLesson?.edition_id) return;
-     setBusy(true);
-     setNotice(null);
-
+     setBusy(true); setNotice(null);
      try {
         const parsed = JSON.parse(jsonContent); 
-        
         const res = await fetch("/api/admin/lesson/update", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify({ 
-              edition_id: previewLesson.edition_id,
-              content_json: parsed
-           })
+           method: "POST", headers: { "Content-Type": "application/json" },
+           body: JSON.stringify({ edition_id: previewLesson.edition_id, content_json: parsed })
         });
-
         if (!res.ok) throw new Error("Save failed");
-
-        setNotice({ tone: "success", title: "Saved", text: "Lesson updated successfully. Reloading preview..." });
-        await loadPreview(previewLesson.edition_id);
-        setViewMode("player");
-
+        setNotice({ tone: "success", title: "Saved", text: "Lesson updated." });
+        await loadPreview(previewLesson.edition_id); setViewMode("player");
      } catch (e) {
         setNotice({ tone: "danger", title: "Save Failed", text: e.message });
-     } finally {
-        setBusy(false);
-     }
+     } finally { setBusy(false); }
   }
 
   async function handleGenerate() {
-    setBusy(true);
-    setNotice(null);
-    setLastResult(null);
-
+    setBusy(true); setNotice(null); setLastResult(null);
     try {
-      const payload = {
-        subject: form.subject,
-        year: form.year,
-        topic: form.topic,
-        strand: form.strand,
-        subtopic: form.subtopic,
-      };
-
-      if (form.useLocalLLM) {
-        payload.llmUrl = form.llmUrl;
-        payload.llmModel = form.llmModel;
-        payload.llmKey = "local";
-      }
-
-      const res = await fetch("/api/admin/generate-lesson", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
+      const payload = { subject: form.subject, year: form.year, topic: form.topic, strand: form.strand, subtopic: form.subtopic };
+      if (form.useLocalLLM) { payload.llmUrl = form.llmUrl; payload.llmModel = form.llmModel; payload.llmKey = "local"; }
+      const res = await fetch("/api/admin/generate-lesson", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error || "Generation failed");
-      
+      if (!res.ok) throw new Error(data.error || "Failed");
       setLastResult(data);
-      setNotice({ 
-        tone: "success", 
-        title: "Lesson Created", 
-        text: `Generated "${data.title}" (${data.lesson_id}) with ${data.questions} questions.` 
-      });
-      
+      setNotice({ tone: "success", title: "Lesson Created", text: `Generated "${data.title}".` });
       await refresh(); 
-
     } catch (e) {
-      setNotice({ tone: "danger", title: "Generation failed", text: e.message });
+      setNotice({ tone: "danger", title: "Failed", text: e.message });
     } finally {
       setBusy(false);
     }
@@ -307,12 +307,12 @@ export default function LessonBuilder() {
     finally { setBusy(false); }
   }
 
+  // [UPDATED] Manual Batch Trigger
   async function runLessonBatch() {
-     if(!confirm("Run batch?")) return;
      setBusy(true); setNotice(null);
      try {
         const res = await fetch("/api/admin/lesson-jobs/run", { 
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limit: 25 }) 
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limit: 5 }) 
         });
         const out = await res.json();
         setNotice({ tone: "success", title: "Batch Processed", text: `Processed ${out.processed} jobs.` });
@@ -324,7 +324,7 @@ export default function LessonBuilder() {
   async function runAssetBatch() {
      setBusy(true); setNotice(null);
      try {
-        const res = await fetch("/api/admin/lesson-assets/run-batch", { method: "POST", body: JSON.stringify({ limit: 25 }) });
+        const res = await fetch("/api/admin/lesson-assets/run-batch", { method: "POST", body: JSON.stringify({ limit: 10 }) });
         const out = await res.json();
         setNotice({ tone: "success", title: "Assets Processed", text: `Success: ${out.ok}, Failed: ${out.failed}` });
         refresh();
@@ -515,7 +515,29 @@ export default function LessonBuilder() {
       {tab === "jobs" && (
          <div className="space-y-6">
            <ProgressHeader title="Lesson Jobs" stats={jobStats} icon={BarChart3} />
-           <Section title="Bulk Jobs" desc="Background processing." right={<div className="flex gap-2"><Button tone="secondary" onClick={loadPresets} disabled={busy}><Database className="w-4 h-4 mr-2" /> Load Defaults</Button><Button onClick={runLessonBatch} disabled={busy}><Play className="w-4 h-4 mr-2" /> Run Next 25</Button></div>}>
+           <Section 
+              title="Bulk Jobs" 
+              desc="Background processing queue." 
+              right={
+                <div className="flex gap-2">
+                  <Button tone="secondary" onClick={loadPresets} disabled={busy || autoRun}>
+                     <Database className="w-4 h-4 mr-2" /> Load Defaults
+                  </Button>
+                  {autoRun ? (
+                    <Button onClick={() => setAutoRun(false)} tone="danger">
+                       <PauseCircle className="w-4 h-4 mr-2 animate-pulse" /> Stop Auto-Run
+                    </Button>
+                  ) : (
+                    <Button onClick={() => setAutoRun(true)} disabled={busy || jobStats?.queued === 0}>
+                       <FastForward className="w-4 h-4 mr-2" /> Auto-Run Queue
+                    </Button>
+                  )}
+                  <Button onClick={runLessonBatch} disabled={busy || autoRun} tone="ghost">
+                     <Play className="w-4 h-4 mr-2" /> Run Next 5
+                  </Button>
+                </div>
+              }
+           >
               <div className="mt-4 overflow-auto max-h-[500px]"><table className="w-full text-sm text-left"><thead className="text-xs text-slate-500 border-b border-slate-100"><tr><th className="py-2">Job ID</th><th className="py-2">Subject</th><th className="py-2">Topic</th><th className="py-2">Status</th></tr></thead><tbody>{jobs.map(j => (<tr key={j.id} className="border-b border-slate-50 last:border-0"><td className="py-3 font-mono text-xs">{j.job_id}</td><td className="py-3">{j.subject}</td><td className="py-3">{j.topic}</td><td className="py-3"><Pill tone={toneForStatus(j.status)}>{j.status}</Pill></td></tr>))}</tbody></table></div>
            </Section>
          </div>
