@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { ensureAssetsBucket, CMS_ASSETS_BUCKET, publicUrlFor } from "@/lib/admin/storage";
 import { logAudit } from "@/lib/admin/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function safePath(name) {
+// Unify on the main assets bucket used by generators
+const BUCKET = process.env.SUPABASE_ASSETS_BUCKET || "assets";
+
+function safeId(name) {
   const base = (name || "file").toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return `${stamp}-${base}`;
+  const stamp = Date.now().toString(36);
+  return `upload-${stamp}-${base}`;
 }
 
 export async function GET() {
@@ -18,14 +20,30 @@ export async function GET() {
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
   const admin = getSupabaseAdmin();
+  
+  // Query the main 'assets' table used by the whole app
   const { data, error } = await admin
-    .from("cms_assets")
+    .from("assets")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(500);
 
   if (error) return NextResponse.json({ error: error.message || "Query failed" }, { status: 500 });
-  return NextResponse.json({ assets: data || [] });
+
+  // Map to the shape expected by the Media UI
+  const assets = (data || []).map(a => ({
+    id: a.asset_id,
+    path: a.asset_id, // Display name
+    public_url: a.metadata?.public_url || a.uri,
+    mime_type: a.metadata?.mimetype || (a.asset_type === 'image' ? 'image/png' : 'application/octet-stream'),
+    size_bytes: a.metadata?.size || 0,
+    alt_text: a.alt_text,
+    tags: a.asset_type ? [a.asset_type] : [],
+    metadata: a.metadata,
+    created_at: a.created_at
+  }));
+
+  return NextResponse.json({ assets });
 }
 
 export async function POST(req) {
@@ -33,23 +51,29 @@ export async function POST(req) {
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
   const session = auth.session;
 
-  await ensureAssetsBucket();
   const form = await req.formData();
   const file = form.get("file");
   const alt_text = form.get("alt_text") || null;
-  const tagsRaw = form.get("tags") || "";
-  const tags = String(tagsRaw).split(",").map((s) => s.trim()).filter(Boolean);
+  // tags not currently stored in 'assets' main schema in a dedicated column, can go in metadata if needed
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "file is required" }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
-  const path = safePath(file.name);
+  
+  // Ensure bucket exists
+  try {
+     await admin.storage.createBucket(BUCKET, { public: true });
+  } catch {}
+
+  const assetId = safeId(file.name);
+  const ext = file.name.split('.').pop();
+  const storagePath = `uploads/${assetId}.${ext}`;
   const arrayBuffer = await file.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
 
-  const up = await admin.storage.from(CMS_ASSETS_BUCKET).upload(path, bytes, {
+  const up = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: file.type || "application/octet-stream",
     upsert: true,
   });
@@ -58,29 +82,46 @@ export async function POST(req) {
     return NextResponse.json({ error: up.error.message || "Upload failed" }, { status: 500 });
   }
 
-  const public_url = publicUrlFor(CMS_ASSETS_BUCKET, path);
+  const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(storagePath);
+  const public_url = pub?.publicUrl;
+
   const { data: asset, error } = await admin
-    .from("cms_assets")
+    .from("assets")
     .upsert(
       {
-        bucket: CMS_ASSETS_BUCKET,
-        path,
-        public_url,
-        mime_type: file.type || null,
-        size_bytes: bytes.length,
+        asset_id: assetId,
+        asset_type: file.type?.startsWith('image/') ? 'image' : 'file',
+        uri: public_url,
         alt_text,
-        tags: tags.length ? tags : null,
-        updated_at: new Date().toISOString(),
+        metadata: {
+          public_url,
+          storage_bucket: BUCKET,
+          storage_path: storagePath,
+          mimetype: file.type,
+          size: bytes.length,
+          uploaded_by: session.user?.username
+        },
+        created_at: new Date().toISOString()
       },
-      { onConflict: "bucket,path" }
+      { onConflict: "asset_id" }
     )
     .select("*")
     .single();
 
   if (error) return NextResponse.json({ error: error.message || "Failed to save metadata" }, { status: 500 });
 
-  await logAudit({ actor: session.user?.username, action: "upload", entity: "cms_assets", entityId: asset?.id, meta: { path } });
-  return NextResponse.json({ asset });
+  await logAudit({ actor: session.user?.username, action: "upload", entity: "assets", entityId: asset?.asset_id, meta: { public_url } });
+  
+  // Return mapped shape for UI
+  return NextResponse.json({ 
+    asset: {
+        id: asset.asset_id,
+        public_url,
+        path: asset.asset_id,
+        alt_text: asset.alt_text,
+        mime_type: file.type
+    } 
+  });
 }
 
 export async function DELETE(req) {
@@ -93,17 +134,19 @@ export async function DELETE(req) {
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
-  const { data: asset, error: getErr } = await admin.from("cms_assets").select("*").eq("id", id).maybeSingle();
-  if (getErr || !asset) return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+  
+  // Get asset to find storage path
+  const { data: asset } = await admin.from("assets").select("metadata").eq("asset_id", id).single();
+  
+  if (asset?.metadata?.storage_path && asset?.metadata?.storage_bucket) {
+      try {
+          await admin.storage.from(asset.metadata.storage_bucket).remove([asset.metadata.storage_path]);
+      } catch {}
+  }
 
-  // Delete storage object (best-effort)
-  try {
-    await admin.storage.from(asset.bucket).remove([asset.path]);
-  } catch {}
-
-  const { error } = await admin.from("cms_assets").delete().eq("id", id);
+  const { error } = await admin.from("assets").delete().eq("asset_id", id);
   if (error) return NextResponse.json({ error: error.message || "Delete failed" }, { status: 500 });
 
-  await logAudit({ actor: session.user?.username, action: "delete", entity: "cms_assets", entityId: id, meta: { path: asset.path } });
+  await logAudit({ actor: session.user?.username, action: "delete", entity: "assets", entityId: id });
   return NextResponse.json({ ok: true });
 }
