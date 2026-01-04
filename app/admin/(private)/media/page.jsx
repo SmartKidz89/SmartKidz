@@ -9,7 +9,7 @@ import {
   Trash2,
   Search,
   X,
-  FileIcon
+  FileText
 } from "lucide-react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
@@ -172,7 +172,7 @@ export default function AdminMediaPage() {
                         <img src={a.public_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">
-                          <FileIcon className="w-8 h-8" />
+                          <FileText className="w-8 h-8" />
                         </div>
                       )}
                       <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
