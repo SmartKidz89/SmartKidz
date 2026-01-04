@@ -36,7 +36,10 @@ export default function AdminAssistant() {
         })
       });
       const data = await res.json();
+      
       if (!res.ok) throw new Error(data.error || "Request failed");
+      if (!data.message) throw new Error("Received empty response from AI");
+      
       setMessages(prev => [...prev, { role: "assistant", content: data.message }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I encountered an error: " + e.message }]);

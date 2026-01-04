@@ -30,6 +30,11 @@ Rules:
       temperature: 0.7,
       max_tokens: 1000
     });
+    
+    if (!response.text) {
+        return NextResponse.json({ error: "AI returned no content. Check server logs." }, { status: 500 });
+    }
+    
     return NextResponse.json({ message: response.text });
   } catch (e) {
     return NextResponse.json({ error: e.message || "AI Error" }, { status: 500 });
