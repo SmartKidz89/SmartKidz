@@ -586,7 +586,6 @@ export default function SiteBuilderEditor() {
   );
 }
 
-// ... existing BlockFields and BlockStyles components ...
 function BlockStyles({ style, onChange }) {
    const colors = [
      { id: "white", bg: "bg-white border border-slate-200" },
@@ -709,6 +708,55 @@ function BlockFields({ block, onChange, onLink, onAsset }) {
          </div>
       );
    }
+
+   if (block.type === "cards") {
+      return (
+         <div className="space-y-4">
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Section Title</label><Input value={block.title || ""} onChange={e => onChange({ title: e.target.value })} /></div>
+            <div>
+               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Columns</label>
+               <select className="w-full p-2 border rounded-lg text-sm" value={block.columns || 3} onChange={e => onChange({ columns: Number(e.target.value) })}>
+                  <option value={2}>2 Columns</option>
+                  <option value={3}>3 Columns</option>
+                  <option value={4}>4 Columns</option>
+               </select>
+            </div>
+            <div className="space-y-3">
+               <label className="block text-xs font-bold text-slate-500 uppercase">Cards</label>
+               {(block.cards || []).map((card, i) => (
+                  <div key={card.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 relative">
+                     <button onClick={() => onChange({ cards: block.cards.filter((_, idx) => idx !== i) })} className="absolute top-2 right-2 text-slate-400 hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                     <Input placeholder="Title" value={card.title} onChange={e => { const n = [...block.cards]; n[i].title = e.target.value; onChange({ cards: n }); }} />
+                     <Area placeholder="Body text..." value={card.body} onChange={e => { const n = [...block.cards]; n[i].body = e.target.value; onChange({ cards: n }); }} />
+                  </div>
+               ))}
+               <button onClick={() => onChange({ cards: [...(block.cards || []), { id: Date.now(), title: "New Feature", body: "Description" }] })} className="w-full py-2 bg-white border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800">+ Add Card</button>
+            </div>
+         </div>
+      );
+   }
+
+   if (block.type === "pricing") {
+       return (
+         <div className="space-y-4">
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label><Input value={block.title || ""} onChange={e => onChange({ title: e.target.value })} /></div>
+            <div className="space-y-3">
+               <label className="block text-xs font-bold text-slate-500 uppercase">Plans</label>
+               {(block.plans || []).map((p, i) => (
+                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 relative">
+                     <button onClick={() => onChange({ plans: block.plans.filter((_, idx) => idx !== i) })} className="absolute top-2 right-2 text-slate-400 hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                     <div className="flex gap-2">
+                        <Input placeholder="Plan Name" value={p.name} onChange={e => { const n = [...block.plans]; n[i].name = e.target.value; onChange({ plans: n }); }} />
+                        <Input placeholder="Price" value={p.price} onChange={e => { const n = [...block.plans]; n[i].price = e.target.value; onChange({ plans: n }); }} />
+                     </div>
+                     <Area placeholder="Features (one per line)" value={p.features} onChange={e => { const n = [...block.plans]; n[i].features = e.target.value; onChange({ plans: n }); }} />
+                  </div>
+               ))}
+               <button onClick={() => onChange({ plans: [...(block.plans || []), { id: Date.now(), name: "Pro", price: "$29", features: "All features" }] })} className="w-full py-2 bg-white border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800">+ Add Plan</button>
+            </div>
+         </div>
+       )
+   }
    
    if (block.type === "video") {
       return (
@@ -721,6 +769,57 @@ function BlockFields({ block, onChange, onLink, onAsset }) {
 
    if (block.type === "markdown") {
       return <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Content</label><Area className="font-mono text-xs min-h-[300px]" value={block.markdown || ""} onChange={e => onChange({ markdown: e.target.value })} /></div>;
+   }
+
+   if (block.type === "image") {
+      return (
+         <div className="space-y-4">
+            <div>
+               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Image Source</label>
+               <div className="flex gap-2"><Input value={block.url || ""} onChange={e => onChange({ url: e.target.value })} /><button onClick={() => onAsset(a => onChange({ url: a.public_url }))} className="px-3 bg-slate-100 border rounded-lg text-xs font-bold">Pick</button></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alt Text</label><Input value={block.alt || ""} onChange={e => onChange({ alt: e.target.value })} /></div>
+               <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Max Width</label>
+                 <select className="w-full p-2 border rounded-lg text-sm" value={block.maxWidth || "xl"} onChange={e => onChange({ maxWidth: e.target.value })}>
+                    <option value="sm">Small (sm)</option>
+                    <option value="md">Medium (md)</option>
+                    <option value="xl">Large (xl)</option>
+                    <option value="full">Full Width</option>
+                 </select>
+               </div>
+            </div>
+            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Caption</label><Input value={block.caption || ""} onChange={e => onChange({ caption: e.target.value })} /></div>
+            <div className="flex items-center gap-2">
+               <input type="checkbox" checked={block.rounded !== false} onChange={e => onChange({ rounded: e.target.checked })} />
+               <span className="text-sm">Rounded Corners</span>
+            </div>
+         </div>
+      );
+   }
+
+   if (block.type === "divider") {
+      return (
+          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Style</label>
+             <select className="w-full p-2 border rounded-lg text-sm" value={block.lineStyle || "solid"} onChange={e => onChange({ lineStyle: e.target.value })}>
+                <option value="solid">Solid Line</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+             </select>
+          </div>
+      )
+   }
+
+   if (block.type === "spacer") {
+      return (
+          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Size</label>
+             <select className="w-full p-2 border rounded-lg text-sm" value={block.size || "md"} onChange={e => onChange({ size: e.target.value })}>
+                <option value="sm">Small (24px)</option>
+                <option value="md">Medium (48px)</option>
+                <option value="lg">Large (96px)</option>
+             </select>
+          </div>
+      )
    }
 
    return <div className="text-sm text-slate-400 italic">No fields configured for this block type.</div>;
