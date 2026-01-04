@@ -8,18 +8,17 @@ import {
   Link as LinkIcon,
   Trash2,
   Search,
-  X,
   FileText
 } from "lucide-react";
 import AdminNotice from "@/components/admin/AdminNotice";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { Button } from "@/components/admin/AdminControls";
+import { Button, Input } from "@/components/admin/AdminControls";
 import { cx } from "@/components/admin/adminUi";
 import { useAdminMe } from "@/components/admin/useAdminMe";
 
 function bytesToHuman(n) {
-  const num = Number(n || 0);
+  const num = Number(n);
   if (!Number.isFinite(num) || num <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
   let v = num;
@@ -53,11 +52,14 @@ export default function AdminMediaPage() {
     setNotice(null);
     try {
       const res = await fetch("/api/admin/assets", { cache: "no-store" });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j?.error || "Failed to load assets");
-      setAssets(Array.isArray(j.assets) ? j.assets : []);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const j = await res.json();
+      setAssets(Array.isArray(j?.assets) ? j.assets : []);
     } catch (e) {
-      setNotice({ tone: "danger", title: "Error", message: e.message });
+      console.error("Media load error:", e);
+      setNotice({ tone: "danger", title: "Error", message: "Could not load assets. Check console." });
       setAssets([]);
     }
   }
@@ -67,15 +69,19 @@ export default function AdminMediaPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return assets;
-    return assets.filter((a) => {
+    const q = (query || "").trim().toLowerCase();
+    const list = Array.isArray(assets) ? assets : [];
+    if (!q) return list;
+    return list.filter((a) => {
       const hay = `${a.path || ""} ${a.alt_text || ""} ${(a.tags || []).join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
   }, [assets, query]);
 
-  const selected = useMemo(() => assets.find((a) => a.id === selectedId) || null, [assets, selectedId]);
+  const selected = useMemo(() => {
+    if (!selectedId) return null;
+    return (assets || []).find((a) => a.id === selectedId) || null;
+  }, [assets, selectedId]);
 
   async function onUpload() {
     if (!uploadFile) return;
@@ -88,8 +94,9 @@ export default function AdminMediaPage() {
       if (uploadAlt.trim()) fd.set("alt_text", uploadAlt.trim());
 
       const res = await fetch("/api/admin/assets", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
       const j = await res.json();
+      
+      if (!res.ok) throw new Error(j?.error || "Upload failed");
 
       setNotice({ tone: "success", title: "Uploaded", message: "Asset saved." });
       setUploadOpen(false);
@@ -110,6 +117,7 @@ export default function AdminMediaPage() {
     try {
       const res = await fetch(`/api/admin/assets?id=${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
+      
       setNotice({ tone: "success", title: "Deleted", message: "Asset removed." });
       setDeleteOpen(false);
       setDeleteTarget(null);
@@ -126,16 +134,16 @@ export default function AdminMediaPage() {
     <div>
       <AdminPageHeader 
         title="Media Library" 
-        subtitle="Manage images, documents, and generated assets."
+        subtitle="Manage images and files."
         actions={
-          <>
+          <div className="flex gap-2">
             <Button tone="ghost" onClick={load} disabled={busy}>
               <RefreshCcw className={cx("w-4 h-4", busy && "animate-spin")} />
             </Button>
             <Button onClick={() => setUploadOpen(true)} disabled={busy}>
               <UploadCloud className="w-4 h-4 mr-2" /> Upload
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -162,7 +170,8 @@ export default function AdminMediaPage() {
            ) : (
              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                {filtered.map(a => {
-                 const isImage = a.mime_type?.startsWith("image/") || a.path?.match(/\.(png|jpg|jpeg|webp|svg)$/i);
+                 const mime = a.mime_type || "";
+                 const isImage = mime.startsWith("image/") || (a.path || "").match(/\.(png|jpg|jpeg|webp|svg)$/i);
                  const active = a.id === selectedId;
                  return (
                    <button 
@@ -173,7 +182,7 @@ export default function AdminMediaPage() {
                        active ? "border-indigo-600 ring-2 ring-indigo-600 ring-offset-2" : "border-slate-200 hover:border-slate-300 hover:shadow-md"
                      )}
                    >
-                      {isImage ? (
+                      {isImage && a.public_url ? (
                         <img src={a.public_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -196,14 +205,18 @@ export default function AdminMediaPage() {
              <div className="text-center text-slate-400 py-10 text-sm">Select an asset to view details.</div>
            ) : (
              <div className="space-y-4">
-                <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200">
-                   <img src={selected.public_url} alt="" className="max-w-full max-h-full object-contain" />
+                <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 relative">
+                   {selected.public_url ? (
+                     <img src={selected.public_url} alt="" className="max-w-full max-h-full object-contain" />
+                   ) : (
+                     <FileText className="w-8 h-8 text-slate-400" />
+                   )}
                 </div>
                 
                 <div>
                    <div className="font-bold text-slate-900 break-all text-sm">{selected.path}</div>
                    <div className="text-xs text-slate-500 mt-1 flex gap-2">
-                      <span className="bg-slate-100 px-1.5 py-0.5 rounded">{selected.mime_type?.split("/")[1]?.toUpperCase() || "FILE"}</span>
+                      <span className="bg-slate-100 px-1.5 py-0.5 rounded">{(selected.mime_type || "FILE").split("/").pop().toUpperCase()}</span>
                       <span className="bg-slate-100 px-1.5 py-0.5 rounded">{bytesToHuman(selected.size_bytes)}</span>
                    </div>
                 </div>
@@ -216,9 +229,11 @@ export default function AdminMediaPage() {
                 )}
 
                 <div className="pt-4 border-t border-slate-100 space-y-2">
-                   <a href={selected.public_url} target="_blank" className="flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200">
-                      <LinkIcon className="w-3 h-3" /> Open URL
-                   </a>
+                   {selected.public_url && (
+                     <a href={selected.public_url} target="_blank" className="flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200">
+                        <LinkIcon className="w-3 h-3" /> Open URL
+                     </a>
+                   )}
                    {isRoot && (
                      <button onClick={() => { setDeleteTarget(selected); setDeleteOpen(true); }} className="flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-100">
                         <Trash2 className="w-3 h-3" /> Delete

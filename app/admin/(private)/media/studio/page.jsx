@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   Folder, Image as ImageIcon, ChevronRight, ChevronDown, 
-  Sparkles, Save, Github, Loader2, Link as LinkIcon, AlertCircle
+  Sparkles, Save, Github, Loader2, Link as LinkIcon, AlertCircle, Home
 } from "lucide-react";
 import { Button, Input, Textarea } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -54,7 +54,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
     if (nextState) loadItems();
   }
 
-  const label = path.split('/').pop() || path;
+  const label = path === "" ? "Project Root" : (path.split('/').pop() || path);
   const paddingLeft = level * 12 + 8;
 
   // Render entry
@@ -73,7 +73,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
         ) : (
            <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
         )}
-        <Folder className={cx("w-3.5 h-3.5 shrink-0", expanded ? "text-indigo-500" : "text-indigo-400")} />
+        {path === "" ? <Home className="w-3.5 h-3.5 text-slate-500" /> : <Folder className={cx("w-3.5 h-3.5 shrink-0", expanded ? "text-indigo-500" : "text-indigo-400")} />}
         <span className="truncate">{label}</span>
       </button>
       
@@ -209,10 +209,11 @@ export default function ImageStudioPage() {
          {/* Left: File Picker */}
          <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
             <div className="p-3 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-               Public Assets
+               Files
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-               <FileTree path="public" onSelect={handleSelect} selectedPath={selectedFile} />
+               {/* Default to root "" so user can navigate to public manually */}
+               <FileTree path="" onSelect={handleSelect} selectedPath={selectedFile} />
             </div>
          </div>
 
