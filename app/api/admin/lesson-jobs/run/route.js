@@ -123,12 +123,6 @@ function buildContentItems(wrapper) {
   return items;
 }
 
-/**
- * Extract asset requests from:
- * - job.asset_plan_json
- * - wrapper.asset_plan
- * - fallback to job.image_types + lesson_image_specs templates
- */
 function extractAssetRequests({ job, wrapper, specByType }) {
   const out = [];
 
@@ -272,7 +266,7 @@ export async function POST(req) {
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
   const body = await req.json().catch(() => ({}));
-  const limit = Math.max(1, Math.min(25, Number(body.limit || 5)));
+  const limit = Math.max(1, Math.min(25, Number(body.limit || 5))); // Limit batch size for timeout safety
 
   const admin = getSupabaseAdmin();
 
@@ -325,6 +319,7 @@ export async function POST(req) {
       const userTemplate = profile?.user_prompt_template || "Generate a lesson JSON for {{subject}} Year {{year_level}} about {{topic}}. Include explanation, scenarios, and quiz.";
       const userPrompt = fillTemplate(userTemplate, vars);
 
+      // Use system default model (llama3.2:latest) or job specific override
       const { text: rawText } = await llmChatComplete({
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
         temperature: 0.4,

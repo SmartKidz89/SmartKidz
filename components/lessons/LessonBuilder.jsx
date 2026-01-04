@@ -115,7 +115,7 @@ export default function LessonBuilder() {
     subtopic: "Equivalent Fractions",
     useLocalLLM: false,
     llmUrl: "http://127.0.0.1:11434/v1",
-    llmModel: "llama3",
+    llmModel: "llama3.2:latest",
   });
 
   const [selectedJobId, setSelectedJobId] = useState(""); 
@@ -489,7 +489,7 @@ export default function LessonBuilder() {
                     {form.useLocalLLM && (
                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 animate-in fade-in">
                           <div><label className="text-xs font-bold text-slate-500 uppercase">Base URL</label><Input value={form.llmUrl} onChange={e => setForm({...form, llmUrl: e.target.value})} placeholder="http://127.0.0.1:11434/v1" /></div>
-                          <div><label className="text-xs font-bold text-slate-500 uppercase">Model Name</label><Input value={form.llmModel} onChange={e => setForm({...form, llmModel: e.target.value})} placeholder="qwen2.5:32b" /></div>
+                          <div><label className="text-xs font-bold text-slate-500 uppercase">Model Name</label><Input value={form.llmModel} onChange={e => setForm({...form, llmModel: e.target.value})} placeholder="llama3.2:latest" /></div>
                        </div>
                     )}
                  </div>

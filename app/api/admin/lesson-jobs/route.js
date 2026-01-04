@@ -19,8 +19,8 @@ export async function GET() {
     admin.from("lesson_generation_jobs").select("*", { count: "exact", head: true }).eq("status", "failed"),
     admin.from("lesson_generation_jobs")
       .select("id,job_id,subject,year_level,topic,subtopic,locale_code,status,image_status,supabase_lesson_id,error_message,updated_at,created_at")
-      .order("updated_at", { ascending: false })
-      .limit(50)
+      .order("created_at", { ascending: false }) // Show newest jobs first
+      .limit(200) // Increased limit to see more of the queue
   ]);
 
   if (listRes.error) return NextResponse.json({ error: listRes.error.message }, { status: 500 });

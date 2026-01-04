@@ -129,7 +129,7 @@ export default function AdminAssistant() {
                className="w-full text-xs p-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
                value={llmModel}
                onChange={e => setLlmModel(e.target.value)}
-               placeholder="llama3, mistral, etc."
+               placeholder="llama3.2:latest"
              />
            </div>
            <div>
