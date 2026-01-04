@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Flag, Server, ShieldCheck, Database, Cpu, Globe } from "lucide-react";
+import { Activity, Flag, Server, ShieldCheck, Database, Cpu, Globe, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { cx } from "@/components/admin/adminUi";
@@ -17,12 +17,23 @@ export default function SystemPage() {
   const [tab, setTab] = useState("health");
   const [flags, setFlags] = useState(MOCK_FLAGS);
   const [health, setHealth] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function checkHealth() {
+    setLoading(true);
+    try {
+       const res = await fetch("/api/admin/system/health", { cache: "no-store" });
+       const data = await res.json();
+       setHealth(data);
+    } catch (e) {
+       setHealth({ database: "error", dbError: "Check failed" });
+    } finally {
+       setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    // Simulate health check
-    setTimeout(() => {
-       setHealth({ database: "healthy", redis: "healthy", storage: "healthy", latency: "45ms", uptime: "99.98%" });
-    }, 800);
+    checkHealth();
   }, []);
 
   const toggleFlag = (key) => {
@@ -34,6 +45,11 @@ export default function SystemPage() {
       <AdminPageHeader 
         title="System & Operations" 
         subtitle="Monitor health, manage feature flags, and view environment configuration."
+        actions={
+            <Button onClick={checkHealth} disabled={loading} tone="secondary">
+                <RefreshCw className={cx("w-4 h-4 mr-2", loading && "animate-spin")} /> Refresh Health
+            </Button>
+        }
       />
 
       <div className="flex gap-2 border-b border-slate-200 pb-1 mb-6">
@@ -58,14 +74,30 @@ export default function SystemPage() {
 
       {tab === "health" && (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <HealthCard label="Database" status={health?.database} icon={Database} />
-            <HealthCard label="Storage" status={health?.storage} icon={Server} />
+            <HealthCard 
+              label="Database (SQL)" 
+              status={health?.database} 
+              icon={Database} 
+              error={health?.dbError}
+            />
+            <HealthCard 
+              label="Supabase API" 
+              status={health?.supabaseApi} 
+              icon={Server} 
+            />
             <HealthCard label="Latency" value={health?.latency} icon={Cpu} status="healthy" />
-            <HealthCard label="Uptime" value={health?.uptime} icon={ShieldCheck} status="healthy" />
+            <HealthCard label="Environment" value={process.env.NODE_ENV} icon={ShieldCheck} status="healthy" />
+            
             <div className="col-span-full bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-4">
-               <h3 className="font-bold text-slate-900 mb-4">Operational Metrics</h3>
-               <div className="h-48 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 text-sm font-mono border border-slate-100 border-dashed">
-                  [Chart Placeholder: Error Rates & Traffic]
+               <h3 className="font-bold text-slate-900 mb-2">Connection Info</h3>
+               <div className="text-sm text-slate-600">
+                  <p>Database Health Check attempts to connect using <code>SUPABASE_DB_URL</code> (port 6543/5432).</p>
+                  <p className="mt-2">Supabase API check uses the REST interface via <code>SUPABASE_URL</code>.</p>
+                  {health?.dbError && (
+                    <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 font-mono text-xs">
+                        <strong>Error Detail:</strong> {health.dbError}
+                    </div>
+                  )}
                </div>
             </div>
          </div>
@@ -101,7 +133,6 @@ export default function SystemPage() {
             <div className="space-y-2">
                <EnvRow label="NODE_ENV" value={process.env.NODE_ENV} />
                <EnvRow label="NEXT_PUBLIC_APP_URL" value={process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"} />
-               <EnvRow label="SUPABASE_URL" value="https://***.supabase.co" />
                <EnvRow label="Default Locale" value="en-AU" />
                <EnvRow label="Timezone" value="Australia/Sydney" />
             </div>
@@ -111,17 +142,22 @@ export default function SystemPage() {
   );
 }
 
-function HealthCard({ label, status, value, icon: Icon }) {
+function HealthCard({ label, status, value, icon: Icon, error }) {
   const isHealthy = status === "healthy";
+  const isError = status === "error" || status === "missing_env";
+  
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-       <div className={cx("w-12 h-12 rounded-xl flex items-center justify-center", isHealthy ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500")}>
+    <div className={cx(
+        "p-5 rounded-2xl border shadow-sm flex items-center gap-4 transition-colors",
+        isError ? "bg-rose-50 border-rose-200" : "bg-white border-slate-200"
+    )}>
+       <div className={cx("w-12 h-12 rounded-xl flex items-center justify-center", isHealthy ? "bg-emerald-50 text-emerald-600" : isError ? "bg-white text-rose-500" : "bg-slate-100 text-slate-500")}>
           <Icon className="w-6 h-6" />
        </div>
        <div>
-          <div className="text-xs font-bold text-slate-400 uppercase">{label}</div>
-          <div className={cx("text-lg font-black", isHealthy ? "text-emerald-700" : "text-slate-700")}>
-             {value || (isHealthy ? "Operational" : "Unknown")}
+          <div className={cx("text-xs font-bold uppercase", isError ? "text-rose-800" : "text-slate-400")}>{label}</div>
+          <div className={cx("text-lg font-black", isHealthy ? "text-emerald-700" : isError ? "text-rose-600" : "text-slate-700")}>
+             {value || (isHealthy ? "Healthy" : isError ? "Error" : "Unknown")}
           </div>
        </div>
     </div>
