@@ -434,8 +434,11 @@ export default function LessonBuilder() {
 
                  {/* Job Picker */}
                  <div className={`mb-6 p-4 rounded-xl border border-slate-200 transition-colors ${isDuplicate ? 'bg-amber-50 border-amber-200' : 'bg-slate-50'}`}>
-                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                       <ListFilter className="w-4 h-4" /> Select Pending Job
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 justify-between">
+                       <div className="flex items-center gap-2">
+                           <ListFilter className="w-4 h-4" /> Select Pending Job
+                           {filteredJobs.length > 0 && <span className="bg-white border px-1.5 rounded-full text-xs text-slate-500">{filteredJobs.length}</span>}
+                       </div>
                        {isDuplicate && (
                           <span className="ml-auto flex items-center gap-1 text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full text-xs">
                              <AlertTriangle className="w-3 h-3" /> Already Generated
@@ -456,7 +459,10 @@ export default function LessonBuilder() {
                           ))}
                        </Select>
                     ) : (
-                       <div className="text-xs text-slate-400 italic">No jobs found for this subject/year in the import queue.</div>
+                       <div className="text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-200 italic">
+                         No jobs match <strong>{form.subject}</strong> Year <strong>{form.year}</strong>. <br/>
+                         Check your spreadsheet data or change the filters above.
+                       </div>
                     )}
                  </div>
                  
