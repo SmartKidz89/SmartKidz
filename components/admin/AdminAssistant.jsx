@@ -9,8 +9,13 @@ export default function AdminAssistant() {
   const [configOpen, setConfigOpen] = useState(false);
   const [messages, setMessages] = useState([{ role: "assistant", content: "Hi! I'm the Admin AI. How can I help you manage the platform today?" }]);
   const [input, setInput] = useState("");
-  const [customInstructions, setCustomInstructions] = useState("");
   const [busy, setBusy] = useState(false);
+  
+  // Configuration
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [llmUrl, setLlmUrl] = useState("http://127.0.0.1:11434/v1");
+  const [llmModel, setLlmModel] = useState("qwen2.5:32b");
+
   const scrollRef = useRef(null);
   const pathname = usePathname();
 
@@ -32,7 +37,11 @@ export default function AdminAssistant() {
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
           context: { pathname, timestamp: new Date().toISOString() },
-          instructions: customInstructions
+          instructions: customInstructions,
+          config: {
+             baseUrl: llmUrl,
+             model: llmModel
+          }
         })
       });
       const data = await res.json();
@@ -85,15 +94,35 @@ export default function AdminAssistant() {
 
       {/* Config Panel */}
       {configOpen && (
-        <div className="p-4 bg-slate-50 border-b border-slate-200">
-           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Custom Instructions</label>
-           <textarea
-             className="w-full text-xs p-2 rounded-lg border border-slate-200 h-20 outline-none focus:ring-2 focus:ring-indigo-500/20"
-             placeholder="E.g. 'Always suggest SQL queries' or 'Format answers as markdown lists'."
-             value={customInstructions}
-             onChange={e => setCustomInstructions(e.target.value)}
-           />
-           <div className="flex justify-between items-center mt-2">
+        <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+           <div>
+             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ollama URL</label>
+             <input 
+               className="w-full text-xs p-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
+               value={llmUrl}
+               onChange={e => setLlmUrl(e.target.value)}
+               placeholder="http://127.0.0.1:11434/v1"
+             />
+           </div>
+           <div>
+             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model Name</label>
+             <input 
+               className="w-full text-xs p-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
+               value={llmModel}
+               onChange={e => setLlmModel(e.target.value)}
+               placeholder="qwen2.5:32b"
+             />
+           </div>
+           <div>
+             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Instructions</label>
+             <textarea
+               className="w-full text-xs p-2 rounded-lg border border-slate-200 h-16 outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
+               placeholder="System instructions..."
+               value={customInstructions}
+               onChange={e => setCustomInstructions(e.target.value)}
+             />
+           </div>
+           <div className="flex justify-between items-center pt-2">
               <button onClick={clearChat} className="text-xs text-rose-600 flex items-center gap-1 hover:underline">
                 <Eraser className="w-3 h-3" /> Clear Chat
               </button>

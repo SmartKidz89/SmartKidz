@@ -8,7 +8,7 @@ export async function POST(req) {
   const auth = await requireAdminSession();
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
-  const { messages, context, instructions } = await req.json();
+  const { messages, context, instructions, config } = await req.json();
 
   const systemPrompt = `You are the SmartKidz Admin AI.
 You help operators configure the platform, generate content, and troubleshoot issues.
@@ -28,7 +28,10 @@ Rules:
     const response = await llmChatComplete({
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 1000,
+      // Pass overrides if provided
+      baseUrl: config?.baseUrl,
+      model: config?.model
     });
     
     if (!response.text) {
