@@ -3,66 +3,104 @@ import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import crypto from "crypto";
 
-export const maxDuration = 120; // Increased timeout for longer generations
+export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// --- MASTER BUNDLE PROMPTS (v1.8.0) ---
+// --- MASTER LEARNING DESIGNER PROMPT (v2.0) ---
 
-const SYSTEM_PROMPT = `You are a Senior Learning Designer for SmartKidz (Australian K–6).
+const SYSTEM_PROMPT = `Act as a Senior Learning Designer and Data Architect for "SmartKidz," an Australian K-6 EdTech platform.
 
-**CRITICAL OUTPUT RULE: JSON ONLY.** 
-Do not write "Here is the lesson". Start with { and end with }.
+**OBJECTIVE:**
+Generate a rich, curriculum-aligned lesson JSON object with high engagement mechanics, pedagogical depth, and specific feedback logic.
 
-**STRUCTURE REQUIREMENT:**
-You MUST generate a JSON object with this EXACT structure. Do not omit the 'questions' array.
+**CRITICAL RULES:**
+1. **Output:** Valid JSON only. Start with { and end with }. No markdown fences, no preamble.
+2. **Locale:** en-AU (British spelling: colour, maths, centimetre, litre). Currency: AUD ($). Units: Metric. Use culturally relevant examples (e.g., vegemit toast, gumtrees, cricket).
+3. **Curriculum:** Align strictly with ACARA (Australian Curriculum) standards.
+4. **Structure:** You MUST generate EXACTLY 10 questions in the 'questions' array.
 
+**JSON SCHEMA:**
 {
   "title": "Lesson Title",
-  "lesson_intro": {
-    "narrative_setup": { "text": "Hook text..." }
+  "learning_objectives": ["string"],
+  "curriculum_alignment": {
+    "standard": "ACARA",
+    "competency_tag": "string",
+    "year_level": "integer"
   },
-  "learning_objectives": [ ... ],
-  "engagement": { "pacing_plan": { ... } },
+  "lesson_intro": {
+    "narrative_setup": { 
+      "text": "The story hook...", 
+      "voiceover_intro_path": "string",
+      "mascot_greeting_anim": "wave|excited|curious" 
+    },
+    "concept_primer": { "text": "1-sentence rule reminder" }
+  },
+  "engagement": {
+    "gamification": {
+      "xp_yield": 150,
+      "currency_reward": 50,
+      "badge_unlock_criteria": "perfect_score",
+      "streak_bonus": true
+    },
+    "pacing_plan": {
+      "warmup_indices": [1, 2],
+      "core_indices": [3, 4, 5, 6],
+      "challenge_indices": [7, 8, 9, 10]
+    }
+  },
   "questions": [
-    // YOU MUST GENERATE EXACTLY 10 QUESTION OBJECTS HERE.
-    // Index 1 to 10.
     {
       "question_index": 1,
-      "question_format": "multiple_choice",
+      "question_format": "multiple_choice", // or 'fill_blank'
       "question": "Question text...",
+      "tts_override_string": "Audio version if different (e.g. 'three quarters' for 3/4)",
+      "story_context": "Help the astronaut count the stars...",
       "options": ["A", "B", "C"],
       "answer": "A",
-      "explanation": "Why A is correct...",
+      "explanation": "Why A is correct (encouraging tone)...",
+      "hint_progressive": ["Hint 1 (General)", "Hint 2 (Specific)"],
+      "distractors": [
+        { "text": "B", "misconception": "Added instead of multiplied", "feedback": "Did you add? Try multiplying." },
+        { "text": "C", "misconception": "Guess", "feedback": "Look at the diagram again." }
+      ],
+      "visual_aid": {
+        "description": "Image prompt description for this specific question...",
+        "asset_type": "illustration"
+      },
+      "pedagogy": {
+        "cognitive_level": "application", // recall, application, conceptual_understanding
+        "difficulty": 0.5
+      },
       "gamification": { "xp": 10 }
-    },
-    ...
+    }
+    // ... MUST HAVE 10 ITEMS ...
   ],
   "lesson_outro": {
-    "performance_summary": { "text": "Great job!" }
+    "performance_narrative": "You conquered the fractions!",
+    "growth_mindset_tip": "Mistakes help your brain grow.",
+    "celebration_animation_id": "confetti_burst"
   },
   "asset_plan": {
     "assets": [
-      { "asset_type": "illustration", "prompt": "Diagram 1..." },
-      { "asset_type": "illustration", "prompt": "Diagram 2..." },
-      { "asset_type": "sticker", "prompt": "Icon..." }
+      { "asset_type": "hero_image", "prompt": "Main lesson visual..." },
+      { "asset_type": "sticker", "prompt": "Reward sticker..." }
     ]
   }
 }
 
-**CONTENT RULES:**
-- **Locale:** en-AU (Maths, colour, realise).
-- **Questions:** 10 distinct questions. Mix of 'multiple_choice' and 'fill_blank'.
-- **Feedback:** 'explanation' must be helpful and encouraging.
-- **Assets:** Exactly 3 assets in asset_plan.
-- **Tone:** Encouraging, clear, no mascots/dialogue in text.
+**PEDAGOGY & DESIGN GUIDELINES:**
+- **Smart Distractors:** Do not generate random wrong answers. Create "plausible distractors" that reveal specific misconceptions.
+- **Scaffolding:** Use 'hint_progressive' to guide, not give answers.
+- **Emotion & Tone:** Encouraging, warm, 'positive' emotional valence.
+- **Accessibility:** Use 'tts_override_string' for mathematical notation or complex words.
 
 Generate the full lesson now.`;
 
 function buildUserPrompt(vars) {
-  // Simplified user prompt to reduce token noise
   return `Create a lesson for:
 Subject: ${vars.subject}
 Year: ${vars.year_level}
@@ -73,7 +111,7 @@ Strand: ${vars.strand}
 Target Duration: ${vars.duration_target} minutes.
 Difficulty: ${vars.difficulty_band}.
 
-Ensure 10 questions are included in the 'questions' array.`;
+Ensure EXACTLY 10 questions are included.`;
 }
 
 // --- Helpers ---
@@ -82,7 +120,6 @@ function slugify(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_")
 function uid(prefix) { return `${prefix}_${crypto.randomBytes(4).toString("hex")}`; }
 
 function getPhaseForIndex(idx, pacing) {
-  // Simple fallback if pacing is missing
   if (!pacing) {
     if (idx <= 2) return "hook";
     if (idx <= 6) return "guided_practice";
@@ -145,7 +182,7 @@ export async function POST(req) {
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.3,
+      temperature: 0.4, // Slightly higher for creativity in distractors
       response_format: { type: "json_object" }
     });
 
@@ -215,7 +252,10 @@ export async function POST(req) {
       phase: "hook",
       type: "learn",
       title: "Introduction",
-      content_json: { prompt: jsonContent.lesson_intro.narrative_setup.text, ...jsonContent.lesson_intro }
+      content_json: { 
+         prompt: jsonContent.lesson_intro.narrative_setup.text, 
+         ...jsonContent.lesson_intro 
+      }
     });
 
     // 2. Questions
@@ -239,7 +279,10 @@ export async function POST(req) {
       phase: "challenge",
       type: "learn",
       title: "Summary",
-      content_json: { prompt: jsonContent.lesson_outro.performance_summary.text, ...jsonContent.lesson_outro }
+      content_json: { 
+         prompt: jsonContent.lesson_outro.performance_summary.text, 
+         ...jsonContent.lesson_outro 
+      }
     });
 
     if (contentItems.length) {
@@ -256,8 +299,6 @@ export async function POST(req) {
       negative_prompt: a.negative_prompt,
       comfyui_workflow: "basic_text2img",
       status: "queued",
-      // Associate first asset with intro, others with questions? 
-      // Simple logic: first is intro, last is outro, middle random.
       target_content_id: i === 0 ? `${edition_id}_intro` : null 
     }));
 

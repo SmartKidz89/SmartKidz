@@ -46,8 +46,14 @@ export async function GET(req) {
       return NextResponse.json({ type: "file", content });
     }
   } catch (e) {
-    console.error(`[Admin Code API] Error accessing ${fullPath}:`, e);
-    return NextResponse.json({ error: e.message || "File system error" }, { status: 404 });
+    console.error(`[Admin Code API] Error accessing ${fullPath}:`, e.message);
+    
+    // Handle "Not Found" gracefully for UI
+    if (e.code === 'ENOENT') {
+       return NextResponse.json({ type: "error", error: "Path not found (or not accessible in this environment)", code: "ENOENT" }, { status: 404 });
+    }
+
+    return NextResponse.json({ error: e.message || "File system error" }, { status: 500 });
   }
 }
 
@@ -65,6 +71,10 @@ export async function POST(req) {
     await fs.writeFile(fullPath, content, "utf-8");
     return NextResponse.json({ ok: true });
   } catch (e) {
+    // If we can't write (e.g. Vercel), return a specific error so the UI knows to use Git Sync instead
+    if (e.code === 'EROFS') {
+       return NextResponse.json({ error: "Read-only file system. Use Git Sync to persist changes.", code: "EROFS" }, { status: 403 });
+    }
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
