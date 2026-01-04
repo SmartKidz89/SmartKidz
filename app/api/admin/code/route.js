@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ROOT = process.cwd();
-const ALLOWED_ROOTS = ["app", "components", "lib", "styles", "public"];
+const ALLOWED_ROOTS = ["app", "components", "lib", "styles", "public", "comfyui"];
 
 function isAllowed(p) {
   const rel = path.relative(ROOT, p);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   Folder, Image as ImageIcon, ChevronRight, ChevronDown, 
-  Sparkles, Save, Github, Loader2, Link as LinkIcon, AlertCircle, Home
+  Sparkles, Save, Github, Loader2, Link as LinkIcon, AlertCircle, Home, Download, FileJson
 } from "lucide-react";
 import { Button, Input, Textarea } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -28,10 +28,10 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
       if (!res.ok) throw new Error(data.error || "Failed");
 
       if (data.type === "dir") {
-          // Filter only dirs and images
+          // Filter dirs, images, and json (workflows)
           const filtered = data.entries.filter(e => 
               e.type === "dir" || 
-              /\.(png|jpg|jpeg|webp|svg)$/i.test(e.name)
+              /\.(png|jpg|jpeg|webp|svg|json)$/i.test(e.name)
           );
           setItems(filtered);
       }
@@ -92,8 +92,9 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
             </div>
           )}
 
-          {!loading && !error && items.map(i => (
-              i.type === "dir" ? (
+          {!loading && !error && items.map(i => {
+              const isJson = i.name.endsWith(".json");
+              return i.type === "dir" ? (
                 <FileTree key={i.path} path={i.path} onSelect={onSelect} selectedPath={selectedPath} level={level + 1} />
               ) : (
                 <button
@@ -107,11 +108,11 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
                   )}
                   style={{ paddingLeft: paddingLeft + 12 }}
                 >
-                  <ImageIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                  {isJson ? <FileJson className="w-3.5 h-3.5 opacity-70 shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />}
                   <span className="truncate">{i.name}</span>
                 </button>
               )
-          ))}
+          })}
           
           {!loading && !error && items.length === 0 && (
              <div className="text-[10px] text-slate-400 py-1 italic" style={{ paddingLeft: paddingLeft + 12 }}>
@@ -128,6 +129,7 @@ export default function ImageStudioPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [comfyUrl, setComfyUrl] = useState("https://comfy.smartkidz.app");
   const [prompt, setPrompt] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState(null); // data url
   const [generatedBase64, setGeneratedBase64] = useState(null); // raw b64
   
@@ -137,12 +139,19 @@ export default function ImageStudioPage() {
   // When selecting a file, set initial state
   const handleSelect = (path) => {
       setSelectedFile(path);
+      // Reset only if we picked a new file, but keep generated image if user is just clicking around?
+      // Better to clear to avoid confusion.
       setGeneratedImage(null);
       setGeneratedBase64(null);
       setNotice(null);
-      // Try to guess a prompt from filename
-      const name = path.split('/').pop().split('.')[0].replace(/[-_]/g, ' ');
-      setPrompt(`A high quality educational illustration of ${name}, vector style, flat colors, white background`);
+      
+      // Try to guess a prompt from filename if it's an image
+      if (/\.(png|jpg|jpeg|webp)$/i.test(path)) {
+        const name = path.split('/').pop().split('.')[0].replace(/[-_]/g, ' ');
+        setPrompt(`A high quality educational illustration of ${name}, vector style, flat colors, white background`);
+      } else {
+        setPrompt("");
+      }
   };
 
   async function generate() {
@@ -154,7 +163,7 @@ export default function ImageStudioPage() {
         const res = await fetch("/api/admin/image-gen", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt, comfyUrl })
+            body: JSON.stringify({ prompt, negativePrompt, comfyUrl })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -195,6 +204,18 @@ export default function ImageStudioPage() {
         setStatus("idle");
     }
   }
+
+  function download() {
+    if (!generatedImage) return;
+    const a = document.createElement("a");
+    a.href = generatedImage;
+    a.download = `generated-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  const isImageFile = selectedFile && /\.(png|jpg|jpeg|webp|svg)$/i.test(selectedFile);
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col">
@@ -237,11 +258,20 @@ export default function ImageStudioPage() {
                            <Input value={comfyUrl} onChange={e => setComfyUrl(e.target.value)} />
                         </div>
                         <div>
-                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prompt</label>
+                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Positive Prompt</label>
                            <Textarea 
                              value={prompt} 
                              onChange={e => setPrompt(e.target.value)} 
                              rows={3}
+                             placeholder="Describe the image..."
+                           />
+                        </div>
+                        <div>
+                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Negative Prompt (Optional)</label>
+                           <Input 
+                             value={negativePrompt} 
+                             onChange={e => setNegativePrompt(e.target.value)} 
+                             placeholder="bad hands, blurry, text, watermark..."
                            />
                         </div>
                      </div>
@@ -260,8 +290,14 @@ export default function ImageStudioPage() {
                      <div>
                         <div className="text-xs font-bold text-slate-500 uppercase mb-2">Original</div>
                         <div className="aspect-video bg-slate-200 rounded-xl overflow-hidden border border-slate-300 flex items-center justify-center relative">
-                           {/* Using a timestamp to bust cache if we just updated it, though Next image cache is sticky */}
-                           <img src={`/${selectedFile.replace(/^public\//, '')}`} alt="Original" className="max-w-full max-h-full object-contain" />
+                           {isImageFile ? (
+                             <img src={`/${selectedFile.replace(/^public\//, '')}`} alt="Original" className="max-w-full max-h-full object-contain" />
+                           ) : (
+                             <div className="text-xs text-slate-500 p-4 text-center">
+                               <FileJson className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                               Not an image file
+                             </div>
+                           )}
                         </div>
                      </div>
 
@@ -280,7 +316,10 @@ export default function ImageStudioPage() {
 
                   {/* Actions */}
                   {generatedImage && (
-                     <div className="flex justify-end pt-4 border-t border-slate-200">
+                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                        <Button tone="secondary" onClick={download}>
+                           <Download className="w-4 h-4 mr-2" /> Download
+                        </Button>
                         <Button tone="danger" onClick={commit} disabled={status === "saving"}>
                            {status === "saving" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Github className="w-4 h-4 mr-2" />}
                            Overwrite & Commit

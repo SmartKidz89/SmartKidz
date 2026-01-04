@@ -10,7 +10,7 @@ export async function POST(req) {
   const auth = await requireAdminSession();
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
-  const { prompt: subject, comfyUrl, workflow = "basic_text2img" } = await req.json().catch(() => ({}));
+  const { prompt: subject, negativePrompt, comfyUrl, workflow = "basic_text2img" } = await req.json().catch(() => ({}));
 
   if (!subject || !comfyUrl) {
     return NextResponse.json({ error: "Missing prompt or comfyUrl" }, { status: 400 });
@@ -19,6 +19,10 @@ export async function POST(req) {
   try {
     // Apply Master Style
     const finalPrompt = buildPrompt(subject);
+    // Combine master negative with user negative if provided
+    const finalNegative = negativePrompt 
+      ? `${negativePrompt}, ${MASTER_NEGATIVE_PROMPT}` 
+      : MASTER_NEGATIVE_PROMPT;
 
     // 1. Run ComfyUI
     const { image } = await runComfyWorkflow({
@@ -26,7 +30,7 @@ export async function POST(req) {
       comfyUrl,
       vars: {
         prompt: finalPrompt,
-        negative_prompt: MASTER_NEGATIVE_PROMPT,
+        negative_prompt: finalNegative,
         width: 1024,
         height: 576,
         steps: 25,
