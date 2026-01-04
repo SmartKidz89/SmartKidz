@@ -1,23 +1,17 @@
-"use client";
-import Link from "next/link";
+import { Suspense } from "react";
+import PracticeClient from "./PracticeClient";
+import { Page as PageScaffold } from "@/components/ui/PageScaffoldServer";
 
-import { Page as PageScaffold } from "@/components/ui/PageScaffold";;
+export const metadata = {
+  title: "Practice Gym",
+};
+
 export default function PracticePage() {
   return (
-    
-    <PageScaffold title="Practice">
-<div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">🎯 Practice</h1>
-      <div className="rounded-3xl bg-white border border-slate-200 shadow-soft p-4">
-        <p className="text-slate-700 font-semibold">
-          This area is coming next. For now, jump into a lesson.
-        </p>
-        <Link href="/app/lesson/1" className="mt-3 inline-flex rounded-full bg-brand-primary px-5 py-2.5 text-white font-extrabold shadow-soft">
-          Start a lesson
-        </Link>
-      </div>
-    </div>
-  
+    <PageScaffold title="Practice Gym">
+      <Suspense fallback={<div className="p-6">Loading gym...</div>}>
+        <PracticeClient />
+      </Suspense>
     </PageScaffold>
   );
 }
