@@ -13,8 +13,26 @@ export default function AdminAssistant() {
   
   // Configuration
   const [customInstructions, setCustomInstructions] = useState("");
-  const [llmUrl, setLlmUrl] = useState("http://127.0.0.1:11434/v1");
-  const [llmModel, setLlmModel] = useState("qwen2.5:32b");
+  const [llmUrl, setLlmUrl] = useState(""); // Empty by default to use server env
+  const [llmModel, setLlmModel] = useState("");
+
+  // Load server config on mount
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const res = await fetch("/api/admin/integrations/status");
+        const data = await res.json();
+        if (data?.llm) {
+          // Only set if we got valid data back
+          if (data.llm.baseUrl) setLlmUrl(data.llm.baseUrl);
+          if (data.llm.model) setLlmModel(data.llm.model);
+        }
+      } catch (e) {
+        console.error("Failed to load LLM config", e);
+      }
+    }
+    loadConfig();
+  }, []);
 
   const scrollRef = useRef(null);
   const pathname = usePathname();
@@ -39,8 +57,9 @@ export default function AdminAssistant() {
           context: { pathname, timestamp: new Date().toISOString() },
           instructions: customInstructions,
           config: {
-             baseUrl: llmUrl,
-             model: llmModel
+             // Only send overrides if they are set
+             baseUrl: llmUrl || undefined,
+             model: llmModel || undefined
           }
         })
       });
@@ -96,12 +115,12 @@ export default function AdminAssistant() {
       {configOpen && (
         <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
            <div>
-             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ollama URL</label>
+             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">LLM URL</label>
              <input 
                className="w-full text-xs p-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
                value={llmUrl}
                onChange={e => setLlmUrl(e.target.value)}
-               placeholder="http://127.0.0.1:11434/v1"
+               placeholder="Leave empty to use server env"
              />
            </div>
            <div>
@@ -110,7 +129,7 @@ export default function AdminAssistant() {
                className="w-full text-xs p-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
                value={llmModel}
                onChange={e => setLlmModel(e.target.value)}
-               placeholder="qwen2.5:32b"
+               placeholder="llama3, mistral, etc."
              />
            </div>
            <div>
