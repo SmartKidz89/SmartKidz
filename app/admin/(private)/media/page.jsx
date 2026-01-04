@@ -51,14 +51,19 @@ export default function AdminMediaPage() {
 
   async function load() {
     setNotice(null);
-    const res = await fetch("/api/admin/assets", { cache: "no-store" });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(j?.error || "Failed to load assets");
-    setAssets(j.assets || []);
+    try {
+      const res = await fetch("/api/admin/assets", { cache: "no-store" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.error || "Failed to load assets");
+      setAssets(Array.isArray(j.assets) ? j.assets : []);
+    } catch (e) {
+      setNotice({ tone: "danger", title: "Error", message: e.message });
+      setAssets([]);
+    }
   }
 
   useEffect(() => {
-    load().catch((e) => setNotice({ tone: "danger", title: "Error", message: e.message }));
+    load();
   }, []);
 
   const filtered = useMemo(() => {

@@ -22,18 +22,20 @@ export async function GET(req) {
   const relPath = searchParams.get("path") || "";
   const fullPath = path.join(ROOT, relPath);
 
-  if (!isAllowed(fullPath) && relPath !== "") {
+  // Security check
+  if (relPath && !isAllowed(fullPath)) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
   try {
     const stat = await fs.stat(fullPath);
+    
     if (stat.isDirectory()) {
       const items = await fs.readdir(fullPath, { withFileTypes: true });
       const entries = items.map(i => ({
         name: i.name,
         type: i.isDirectory() ? "dir" : "file",
-        path: path.join(relPath, i.name)
+        path: path.join(relPath, i.name).replaceAll("\\", "/") // Normalize slashes for Windows/Linux consistency
       })).sort((a, b) => {
         if (a.type === b.type) return a.name.localeCompare(b.name);
         return a.type === "dir" ? -1 : 1;
@@ -44,7 +46,8 @@ export async function GET(req) {
       return NextResponse.json({ type: "file", content });
     }
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 404 });
+    console.error(`[Admin Code API] Error accessing ${fullPath}:`, e);
+    return NextResponse.json({ error: e.message || "File system error" }, { status: 404 });
   }
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   Folder, Image as ImageIcon, ChevronRight, ChevronDown, 
-  Sparkles, Save, Github, Loader2, Link as LinkIcon 
+  Sparkles, Save, Github, Loader2, Link as LinkIcon, AlertCircle
 } from "lucide-react";
 import { Button, Input, Textarea } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -15,13 +15,18 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
   const [expanded, setExpanded] = useState(level === 0); // Auto-expand root
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [error, setError] = useState(null);
 
   async function loadItems() {
-    if (hasLoaded) return;
+    if (hasLoaded && !error) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/admin/code?path=${encodeURIComponent(path)}`);
       const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Failed");
+
       if (data.type === "dir") {
           // Filter only dirs and images
           const filtered = data.entries.filter(e => 
@@ -31,8 +36,11 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
           setItems(filtered);
       }
       setHasLoaded(true);
-    } catch {} 
-    setLoading(false);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Load root immediately
@@ -47,6 +55,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
   }
 
   const label = path.split('/').pop() || path;
+  const paddingLeft = level * 12 + 8;
 
   // Render entry
   return (
@@ -57,7 +66,7 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
           "w-full flex items-center gap-2 px-2 py-1 text-xs hover:bg-slate-100 rounded text-slate-700 mb-0.5",
           selectedPath === path && "bg-indigo-50 text-indigo-700 font-bold"
         )}
-        style={{ paddingLeft: level * 12 + 8 }}
+        style={{ paddingLeft }}
       >
         {expanded ? (
            <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
@@ -70,12 +79,20 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
       
       {expanded && (
         <div>
-          {loading ? (
-            <div className="pl-6 py-1 text-[10px] text-slate-400 flex items-center gap-2" style={{ paddingLeft: (level + 1) * 12 + 8 }}>
+          {loading && (
+            <div className="pl-6 py-1 text-[10px] text-slate-400 flex items-center gap-2" style={{ paddingLeft: paddingLeft + 12 }}>
                <Loader2 className="w-3 h-3 animate-spin" /> Loading...
             </div>
-          ) : (
-            items.map(i => (
+          )}
+          
+          {error && (
+            <div className="pl-6 py-1 text-[10px] text-rose-500 flex items-center gap-2" style={{ paddingLeft: paddingLeft + 12 }}>
+               <AlertCircle className="w-3 h-3" /> {error}
+               <button onClick={loadItems} className="underline hover:text-rose-700">Retry</button>
+            </div>
+          )}
+
+          {!loading && !error && items.map(i => (
               i.type === "dir" ? (
                 <FileTree key={i.path} path={i.path} onSelect={onSelect} selectedPath={selectedPath} level={level + 1} />
               ) : (
@@ -88,16 +105,16 @@ function FileTree({ path = "", onSelect, selectedPath, level = 0 }) {
                       ? "bg-indigo-600 text-white font-medium hover:bg-indigo-700" 
                       : "text-slate-600"
                   )}
-                  style={{ paddingLeft: (level + 1) * 12 + 8 }}
+                  style={{ paddingLeft: paddingLeft + 12 }}
                 >
                   <ImageIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
                   <span className="truncate">{i.name}</span>
                 </button>
               )
-            ))
-          )}
-          {!loading && items.length === 0 && (
-             <div className="text-[10px] text-slate-400 py-1" style={{ paddingLeft: (level + 1) * 12 + 8 }}>
+          ))}
+          
+          {!loading && !error && items.length === 0 && (
+             <div className="text-[10px] text-slate-400 py-1 italic" style={{ paddingLeft: paddingLeft + 12 }}>
                 (empty)
              </div>
           )}
