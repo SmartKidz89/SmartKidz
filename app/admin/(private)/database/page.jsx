@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { 
   Play, Database, Table as TableIcon, RefreshCw, 
-  Terminal, Search, Copy, Check, ChevronRight, Hash 
+  Terminal, Search, Copy, Check, ChevronRight, Hash, AlertTriangle 
 } from "lucide-react";
 import { Button } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -104,6 +104,9 @@ export default function AdminDatabasePage() {
 
   const filteredTables = tables.filter(t => t.table_name.toLowerCase().includes(searchTable.toLowerCase()));
 
+  // Friendly error hint
+  const isConnectionError = errorMsg && (errorMsg.includes("ENOTFOUND") || errorMsg.includes("ECONNREFUSED") || errorMsg.includes("5432"));
+
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50/50 -m-4 md:-m-8">
       
@@ -199,8 +202,17 @@ export default function AdminDatabasePage() {
                    <div className="rounded-2xl bg-rose-50 border border-rose-100 p-4 flex items-start gap-3">
                       <div className="p-2 bg-rose-100 rounded-full text-rose-600 mt-0.5"><Terminal className="w-4 h-4" /></div>
                       <div>
-                         <h3 className="text-sm font-bold text-rose-900">Query Error</h3>
+                         <div className="flex items-center gap-2">
+                             <h3 className="text-sm font-bold text-rose-900">Query Error</h3>
+                             {isConnectionError && <span className="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-bold uppercase">Connection Failed</span>}
+                         </div>
                          <pre className="mt-2 text-xs text-rose-800 font-mono whitespace-pre-wrap">{errorMsg}</pre>
+                         {isConnectionError && (
+                            <div className="mt-3 text-xs text-rose-700 bg-rose-100/50 p-2 rounded">
+                               <strong>Tip:</strong> The app cannot reach the database. Check <code>SUPABASE_DB_URL</code> in your environment variables. 
+                               You may need to use the <strong>Transaction Pooler (port 6543)</strong> connection string from Supabase settings.
+                            </div>
+                         )}
                       </div>
                    </div>
                 </div>
