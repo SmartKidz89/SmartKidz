@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/auth";
+import { getOpenAICompatConfig } from "@/lib/ai/openaiCompat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export async function GET() {
   const auth = await requireAdminSession();
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
 
-  // Check Supabase
+  // 1. Check Supabase
   const supabase = {
      url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "Configured" : null,
      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -16,7 +17,7 @@ export async function GET() {
      ok: !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY
   };
 
-  // Check Vercel
+  // 2. Check Vercel
   const vercel = {
      env: process.env.VERCEL_ENV,
      url: process.env.VERCEL_URL,
@@ -24,14 +25,14 @@ export async function GET() {
      commit: process.env.VERCEL_GIT_COMMIT_SHA,
   };
 
-  // Check GitHub
+  // 3. Check GitHub
   const github = {
      repo: process.env.GITHUB_SYNC_REPO,
      branch: process.env.GITHUB_SYNC_BRANCH || "main",
      ok: !!process.env.GITHUB_SYNC_TOKEN && !!process.env.GITHUB_SYNC_REPO
   };
 
-  // Check Cloudflare
+  // 4. Check Cloudflare
   const cfToken = process.env.CLOUDFLARE_API_TOKEN;
   const cfAccount = process.env.CLOUDFLARE_ACCOUNT_ID;
   const cloudflare = {
@@ -56,7 +57,7 @@ export async function GET() {
            cloudflare.tunnels = (data.result || []).map(t => ({
              id: t.id,
              name: t.name,
-             status: t.status, // healthy, down, etc
+             status: t.status, 
            }));
         } else {
            cloudflare.status = "error";
@@ -72,5 +73,68 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ supabase, vercel, github, cloudflare });
+  // 5. Check LLM (Ollama/OpenAI)
+  const llmConfig = getOpenAICompatConfig();
+  const llm = {
+      provider: llmConfig.isOpenAICloud ? "OpenAI Cloud" : "Local/Custom",
+      baseUrl: llmConfig.baseUrl,
+      model: llmConfig.model,
+      status: "unknown",
+      latency: 0
+  };
+
+  try {
+      const start = Date.now();
+      // Try to list models (standard OpenAI endpoint supported by Ollama/vLLM)
+      const res = await fetch(`${llmConfig.baseUrl}/models`, {
+          headers: { Authorization: `Bearer ${llmConfig.apiKey}` },
+          signal: AbortSignal.timeout(3000)
+      });
+      if (res.ok) {
+          llm.status = "connected";
+          llm.latency = Date.now() - start;
+      } else {
+          llm.status = "error";
+          llm.error = `HTTP ${res.status}`;
+      }
+  } catch (e) {
+      llm.status = "error";
+      llm.error = e.message;
+  }
+
+  // 6. Check ComfyUI / Forge
+  const comfyUrl = process.env.COMFYUI_BASE_URL || process.env.SD_API_URL;
+  const comfy = {
+      configured: !!comfyUrl,
+      url: comfyUrl || "Not Set",
+      status: "missing_config",
+      backend: "unknown"
+  };
+
+  if (comfyUrl) {
+      try {
+          const clean = comfyUrl.replace(/\/$/, "");
+          // Try Comfy specific endpoint first
+          const comfyRes = await fetch(`${clean}/system_stats`, { signal: AbortSignal.timeout(3000) });
+          if (comfyRes.ok) {
+              comfy.status = "connected";
+              comfy.backend = "ComfyUI";
+          } else {
+              // Try SDAPI (Forge/A1111)
+              const sdRes = await fetch(`${clean}/sdapi/v1/options`, { signal: AbortSignal.timeout(3000) });
+              if (sdRes.ok) {
+                  comfy.status = "connected";
+                  comfy.backend = "Forge/A1111";
+              } else {
+                   comfy.status = "error";
+                   comfy.error = "Unreachable";
+              }
+          }
+      } catch (e) {
+          comfy.status = "error";
+          comfy.error = e.message;
+      }
+  }
+
+  return NextResponse.json({ supabase, vercel, github, cloudflare, llm, comfy });
 }

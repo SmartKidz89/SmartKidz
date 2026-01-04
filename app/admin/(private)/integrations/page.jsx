@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { CheckCircle2, AlertTriangle, ExternalLink, RefreshCw, Cloud } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ExternalLink, RefreshCw, Cloud, Brain, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/admin/AdminControls";
 
 function StatusCard({ title, icon, status, details, action, isImage = true }) {
@@ -12,8 +12,8 @@ function StatusCard({ title, icon, status, details, action, isImage = true }) {
       <div>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-             <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2">
-                {isImage ? (
+             <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 text-slate-500">
+                {isImage && typeof icon === 'string' ? (
                   <img src={icon} alt={title} className="w-full h-full object-contain" />
                 ) : (
                   icon
@@ -33,7 +33,7 @@ function StatusCard({ title, icon, status, details, action, isImage = true }) {
            {details.map((d, i) => (
              <div key={i} className="flex justify-between text-sm border-b border-slate-50 pb-2 last:border-0 last:pb-0">
                 <span className="text-slate-500 font-medium truncate pr-2">{d.label}</span>
-                <span className={`font-mono text-xs truncate ${d.highlight ? "text-emerald-600 font-bold" : "text-slate-900"}`}>
+                <span className={`font-mono text-xs truncate max-w-[140px] ${d.highlight ? "text-emerald-600 font-bold" : "text-slate-900"}`}>
                   {d.value}
                 </span>
              </div>
@@ -74,8 +74,6 @@ export default function IntegrationsPage() {
     { label: "Configuration", value: data?.cloudflare?.configured ? "Set" : "Missing Token/ID" },
     { label: "Active Tunnels", value: cfTunnels.filter(t => t.status === 'healthy').length, highlight: true },
   ];
-  
-  // Add first few tunnels to the list
   cfTunnels.slice(0, 3).forEach(t => {
     cfDetails.push({ label: t.name, value: t.status, highlight: t.status === 'healthy' });
   });
@@ -120,6 +118,37 @@ export default function IntegrationsPage() {
             action={
                <Button tone="secondary" className="w-full" onClick={() => window.open("https://dash.cloudflare.com/", "_blank")}>
                   Manage Tunnels <ExternalLink className="w-3 h-3 ml-2" />
+               </Button>
+            }
+         />
+
+         {/* AI / LLM */}
+         <StatusCard 
+            title="AI Model"
+            icon={<Brain className="w-6 h-6 text-violet-500" />}
+            isImage={false}
+            status={data?.llm?.status || "unknown"}
+            details={[
+               { label: "Provider", value: data?.llm?.provider || "Unknown" },
+               { label: "Base URL", value: data?.llm?.baseUrl || "Not Set" },
+               { label: "Model ID", value: data?.llm?.model || "Not Set" },
+               { label: "Latency", value: data?.llm?.latency ? `${data.llm.latency}ms` : "-", highlight: data?.llm?.status === 'connected' }
+            ]}
+         />
+
+         {/* COMFY / IMAGE GEN */}
+         <StatusCard 
+            title="Image Gen"
+            icon={<ImageIcon className="w-6 h-6 text-pink-500" />}
+            isImage={false}
+            status={data?.comfy?.status || "unknown"}
+            details={[
+               { label: "Backend", value: data?.comfy?.backend || "Unknown" },
+               { label: "URL", value: data?.comfy?.url || "Not Set" },
+            ]}
+            action={
+               <Button tone="primary" className="w-full" onClick={() => window.location.href = "/admin/media/generator"}>
+                  Go to Generator
                </Button>
             }
          />
