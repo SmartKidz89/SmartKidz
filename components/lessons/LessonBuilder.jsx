@@ -6,8 +6,6 @@ import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Data
 import { Button, Input, Select, Textarea } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
-// ... [Existing Pill, Section, ProgressHeader components remain same] ...
-
 function Pill({ children, tone = "slate", title }) {
   const toneMap = {
     slate: "bg-slate-100 text-slate-700",
@@ -156,12 +154,9 @@ export default function LessonBuilder() {
 
   async function processQueue() {
      if (!autoRunRef.current) return;
-     if (jobStats?.queued === 0) {
-        setAutoRun(false);
-        setNotice({ tone: "success", title: "Queue Complete", text: "All jobs processed." });
-        return;
-     }
-
+     // Check if we still have items to process locally, or trust the server to find them
+     // We optimistically try to run a batch.
+     
      setBusy(true);
      try {
         const res = await fetch("/api/admin/lesson-jobs/run", { 
@@ -172,14 +167,22 @@ export default function LessonBuilder() {
         await refresh();
         
         if (out.processed > 0 && autoRunRef.current) {
-           // Continue loop after short delay
-           setTimeout(processQueue, 1000);
+           // Continue loop after short delay if we found jobs
+           setTimeout(processQueue, 1500);
         } else {
+           // Queue empty or all processed
            setBusy(false);
            setAutoRun(false);
+           if (out.processed === 0) {
+             setNotice({ tone: "success", title: "Queue Complete", text: "All pending jobs have been processed." });
+           }
         }
      } catch (e) {
-        setNotice({ tone: "danger", title: "Queue Error", text: e.message });
+        // Log error but continue trying if user wants (or stop safely)
+        console.error("Queue Batch Error:", e);
+        // We pause on error to avoid infinite error loops in some cases, or we can just try again.
+        // Safety: stop auto-run on network error.
+        setNotice({ tone: "danger", title: "Batch Error", text: e.message + " (Stopped Auto-Run)" });
         setBusy(false);
         setAutoRun(false);
      }
