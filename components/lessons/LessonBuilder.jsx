@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminNotice from "../admin/AdminNotice";
-import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Sparkles, Server, Save, UploadCloud, FileSpreadsheet, Eye, Search, Database, ListFilter, CheckCircle2, AlertTriangle, Play } from "lucide-react";
 import { Button, Input, Select } from "@/components/admin/AdminControls";
 import AdminLessonPlayer from "@/components/admin/AdminLessonPlayer";
 
@@ -82,17 +82,11 @@ export default function LessonBuilder() {
       const [j, a, l] = await Promise.all([
         fetch("/api/admin/lesson-jobs").then((r) => r.json()),
         fetch("/api/admin/lesson-assets").then((r) => r.json()),
-        // For dupes, we ideally want a lightweight list of existing lessons.
-        // Reusing the content list endpoint or adding a specific check endpoint is best.
-        // For now, let's just use the jobs list statuses if they are marked 'completed'.
-        // Or fetch a lightweight catalog if available.
-        // Let's assume the jobs list has status='completed' for generated ones.
         Promise.resolve({ data: [] }) 
       ]);
       
       if (j?.data) {
          setJobs(j.data);
-         // Build a set of "already generated" job IDs based on status
          const completed = j.data.filter(x => x.status === 'completed');
          setExistingLessons(completed); 
       }
@@ -108,11 +102,9 @@ export default function LessonBuilder() {
   // Check if current form selection matches an existing completed job
   const isDuplicate = useMemo(() => {
     if (!selectedJobId) return false;
-    // Check if THIS specific job ID is already marked completed
     const job = jobs.find(j => j.job_id === selectedJobId || j.id === selectedJobId);
     if (job && job.status === 'completed') return true;
     
-    // Fallback: check if we have a completed job with same subject/year/topic/subtopic
     return existingLessons.some(l => 
        l.subject === form.subject &&
        String(l.year_level) === String(form.year) &&
@@ -122,7 +114,6 @@ export default function LessonBuilder() {
   }, [selectedJobId, form, jobs, existingLessons]);
 
 
-  // Filter logic for spreadsheet jobs
   const availableSubjects = useMemo(() => [...new Set(jobs.map(j => j.subject).filter(Boolean))].sort(), [jobs]);
   const availableYears = useMemo(() => [...new Set(jobs.map(j => String(j.year_level)).filter(Boolean))].sort(), [jobs]);
   
@@ -238,6 +229,33 @@ export default function LessonBuilder() {
     }
   }
 
+  // --- BATCH RUNNER ---
+  async function runLessonBatch() {
+     if(!confirm("This will process the next 25 queued jobs using the configured LLM. Continue?")) return;
+     
+     setBusy(true); setNotice(null);
+     try {
+        const res = await fetch("/api/admin/lesson-jobs/run", { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ limit: 25 }) 
+        });
+        const out = await res.json();
+        if (!res.ok) throw new Error(out.error || "Batch run failed");
+
+        setNotice({ 
+            tone: "success", 
+            title: "Batch Processed", 
+            text: `Processed ${out.processed} jobs. Success: ${out.ok_count}. Failed: ${out.failed}. Images have been queued in 'Asset Queue'.` 
+        });
+        refresh();
+     } catch (e) {
+        setNotice({ tone: "danger", title: "Error", text: e.message });
+     } finally {
+        setBusy(false);
+     }
+  }
+
   async function handleFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -305,6 +323,7 @@ export default function LessonBuilder() {
   }
 
   const queuedAssets = assets.filter(a => (a.status || "").toLowerCase() === "queued");
+  const queuedJobsCount = jobs.filter(j => (j.status || "").toLowerCase() === "queued").length;
 
   return (
     <div className="space-y-6">
@@ -335,7 +354,7 @@ export default function LessonBuilder() {
           className={`rounded-xl px-3 py-2 text-sm border ${tab === "jobs" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
           onClick={() => setTab("jobs")}
         >
-          Bulk Jobs
+          Bulk Jobs {queuedJobsCount > 0 && <span className="ml-1 bg-amber-100 text-amber-700 px-1.5 rounded-full text-xs">{queuedJobsCount}</span>}
         </button>
         <button
           className={`rounded-xl px-3 py-2 text-sm border ${tab === "assets" ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
@@ -628,9 +647,14 @@ export default function LessonBuilder() {
             title="Bulk Jobs" 
             desc="Background processing for spreadsheet imports."
             right={
-               <Button tone="secondary" onClick={loadPresets} disabled={busy}>
-                  <Database className="w-4 h-4 mr-2" /> Load Default Presets
-               </Button>
+               <div className="flex gap-2">
+                   <Button tone="secondary" onClick={loadPresets} disabled={busy}>
+                      <Database className="w-4 h-4 mr-2" /> Load Defaults
+                   </Button>
+                   <Button onClick={runLessonBatch} disabled={busy || queuedJobsCount === 0}>
+                      <Play className="w-4 h-4 mr-2" /> Run Next 25
+                   </Button>
+               </div>
             }
          >
              <div className="mt-4 overflow-auto max-h-[500px]">
