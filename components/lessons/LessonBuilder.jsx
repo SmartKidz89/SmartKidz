@@ -80,12 +80,9 @@ export default function LessonBuilder() {
 
   async function refresh() {
     try {
-      // Fetch jobs, assets AND existing lessons to check for dupes
-      // We can check lesson_generation_jobs status OR check actual lesson tables
-      const [j, a, l] = await Promise.all([
+      const [j, a] = await Promise.all([
         fetch("/api/admin/lesson-jobs").then((r) => r.json()),
         fetch("/api/admin/lesson-assets").then((r) => r.json()),
-        Promise.resolve({ data: [] }) 
       ]);
       
       if (j?.data) {
@@ -102,7 +99,6 @@ export default function LessonBuilder() {
 
   useEffect(() => { refresh(); }, []);
 
-  // Check if current form selection matches an existing completed job
   const isDuplicate = useMemo(() => {
     if (!selectedJobId) return false;
     const job = jobs.find(j => j.job_id === selectedJobId || j.id === selectedJobId);
@@ -149,10 +145,10 @@ export default function LessonBuilder() {
       
       if (data) {
          const filtered = data.filter(j => 
-            j.topic?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            j.job_id?.toLowerCase().includes(searchQuery.toLowerCase())
+            (j.topic?.toLowerCase() || "").includes(searchQuery.toLowerCase()) || 
+            (j.job_id?.toLowerCase() || "").includes(searchQuery.toLowerCase())
          );
-         setSearchResults(filtered);
+         setSearchResults(filtered); // Not strictly used in UI but keeps state valid
       }
     } catch (e) {
       console.error(e);
@@ -163,21 +159,18 @@ export default function LessonBuilder() {
   
   async function loadPreview(jobId) {
      setBusy(true);
+     setNotice(null);
      try {
         const job = jobs.find(j => j.job_id === jobId || j.id === jobId);
         const editionId = job?.supabase_lesson_id || jobId; 
         
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
+        // Use the new admin proxy endpoint to bypass RLS
+        const res = await fetch(`/api/admin/lesson/preview?edition_id=${encodeURIComponent(editionId)}`);
+        const json = await res.json();
         
-        const { data, error } = await supabase
-           .from("lesson_editions")
-           .select("*, lesson_content_items(*)")
-           .eq("edition_id", editionId)
-           .single();
-           
-        if (error) throw error;
-        setPreviewLesson(data);
+        if (!res.ok) throw new Error(json.error || "Failed to load preview");
+        
+        setPreviewLesson(json.data);
         
      } catch (e) {
         setNotice({ tone: "danger", title: "Load Failed", text: "Could not load lesson content. " + e.message });
@@ -383,19 +376,19 @@ export default function LessonBuilder() {
                   <div className="flex gap-2">
                      <Input 
                        value={searchQuery} 
-                       onChange={e => { setSearchQuery(e.target.value); searchLessons(); }} 
+                       onChange={e => { setSearchQuery(e.target.value); }} 
                        placeholder="Search..." 
                      />
                      <Button tone="secondary" onClick={searchLessons} disabled={busy}><Search className="w-4 h-4" /></Button>
                   </div>
                   <div className="mt-4 space-y-2 max-h-[500px] overflow-y-auto">
-                     {jobs.filter(j => !searchQuery || j.topic?.toLowerCase().includes(searchQuery.toLowerCase())).map(j => (
+                     {jobs.filter(j => !searchQuery || (j.topic || "").toLowerCase().includes(searchQuery.toLowerCase())).map(j => (
                         <button 
                           key={j.id} 
                           onClick={() => loadPreview(j.id)}
                           className={`w-full text-left p-3 rounded-xl border transition-colors ${previewLesson?.template_id === j.job_id ? "bg-indigo-50 border-indigo-200 text-indigo-900" : "bg-white border-slate-200 hover:bg-slate-50"}`}
                         >
-                           <div className="font-bold text-sm truncate">{j.topic}</div>
+                           <div className="font-bold text-sm truncate">{j.topic || "Untitled"}</div>
                            <div className="text-xs text-slate-500 truncate">{j.supabase_lesson_id || j.job_id}</div>
                         </button>
                      ))}
@@ -615,7 +608,7 @@ export default function LessonBuilder() {
             title="Generate Assets"
             desc="Process queued image requests via ComfyUI."
             right={
-              <Button onClick={() => runAssetBatch(25)} disabled={busy || queuedAssets.length === 0}>
+              <Button onClick={() => runAssetBatch(25)} disabled={busy || assets.filter(a => a.status === 'queued').length === 0}>
                  Run Batch
               </Button>
             }
@@ -654,7 +647,7 @@ export default function LessonBuilder() {
                    <Button tone="secondary" onClick={loadPresets} disabled={busy}>
                       <Database className="w-4 h-4 mr-2" /> Load Defaults
                    </Button>
-                   <Button onClick={runLessonBatch} disabled={busy || queuedJobsCount === 0}>
+                   <Button onClick={runLessonBatch} disabled={busy || jobs.filter(j => j.status === 'queued').length === 0}>
                       <Play className="w-4 h-4 mr-2" /> Run Next 25
                    </Button>
                </div>
