@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { 
   Play, Database, Table as TableIcon, RefreshCw, 
-  Terminal, Search, Copy, Check, ChevronRight, Hash, AlertTriangle 
+  Terminal, Search, Copy, Check, ChevronRight, Hash, AlertTriangle, Download, FileJson
 } from "lucide-react";
 import { Button } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { cx } from "@/components/admin/adminUi";
+import AdminNotice from "@/components/admin/AdminNotice";
 
 function ResultTable({ result }) {
   if (!result || !result.rows || result.rows.length === 0) {
@@ -36,7 +37,7 @@ function ResultTable({ result }) {
                 if (val === null) display = <span className="text-slate-300 italic">null</span>;
                 
                 return (
-                  <td key={f.name} className="px-4 py-2 text-slate-600 font-mono text-xs max-w-[300px] truncate">
+                  <td key={f.name} className="px-4 py-2 text-slate-600 font-mono text-xs max-w-[300px] truncate" title={String(val)}>
                     {display}
                   </td>
                 );
@@ -57,6 +58,7 @@ export default function AdminDatabasePage() {
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [searchTable, setSearchTable] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState(null);
 
   // Load Schema
   async function loadSchema() {
@@ -82,6 +84,7 @@ export default function AdminDatabasePage() {
     setStatus("running");
     setResult(null);
     setErrorMsg(null);
+    setCopyFeedback(null);
     setQuery(sqlToRun); // Update editor if we clicked a sidebar item
 
     try {
@@ -107,6 +110,37 @@ export default function AdminDatabasePage() {
   // Friendly error hint
   const isConnectionError = errorMsg && (errorMsg.includes("ENOTFOUND") || errorMsg.includes("ECONNREFUSED") || errorMsg.includes("5432"));
 
+  function downloadCSV() {
+    if (!result?.rows) return;
+    const headers = result.fields.map(f => f.name);
+    const csv = [
+      headers.join(","),
+      ...result.rows.map(row => headers.map(fieldName => {
+        const v = row[fieldName];
+        if (v === null || v === undefined) return "";
+        const s = String(typeof v === 'object' ? JSON.stringify(v) : v);
+        // Escape quotes
+        return `"${s.replace(/"/g, '""')}"`;
+      }).join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `query_result_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function copyJSON() {
+    if (!result?.rows) return;
+    navigator.clipboard.writeText(JSON.stringify(result.rows, null, 2));
+    setCopyFeedback("Copied!");
+    setTimeout(() => setCopyFeedback(null), 2000);
+  }
+
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50/50 -m-4 md:-m-8">
       
@@ -123,6 +157,18 @@ export default function AdminDatabasePage() {
         </div>
         
         <div className="flex items-center gap-3">
+           {result && (
+              <div className="flex items-center gap-2 mr-2">
+                 <Button tone="ghost" size="sm" onClick={copyJSON} title="Copy JSON">
+                    {copyFeedback ? <Check className="w-4 h-4 text-emerald-600" /> : <FileJson className="w-4 h-4" />}
+                 </Button>
+                 <Button tone="ghost" size="sm" onClick={downloadCSV} title="Download CSV">
+                    <Download className="w-4 h-4" />
+                 </Button>
+                 <div className="w-px h-6 bg-slate-200 mx-1" />
+              </div>
+           )}
+
            <div className="text-xs font-mono px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 hidden sm:block">
               {status === "running" ? "Running..." : result ? `${result.rowCount} rows in ${result.elapsedMs}ms` : "Ready"}
            </div>
