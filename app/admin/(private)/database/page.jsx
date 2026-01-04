@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { 
   Play, Database, Table as TableIcon, RefreshCw, 
-  Terminal, Search, Copy, Check, ChevronRight, Hash, AlertTriangle, Download, FileJson
+  Terminal, Search, Copy, Check, ChevronRight, Hash, AlertTriangle, Download, FileJson, Code
 } from "lucide-react";
 import { Button } from "@/components/admin/AdminControls";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -59,6 +59,7 @@ export default function AdminDatabasePage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [searchTable, setSearchTable] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(null);
+  const [viewMode, setViewMode] = useState("table"); // table | json
 
   // Load Schema
   async function loadSchema() {
@@ -85,13 +86,13 @@ export default function AdminDatabasePage() {
     setResult(null);
     setErrorMsg(null);
     setCopyFeedback(null);
-    setQuery(sqlToRun); // Update editor if we clicked a sidebar item
+    if (sqlOverride) setQuery(sqlOverride); 
 
     try {
       const res = await fetch("/api/admin/sql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: sqlToRun, allowMutations: true }), // Allow admins to run updates
+        body: JSON.stringify({ sql: sqlToRun, allowMutations: true }),
       });
       const data = await res.json();
       
@@ -106,8 +107,6 @@ export default function AdminDatabasePage() {
   }
 
   const filteredTables = tables.filter(t => t.table_name.toLowerCase().includes(searchTable.toLowerCase()));
-
-  // Friendly error hint
   const isConnectionError = errorMsg && (errorMsg.includes("ENOTFOUND") || errorMsg.includes("ECONNREFUSED") || errorMsg.includes("5432"));
 
   function downloadCSV() {
@@ -119,7 +118,6 @@ export default function AdminDatabasePage() {
         const v = row[fieldName];
         if (v === null || v === undefined) return "";
         const s = String(typeof v === 'object' ? JSON.stringify(v) : v);
-        // Escape quotes
         return `"${s.replace(/"/g, '""')}"`;
       }).join(","))
     ].join("\n");
@@ -159,8 +157,13 @@ export default function AdminDatabasePage() {
         <div className="flex items-center gap-3">
            {result && (
               <div className="flex items-center gap-2 mr-2">
+                 <div className="flex bg-slate-100 rounded-lg p-0.5 mr-2">
+                    <button onClick={() => setViewMode("table")} className={cx("px-2 py-1 rounded-md text-xs font-bold transition-all", viewMode === "table" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-700")}>Table</button>
+                    <button onClick={() => setViewMode("json")} className={cx("px-2 py-1 rounded-md text-xs font-bold transition-all", viewMode === "json" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-700")}>Text</button>
+                 </div>
+
                  <Button tone="ghost" size="sm" onClick={copyJSON} title="Copy JSON">
-                    {copyFeedback ? <Check className="w-4 h-4 text-emerald-600" /> : <FileJson className="w-4 h-4" />}
+                    {copyFeedback ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                  </Button>
                  <Button tone="ghost" size="sm" onClick={downloadCSV} title="Download CSV">
                     <Download className="w-4 h-4" />
@@ -265,7 +268,17 @@ export default function AdminDatabasePage() {
               )}
 
               {status === "success" && result && (
-                <ResultTable result={result} />
+                viewMode === "json" ? (
+                  <div className="p-0 h-full">
+                    <textarea 
+                      className="w-full h-full p-4 font-mono text-xs text-slate-700 bg-white outline-none resize-none"
+                      readOnly
+                      value={JSON.stringify(result.rows, null, 2)}
+                    />
+                  </div>
+                ) : (
+                  <ResultTable result={result} />
+                )
               )}
               
               {status === "idle" && !result && (
