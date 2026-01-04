@@ -21,7 +21,8 @@ import {
   Blocks,
   Code2,
   Brush,
-  Stethoscope // New Icon
+  Stethoscope,
+  FileText
 } from "lucide-react";
 import { cx } from "@/components/admin/adminUi";
 
@@ -29,6 +30,7 @@ const GROUPS = [
   {
     title: "Content Engine",
     items: [
+      { href: "/admin/content", label: "Content Manager", icon: FileText },
       { href: "/admin/builder", label: "Page Builder", icon: LayoutTemplate },
       { href: "/admin/lesson-builder", label: "Lesson Factory", icon: BookOpen },
       { href: "/admin/navigation", label: "Navigation", icon: Navigation },
@@ -42,7 +44,7 @@ const GROUPS = [
     items: [
       { href: "/admin/communications", label: "Communications", icon: Mail },
       { href: "/admin/system", label: "System & Ops", icon: Activity },
-      { href: "/admin/diagnostics", label: "Diagnostics", icon: Stethoscope }, // Added
+      { href: "/admin/diagnostics", label: "Diagnostics", icon: Stethoscope },
       { href: "/admin/users", label: "Users & Roles", icon: Users, minRole: "root" },
       { href: "/admin/audit", label: "Audit Log", icon: ClipboardList, minRole: "root" },
     ],
