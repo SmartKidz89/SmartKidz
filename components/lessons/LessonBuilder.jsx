@@ -68,7 +68,7 @@ export default function LessonBuilder() {
     subtopic: "Equivalent Fractions",
     useLocalLLM: false,
     llmUrl: "http://127.0.0.1:11434/v1", // Default Ollama
-    llmModel: "llama3",
+    llmModel: "qwen2.5:32b",
   });
 
   const [selectedJobId, setSelectedJobId] = useState(""); 
@@ -563,7 +563,7 @@ export default function LessonBuilder() {
                              <Input 
                                value={form.llmModel} 
                                onChange={e => setForm({...form, llmModel: e.target.value})} 
-                               placeholder="llama3"
+                               placeholder="qwen2.5:32b"
                              />
                           </div>
                        </div>
